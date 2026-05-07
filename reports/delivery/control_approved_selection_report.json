@@ -16,6 +16,8 @@
   "diagnostics": {
     "candidate_count": 1,
     "eligible_count": 1,
+    "excluded_by_repeat_count": 0,
+    "excluded_by_repeat_item_ids": [],
     "rejected_by_status": {},
     "traceability_violations": []
   },
@@ -45,6 +47,10 @@
       "approved",
       "published"
     ],
+    "repeat_policy": {
+      "applied": false,
+      "delivered_item_ids_for_consumer": []
+    },
     "selection_request_id": "sel_control_001",
     "theme_id": "T10"
   }

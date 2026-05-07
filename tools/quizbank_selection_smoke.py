@@ -25,6 +25,19 @@ def read_jsonl(path: Path) -> list[dict[str, str]]:
     return rows
 
 
+def delivered_item_ids(path: Path | None, consumer_id: str) -> set[str]:
+    if path is None:
+        return set()
+
+    report = json.loads(path.read_text(encoding="utf-8"))
+    delivery_log = report.get("delivery_log")
+    if not delivery_log:
+        return set()
+    if delivery_log.get("consumer_id") != consumer_id:
+        return set()
+    return {delivery_log["quiz_item_id"]}
+
+
 def matches_filters(item: dict[str, str], cefr_level: str, theme_id: str) -> bool:
     return item.get("sublevel") == cefr_level and item.get("theme_id") == theme_id
 
@@ -37,13 +50,20 @@ def select_eligible_item(
     items: list[dict[str, str]],
     cefr_level: str,
     theme_id: str,
+    delivered_item_ids_for_consumer: set[str],
 ) -> tuple[dict[str, str] | None, dict[str, object]]:
     matching_items = [item for item in items if matches_filters(item, cefr_level, theme_id)]
     status_counts = Counter(item.get("status", "(missing)") for item in matching_items)
-    eligible_items = [
+    status_eligible_items = [
         item
         for item in matching_items
         if item.get("status") in NORMAL_DELIVERY_STATUSES and has_traceability(item)
+    ]
+    repeat_blocked_items = [
+        item for item in status_eligible_items if item["item_id"] in delivered_item_ids_for_consumer
+    ]
+    eligible_items = [
+        item for item in status_eligible_items if item["item_id"] not in delivered_item_ids_for_consumer
     ]
     traceability_violations = [
         item.get("item_id", "(missing)")
@@ -58,12 +78,31 @@ def select_eligible_item(
             for status, count in sorted(status_counts.items())
             if status not in NORMAL_DELIVERY_STATUSES
         },
+        "excluded_by_repeat_count": len(repeat_blocked_items),
+        "excluded_by_repeat_item_ids": [item["item_id"] for item in repeat_blocked_items],
         "traceability_violations": traceability_violations,
     }
     return (eligible_items[0] if eligible_items else None), diagnostics
 
 
-def problem_details(consumer_id: str, cefr_level: str, theme_id: str) -> dict[str, object]:
+def filters_applied(repeat_policy_applied: bool) -> list[str]:
+    filters = [
+        "status",
+        "cefr_level",
+        "theme_id",
+        "source_traceability",
+    ]
+    if repeat_policy_applied:
+        filters.append("repeat_policy")
+    return filters
+
+
+def problem_details(
+    consumer_id: str,
+    cefr_level: str,
+    theme_id: str,
+    repeat_policy_applied: bool,
+) -> dict[str, object]:
     return {
         "type": "https://api.quizbank.example/problems/no-eligible-item",
         "title": "No eligible quiz item",
@@ -74,12 +113,7 @@ def problem_details(consumer_id: str, cefr_level: str, theme_id: str) -> dict[st
             "consumer_id": consumer_id,
             "cefr_levels": [cefr_level],
             "theme_ids": [theme_id],
-            "filters_applied": [
-                "status",
-                "cefr_level",
-                "theme_id",
-                "source_traceability",
-            ],
+            "filters_applied": filters_applied(repeat_policy_applied),
         },
     }
 
@@ -120,9 +154,16 @@ def build_report(
     cefr_level: str,
     theme_id: str,
     generated_at: str,
+    delivered_item_ids_for_consumer: set[str],
 ) -> dict[str, object]:
-    selected_item, diagnostics = select_eligible_item(items, cefr_level, theme_id)
+    selected_item, diagnostics = select_eligible_item(
+        items,
+        cefr_level,
+        theme_id,
+        delivered_item_ids_for_consumer,
+    )
     no_eligible = selected_item is None
+    repeat_policy_applied = bool(delivered_item_ids_for_consumer)
     return {
         "report_type": "selection_smoke",
         "generated_at": generated_at,
@@ -132,11 +173,22 @@ def build_report(
             "cefr_level": cefr_level,
             "theme_id": theme_id,
             "normal_delivery_statuses": list(NORMAL_DELIVERY_STATUSES),
+            "repeat_policy": {
+                "applied": repeat_policy_applied,
+                "delivered_item_ids_for_consumer": sorted(delivered_item_ids_for_consumer),
+            },
         },
         "diagnostics": diagnostics,
         "selected_item": None if no_eligible else public_projection(selected_item),
         "problem_details": (
-            problem_details(consumer_id, cefr_level, theme_id) if no_eligible else None
+            problem_details(
+                consumer_id,
+                cefr_level,
+                theme_id,
+                repeat_policy_applied,
+            )
+            if no_eligible
+            else None
         ),
         "delivery_created": not no_eligible,
         "delivery_log": None if no_eligible else delivery_log(selected_item, consumer_id),
@@ -163,6 +215,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--consumer-id", default="consumer_control_normal")
     parser.add_argument("--cefr-level", default="A2")
     parser.add_argument("--theme-id", default="T10")
+    parser.add_argument("--delivery-history", type=Path)
     parser.add_argument("--generated-at", default=DEFAULT_GENERATED_AT)
     return parser.parse_args()
 
@@ -176,12 +229,14 @@ def main() -> int:
         return 1
 
     items = read_jsonl(args.canonical_input)
+    history_item_ids = delivered_item_ids(args.delivery_history, args.consumer_id)
     report = build_report(
         items,
         args.consumer_id,
         args.cefr_level,
         args.theme_id,
         args.generated_at,
+        history_item_ids,
     )
     write_report(args.report_out, report)
     status = "no eligible item" if report["selected_item"] is None else "selected item"

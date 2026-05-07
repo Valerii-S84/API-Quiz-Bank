@@ -2,13 +2,13 @@
   "delivery_created": false,
   "delivery_log": null,
   "diagnostics": {
-    "candidate_count": 2,
+    "candidate_count": 1,
     "eligible_count": 0,
-    "excluded_by_repeat_count": 0,
-    "excluded_by_repeat_item_ids": [],
-    "rejected_by_status": {
-      "draft": 2
-    },
+    "excluded_by_repeat_count": 1,
+    "excluded_by_repeat_item_ids": [
+      "approved_traceable_001"
+    ],
+    "rejected_by_status": {},
     "traceability_violations": []
   },
   "generated_at": "2026-05-07T00:00:00+00:00",
@@ -24,7 +24,8 @@
         "status",
         "cefr_level",
         "theme_id",
-        "source_traceability"
+        "source_traceability",
+        "repeat_policy"
       ],
       "theme_ids": [
         "T10"
@@ -44,8 +45,10 @@
       "published"
     ],
     "repeat_policy": {
-      "applied": false,
-      "delivered_item_ids_for_consumer": []
+      "applied": true,
+      "delivered_item_ids_for_consumer": [
+        "approved_traceable_001"
+      ]
     },
     "selection_request_id": "sel_control_001",
     "theme_id": "T10"

@@ -174,6 +174,7 @@ class RepositoryInvariantTests(unittest.TestCase):
             "data/registry/source_registry.csv",
             "reports/coverage/corpus_coverage.json",
             "reports/delivery/control_approved_selection_report.json",
+            "reports/delivery/control_repeat_policy_report.json",
             "reports/delivery/control_selection_report.json",
             "reports/imports/control_sample_import.json",
             "tests/fixtures/control_source/control_sample.csv",
@@ -322,6 +323,8 @@ class RepositoryInvariantTests(unittest.TestCase):
         )
         self.assertEqual(report["diagnostics"]["candidate_count"], 2)
         self.assertEqual(report["diagnostics"]["eligible_count"], 0)
+        self.assertEqual(report["diagnostics"]["excluded_by_repeat_count"], 0)
+        self.assertEqual(report["diagnostics"]["excluded_by_repeat_item_ids"], [])
         self.assertEqual(report["diagnostics"]["rejected_by_status"], {"draft": 2})
         self.assertEqual(report["diagnostics"]["traceability_violations"], [])
         self.assertIsNone(report["selected_item"])
@@ -351,6 +354,8 @@ class RepositoryInvariantTests(unittest.TestCase):
         self.assertEqual(report["report_type"], "selection_smoke")
         self.assertEqual(report["diagnostics"]["candidate_count"], 1)
         self.assertEqual(report["diagnostics"]["eligible_count"], 1)
+        self.assertEqual(report["diagnostics"]["excluded_by_repeat_count"], 0)
+        self.assertEqual(report["diagnostics"]["excluded_by_repeat_item_ids"], [])
         self.assertEqual(report["diagnostics"]["rejected_by_status"], {})
         self.assertEqual(report["diagnostics"]["traceability_violations"], [])
         self.assertTrue(report["delivery_created"])
@@ -365,6 +370,49 @@ class RepositoryInvariantTests(unittest.TestCase):
                 "provenance_note": "control_selection_fixture:approved_traceable",
                 "source_type": "fixture_approved_source",
             },
+        )
+
+    def test_repeat_policy_report_is_current(self) -> None:
+        artifact_paths = ["reports/delivery/control_repeat_policy_report.json"]
+        before = file_texts(artifact_paths)
+        run_command(
+            sys.executable,
+            "tools/quizbank_selection_smoke.py",
+            "--canonical-input",
+            "tests/fixtures/selection/approved_traceable_items.jsonl",
+            "--delivery-history",
+            "reports/delivery/control_approved_selection_report.json",
+            "--report-out",
+            "reports/delivery/control_repeat_policy_report.json",
+        )
+        self.assertEqual(file_texts(artifact_paths), before)
+
+        report = json.loads((ROOT / "reports/delivery/control_repeat_policy_report.json").read_text())
+        self.assertEqual(report["report_type"], "selection_smoke")
+        self.assertEqual(report["diagnostics"]["candidate_count"], 1)
+        self.assertEqual(report["diagnostics"]["eligible_count"], 0)
+        self.assertEqual(report["diagnostics"]["excluded_by_repeat_count"], 1)
+        self.assertEqual(
+            report["diagnostics"]["excluded_by_repeat_item_ids"],
+            ["approved_traceable_001"],
+        )
+        self.assertEqual(report["diagnostics"]["rejected_by_status"], {})
+        self.assertEqual(report["diagnostics"]["traceability_violations"], [])
+        self.assertTrue(report["selection_request"]["repeat_policy"]["applied"])
+        self.assertEqual(
+            report["selection_request"]["repeat_policy"]["delivered_item_ids_for_consumer"],
+            ["approved_traceable_001"],
+        )
+        self.assertIsNone(report["selected_item"])
+        self.assertFalse(report["delivery_created"])
+        self.assertIsNone(report["delivery_log"])
+        self.assertEqual(
+            report["problem_details"]["reason_code"],
+            "SELECTION_NO_ELIGIBLE_ITEM",
+        )
+        self.assertIn(
+            "repeat_policy",
+            report["problem_details"]["selection_context"]["filters_applied"],
         )
 
 
