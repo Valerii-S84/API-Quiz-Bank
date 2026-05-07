@@ -171,9 +171,11 @@ class RepositoryInvariantTests(unittest.TestCase):
             "data/manifests/import_manifest.yml",
             "data/imports/control_sample_items.jsonl",
             "data/registry/source_registry.csv",
+            "reports/coverage/corpus_coverage.json",
             "reports/imports/control_sample_import.json",
             "tests/fixtures/control_source/control_sample.csv",
             "tools/quizbank_import_sample.py",
+            "tools/quizbank_gap_map.py",
         ]
         for relative_path in required_paths:
             self.assertTrue((ROOT / relative_path).exists(), relative_path)
@@ -259,6 +261,47 @@ class RepositoryInvariantTests(unittest.TestCase):
         self.assertEqual(len(canonical_items), 2)
         self.assertTrue(all(item["status"] == "draft" for item in canonical_items))
         self.assertTrue(all(set(item) == set(EXPECTED_HEADER) for item in canonical_items))
+
+    def test_coverage_report_is_current(self) -> None:
+        artifact_paths = ["reports/coverage/corpus_coverage.json"]
+        before = file_texts(artifact_paths)
+        run_command(
+            sys.executable,
+            "tools/quizbank_gap_map.py",
+            "--quizbank-dir",
+            "QuizBank",
+            "--write-artifacts",
+        )
+        self.assertEqual(file_texts(artifact_paths), before)
+
+        report = json.loads((ROOT / "reports/coverage/corpus_coverage.json").read_text())
+        self.assertEqual(report["report_type"], "coverage")
+        self.assertEqual(report["source"]["active_bank_files"], 115)
+        self.assertEqual(report["source"]["active_rows"], 30974)
+        self.assertEqual(report["status_counts"]["draft"], 30974)
+        self.assertEqual(report["status_counts"]["published"], 0)
+        self.assertEqual(
+            report["gap_summary"]["level_theme_total_cells"],
+            len(CANONICAL_LEVELS) * len(THEME_TITLES),
+        )
+        self.assertEqual(len(report["level_theme_matrix"]), 108)
+        self.assertGreater(len(report["coverage_cells"]), 0)
+        first_cell = report["coverage_cells"][0]
+        required_fields = {
+            "cefr_level",
+            "primary_theme_id",
+            "objective_id",
+            "pattern_id",
+            "item_count_total",
+            "item_count_draft",
+            "item_count_approved",
+            "item_count_published",
+            "item_count_retired",
+            "item_count_blocked",
+            "coverage_status",
+            "last_generated_at",
+        }
+        self.assertEqual(set(first_cell), required_fields)
 
 
 if __name__ == "__main__":
