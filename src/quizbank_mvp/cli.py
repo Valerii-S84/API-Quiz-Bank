@@ -1,0 +1,94 @@
+"""Command line entrypoints for MVP database operations."""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from .database import (
+    connect,
+    initialize_database,
+    seed_consumer,
+    seed_control_fixture,
+    seed_demo_state,
+    seed_entitlement,
+    transition_item_status,
+)
+
+
+ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="API Quiz Bank MVP runtime commands.")
+    parser.add_argument("--db-path", type=Path, default=None)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    subparsers.add_parser("init-db", help="Create the SQLite MVP schema.")
+
+    seed_items = subparsers.add_parser("seed-items", help="Import a canonical JSONL fixture.")
+    seed_items.add_argument("--fixture", type=Path, default=DEFAULT_FIXTURE)
+    seed_items.add_argument("--status", default="approved")
+
+    seed_consumer_parser = subparsers.add_parser("seed-consumer", help="Create consumer access.")
+    seed_consumer_parser.add_argument("--consumer-id", required=True)
+    seed_consumer_parser.add_argument("--daily-quota-limit", type=int, default=10)
+    seed_consumer_parser.add_argument("--cefr-level", action="append", default=[])
+    seed_consumer_parser.add_argument("--theme-id", action="append", default=[])
+    seed_consumer_parser.add_argument("--with-entitlement", action="store_true")
+
+    demo = subparsers.add_parser("seed-demo", help="Seed demo item, consumers and entitlement.")
+    demo.add_argument("--fixture", type=Path, default=DEFAULT_FIXTURE)
+
+    transition = subparsers.add_parser("transition-status", help="Transition item status.")
+    transition.add_argument("--item-id", required=True)
+    transition.add_argument("--to-status", required=True)
+    transition.add_argument("--actor", default="local_admin")
+    transition.add_argument("--reason", required=True)
+
+    subparsers.add_parser("show-audit-log", help="Print audit log as JSON.")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    if args.command == "init-db":
+        path = initialize_database(args.db_path)
+        print(f"initialized database: {path}")
+        return 0
+    if args.command == "seed-items":
+        count = seed_control_fixture(args.db_path, args.fixture, args.status)
+        print(f"seeded quiz items: {count}")
+        return 0
+    if args.command == "seed-consumer":
+        seed_consumer(
+            args.db_path,
+            args.consumer_id,
+            args.daily_quota_limit,
+            args.cefr_level,
+            args.theme_id,
+        )
+        if args.with_entitlement:
+            seed_entitlement(args.db_path, args.consumer_id, args.cefr_level, args.theme_id)
+        print(f"seeded consumer: {args.consumer_id}")
+        return 0
+    if args.command == "seed-demo":
+        seed_demo_state(args.db_path, args.fixture)
+        print("seeded MVP demo state")
+        return 0
+    if args.command == "transition-status":
+        transition_item_status(args.db_path, args.item_id, args.to_status, args.actor, args.reason)
+        print(f"transitioned {args.item_id} to {args.to_status}")
+        return 0
+    if args.command == "show-audit-log":
+        with connect(args.db_path) as connection:
+            rows = connection.execute("SELECT * FROM audit_log ORDER BY created_at").fetchall()
+        print(json.dumps([dict(row) for row in rows], ensure_ascii=False, indent=2))
+        return 0
+    raise AssertionError(f"unhandled command: {args.command}")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

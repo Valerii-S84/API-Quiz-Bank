@@ -25,6 +25,8 @@ The project is not a raw CSV delivery layer. Raw CSV files under `QuizBank/` are
 - `data/taxonomy/` — taxonomy seed files derived from the current corpus.
 - `schemas/` — seed JSON Schema artifacts.
 - `api/` — seed OpenAPI contract.
+- `database/migrations/` — SQLite MVP runtime schema migrations.
+- `src/quizbank_mvp/` — FastAPI and SQLite MVP runtime.
 - `reports/imports/` — local dry-run import evidence artifacts.
 - `reports/coverage/` — reproducible corpus coverage evidence.
 - `reports/delivery/` — local selection/delivery smoke evidence.
@@ -40,6 +42,39 @@ python3 tools/quizbank_import_sample.py
 python3 tools/quizbank_gap_map.py --quizbank-dir QuizBank --write-artifacts
 python3 tools/quizbank_selection_smoke.py
 python3 -m unittest discover -s tests -p "test_*.py"
+```
+
+## MVP Runtime
+
+Install local runtime dependencies:
+
+```bash
+python3 -m pip install -e ".[dev]"
+```
+
+Create and seed the local SQLite MVP database:
+
+```bash
+PYTHONPATH=src python3 -m quizbank_mvp.cli --db-path var/quizbank_mvp.sqlite3 init-db
+PYTHONPATH=src python3 -m quizbank_mvp.cli --db-path var/quizbank_mvp.sqlite3 seed-demo
+```
+
+Run the API locally:
+
+```bash
+QUIZBANK_DB_PATH=var/quizbank_mvp.sqlite3 PYTHONPATH=src uvicorn quizbank_mvp.app:app --host 127.0.0.1 --port 8000
+```
+
+Exercise the MVP delivery flow:
+
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/ready
+curl -X POST http://127.0.0.1:8000/v1/quiz-items/next \
+  -H 'Content-Type: application/json' \
+  -H 'X-Consumer-Id: consumer_demo' \
+  -d '{"consumer_id":"consumer_demo","cefr_level":"A2","theme_ids":["T10"]}'
+PYTHONPATH=src python3 tools/run_mvp_demo.py
 ```
 
 ## Rules
