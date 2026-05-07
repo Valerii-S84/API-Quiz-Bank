@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  repository-invariants:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run corpus inventory
+        run: python3 tools/quizbank_inventory.py --quizbank-dir QuizBank
+
+      - name: Run constitution check
+        run: python3 tools/quizbank_constitution_check.py --quizbank-dir QuizBank
+
+      - name: Run invariant tests
+        run: python3 -m unittest discover -s tests -p "test_*.py"

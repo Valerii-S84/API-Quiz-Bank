@@ -8,25 +8,28 @@
 ## 1. Stack
 
 - Project name: `API Quiz Bank` (internal historical names: `QuizBank`, `German QuizBank Platform`)
-- Primary languages: `Markdown` documentation and `CSV` corpus data in the current snapshot; target implementation stack is documented around `Python 3.12+`, `OpenAPI` and `PostgreSQL`
-- Runtime / platform: `Current snapshot is a documentation-and-data repository without committed runnable services; target platform is an API-first quiz platform with versioned HTTP API, workers and Telegram integration`
-- Main frameworks / libraries: `No committed runtime framework in the current snapshot; target architecture documents FastAPI or equivalent ASGI framework, JSON Schema/OpenAPI contracts and PostgreSQL-backed services`
+- Primary languages: `Markdown` documentation, `CSV` corpus/governance data, `Python 3.12+` local tooling/tests, `YAML` OpenAPI/manifest/profile seeds and `JSON Schema`
+- Runtime / platform: `Current snapshot is a documentation-and-data repository with committed local validation/generation tooling but without runnable API services; target platform is an API-first quiz platform with versioned HTTP API, workers and Telegram integration`
+- Main frameworks / libraries: `Python standard-library tooling and unittest are committed; no runtime web framework is committed yet; target architecture documents FastAPI or equivalent ASGI framework, JSON Schema/OpenAPI contracts and PostgreSQL-backed services`
 - Data stores: `Current source assets are top-level CSV files under QuizBank/; target operational source of truth is PostgreSQL after controlled import`
 - Default user-facing language: `Ukrainian for documentation and operator-facing text, with canonical technical terms in English; quiz content itself is German`
 
 ## 2. Project structure
 
-- Root entrypoints: `CONSTITUTION.md`, `.agent/`, `docs/`, `QuizBank/`, `policies/`, `runbooks/`, `reports/`, `data/`
-- Source directories: `QuizBank/` for source corpus assets, `QuizBank/staging/` for staged source work, `docs/` for normative project documents, `policies/` and `runbooks/` for operational policy/workflow baselines, `reports/compliance/` for compliance evidence registers, `data/governance/` for governance CSV registers, `.agent/` for agent governance`
-- Test directories: `No committed tests/ directory in the current snapshot; target repository shape in the docs reserves tests/ for unit, integration, contract, data-quality and security checks`
-- Config / infra directories: `No committed runtime config/infra directories in the current snapshot; data/governance/ exists for governance registers, while docs reserve future runtime paths such as api/, services/, infra/, tools/ and tests/`
+- Root entrypoints: `README.md`, `CONSTITUTION.md`, `.agent/`, `docs/`, `QuizBank/`, `tools/`, `tests/`, `api/`, `schemas/`, `data/`, `policies/`, `runbooks/`, `reports/`, `.github/`
+- Source directories: `QuizBank/` for source corpus assets, `QuizBank/staging/` for staged source work, `tools/` for local validation/generation tooling, `api/` for OpenAPI seed, `schemas/` for JSON Schema seed, `docs/` for normative project documents, `policies/` and `runbooks/` for operational policy/workflow baselines, `reports/compliance/` for compliance evidence registers, `data/` for manifests, parser profiles, taxonomy and governance CSV registers, `.agent/` for agent governance`
+- Test directories: `tests/` for repository invariant tests using Python unittest`
+- Config / infra directories: `.github/workflows/` for baseline CI; no committed runtime deploy/infra directories yet; docs reserve future runtime paths such as services/ and infra/`
 - Read-only or protected paths: `.agent/core/` as normative agent rules, `CONSTITUTION.md` as project source of truth, `QuizBank/README.md` as generated inventory snapshot, raw corpus files in `QuizBank/*.csv` unless the task explicitly targets corpus changes`
 
 ## 3. Key commands
 
 | Purpose | Command | Notes |
 |---|---|---|
-| Test | `python3 tools/quizbank_constitution_check.py --quizbank-dir QuizBank` | Documented corpus validation command from `QuizBank/README.md`; referenced tooling is not committed in this snapshot |
+| Test | `python3 -m unittest discover -s tests -p "test_*.py"` | Runs repository invariant tests |
+| Corpus validation | `python3 tools/quizbank_constitution_check.py --quizbank-dir QuizBank` | Validates current corpus baseline and constitutional invariants |
+| Inventory generation | `python3 tools/quizbank_inventory.py --quizbank-dir QuizBank --write-artifacts` | Regenerates manifest, inventory, checksums and parser profile artifacts |
+| Contract seed generation | `python3 tools/quizbank_emit_standards.py` | Regenerates taxonomy, JSON Schema and OpenAPI seed artifacts |
 | Lint | `Not defined in current snapshot.` | No committed generic linter or style-check pipeline exists yet |
 | Build | `Not defined in current snapshot.` | No buildable API/service implementation is committed yet |
 | Dev / Run | `Not defined in current snapshot.` | Target runtime is documented, but runnable services are not present in the repository snapshot |
@@ -37,7 +40,7 @@
 |---|---|---|---|
 | `Telegram Bot API` | Planned quiz/poll delivery consumer | Planned external integration; not configured in current snapshot | Telegram is an adapter/consumer and must not own selection logic |
 | `PostgreSQL` | Planned canonical operational data store | Planned runtime dependency; not configured in current snapshot | Raw CSV remains source asset, PostgreSQL is the intended operational truth after import |
-| `GitHub / GitHub Actions or equivalent` | Planned repository governance, CI and protected-branch workflow | Planned hosting/integration; current workspace is not initialized as a git repository | Docs repeatedly require PR/check discipline for production-relevant changes |
+| `GitHub / GitHub Actions or equivalent` | Planned repository governance, CI and protected-branch workflow | Local Git repository is initialized; remote hosting is not configured yet | Docs repeatedly require PR/check discipline for production-relevant changes |
 
 ## 5. Project constraints
 
@@ -50,7 +53,7 @@
 
 ## 6. Git settings
 
-- Default / protected branch: `main` (per Constitution/docs governance target; current workspace is not initialized as a git repository)`
+- Default / protected branch: `main` (per Constitution/docs governance target; local Git repository initialized, remote protection not configured yet)
 - Branching strategy: `Use short-lived task/feature branches and merge to main only through PR or equivalent approved change path for production-relevant work`
 - Merge strategy: `No direct pushes to main; merge only through reviewed PR or equivalent approved change path with the repository host's configured method`
 - PR title format: `Conventional Commits style: type(scope): summary`
