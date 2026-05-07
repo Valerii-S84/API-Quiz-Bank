@@ -1,0 +1,47 @@
+{
+  "import_mode": "dry_run",
+  "source_id": "sample_control_001",
+  "source_path": "tests/fixtures/control_source/control_sample.csv",
+  "parser_profile_id": "csv_quiz_bank_v1",
+  "checksum_sha256": "ac17ee2680f883c16290d0f522f1dcb91708957b46bdd69d3845ebd1f5254d32",
+  "row_count_detected": 2,
+  "generated_at": "2026-05-07T00:00:00+00:00",
+  "imported_items": [
+    {
+      "source_id": "sample_control_001",
+      "source_item_id": "control_sample_001",
+      "language": "de",
+      "cefr_level": "A2",
+      "theme_id": "T10",
+      "objective_id": "O02",
+      "pattern_id": "P01",
+      "prompt": "Welche Ergänzung passt hier am besten?",
+      "stem_text": "Ich muss morgen einen Termin ___.",
+      "options": [
+        "buchen",
+        "trinken",
+        "lesen",
+        "öffnen"
+      ],
+      "status": "draft"
+    },
+    {
+      "source_id": "sample_control_001",
+      "source_item_id": "control_sample_002",
+      "language": "de",
+      "cefr_level": "A2",
+      "theme_id": "T10",
+      "objective_id": "O02",
+      "pattern_id": "P01",
+      "prompt": "Welche Antwort passt im Kontext?",
+      "stem_text": "Wenn ich keine Zeit habe, muss ich den Termin ___.",
+      "options": [
+        "verschieben",
+        "kochen",
+        "bezahlen",
+        "malen"
+      ],
+      "status": "draft"
+    }
+  ]
+}

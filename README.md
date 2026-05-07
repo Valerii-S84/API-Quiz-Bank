@@ -20,9 +20,11 @@ The project is not a raw CSV delivery layer. Raw CSV files under `QuizBank/` are
 - `QuizBank/` — source CSV corpus and generated corpus README.
 - `data/manifests/` — generated source inventory, checksums and import manifest.
 - `data/parser_profiles/` — parser profile seed for current CSV corpus.
+- `data/registry/` — MVP source registry seed for controlled import evidence.
 - `data/taxonomy/` — taxonomy seed files derived from the current corpus.
 - `schemas/` — seed JSON Schema artifacts.
 - `api/` — seed OpenAPI contract.
+- `reports/imports/` — local dry-run import evidence artifacts.
 - `tools/` — local corpus tooling.
 - `tests/` — repository invariant tests.
 
@@ -31,6 +33,7 @@ The project is not a raw CSV delivery layer. Raw CSV files under `QuizBank/` are
 ```bash
 python3 tools/quizbank_inventory.py --quizbank-dir QuizBank
 python3 tools/quizbank_constitution_check.py --quizbank-dir QuizBank
+python3 tools/quizbank_import_sample.py
 python3 -m unittest discover -s tests -p "test_*.py"
 ```
 
@@ -40,4 +43,4 @@ python3 -m unittest discover -s tests -p "test_*.py"
 - Do not expose raw CSV as public product content.
 - Do not treat `draft`, `blocked`, `retired`, `needs_review`, `imported`, `normalized` or `monitored` items as normal-delivery eligible.
 - Do not wire real secrets, production hosts, billing providers or Telegram delivery without explicit review and approval.
-
+- The repository is private/all-rights-reserved unless `LICENSE` and `policies/license_policy.md` are explicitly changed through approved review.

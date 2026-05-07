@@ -13,6 +13,7 @@
 ```bash
 python3 tools/quizbank_inventory.py --quizbank-dir QuizBank
 python3 tools/quizbank_constitution_check.py --quizbank-dir QuizBank
+python3 tools/quizbank_import_sample.py
 python3 -m unittest discover -s tests -p "test_*.py"
 ```
 
@@ -21,6 +22,7 @@ python3 -m unittest discover -s tests -p "test_*.py"
 - Regenerate `QuizBank/README.md` with `python3 tools/quizbank_readme.py`.
 - Regenerate manifest/parser artifacts with `python3 tools/quizbank_inventory.py --quizbank-dir QuizBank --write-artifacts`.
 - Regenerate schema/taxonomy/API seed artifacts with `python3 tools/quizbank_emit_standards.py`.
+- Regenerate the control import evidence with `python3 tools/quizbank_import_sample.py`.
 
 ## Protected Content
 
@@ -32,4 +34,3 @@ python3 -m unittest discover -s tests -p "test_*.py"
 ## Review Expectations
 
 Production-relevant changes should be reviewed before merge once a remote repository and branch protection are configured. Until then, local commits are only repository snapshots, not production releases.
-

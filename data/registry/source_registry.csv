@@ -1,0 +1,2 @@
+source_id,path,format,parser_profile_id,source_state,checksum_sha256,row_count_detected,registered_at,notes
+sample_control_001,tests/fixtures/control_source/control_sample.csv,CSV,csv_quiz_bank_v1,dry_run_passed,ac17ee2680f883c16290d0f522f1dcb91708957b46bdd69d3845ebd1f5254d32,2,2026-05-07T00:00:00+00:00,control sample fixture for MVP import pipeline
