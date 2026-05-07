@@ -44,6 +44,26 @@ EXPECTED_HEADER = [
 ]
 
 CANONICAL_LEVELS = ("A1", "A2", "B1", "B2", "C1", "C2")
+THEME_TITLES = {
+    "T01": "Person / Identität / Familie",
+    "T02": "Alltag / Zeit / Organisation",
+    "T03": "Wohnen / Haushalt / Verträge",
+    "T04": "Einkaufen / Geld / Konsum",
+    "T05": "Essen / Gesundheit / Pflege",
+    "T06": "Arbeit / Beruf / Karriere",
+    "T07": "Schule / Bildung / Weiterbildung",
+    "T08": "Verkehr / Reise / Orientierung",
+    "T09": "Kommunikation / Telefon / Nachricht / E-Mail",
+    "T10": "Termine / Formulare / Behörden / Recht",
+    "T11": "Freizeit / Kultur / Service / soziale Kontakte",
+    "T12": "Medien / Digitales / Nachrichten",
+    "T13": "Gesellschaft / Integration / Werte",
+    "T14": "Umwelt / Nachhaltigkeit / Alltagssysteme",
+    "T15": "Wirtschaft / Finanzen / Arbeitswelt",
+    "T16": "Wissenschaft / Technik / Forschung",
+    "T17": "Politik / Öffentlichkeit / Debatte",
+    "T18": "Analyse / Interpretation / Argumentation",
+}
 ITEM_STATUSES = (
     "draft",
     "imported",
@@ -209,4 +229,3 @@ def inventory_summary(inventory: CorpusInventory) -> dict[str, object]:
 
 def print_json(payload: object) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
-

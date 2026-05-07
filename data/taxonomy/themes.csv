@@ -1,19 +1,19 @@
 theme_id,title,observed_item_count,status,label_status
-T01,Theme T01,2900,active,seed
-T02,Theme T02,3401,active,seed
-T03,Theme T03,1896,active,seed
-T04,Theme T04,1851,active,seed
-T05,Theme T05,1652,active,seed
-T06,Theme T06,1852,active,seed
-T07,Theme T07,1801,active,seed
-T08,Theme T08,1688,active,seed
-T09,Theme T09,2224,active,seed
-T10,Theme T10,2191,active,seed
-T11,Theme T11,1910,active,seed
-T12,Theme T12,1209,active,seed
-T13,Theme T13,1227,active,seed
-T14,Theme T14,1201,active,seed
-T15,Theme T15,1257,active,seed
-T16,Theme T16,904,active,seed
-T17,Theme T17,910,active,seed
-T18,Theme T18,900,active,seed
+T01,Person / Identität / Familie,2900,active,canonical
+T02,Alltag / Zeit / Organisation,3401,active,canonical
+T03,Wohnen / Haushalt / Verträge,1896,active,canonical
+T04,Einkaufen / Geld / Konsum,1851,active,canonical
+T05,Essen / Gesundheit / Pflege,1652,active,canonical
+T06,Arbeit / Beruf / Karriere,1852,active,canonical
+T07,Schule / Bildung / Weiterbildung,1801,active,canonical
+T08,Verkehr / Reise / Orientierung,1688,active,canonical
+T09,Kommunikation / Telefon / Nachricht / E-Mail,2224,active,canonical
+T10,Termine / Formulare / Behörden / Recht,2191,active,canonical
+T11,Freizeit / Kultur / Service / soziale Kontakte,1910,active,canonical
+T12,Medien / Digitales / Nachrichten,1209,active,canonical
+T13,Gesellschaft / Integration / Werte,1227,active,canonical
+T14,Umwelt / Nachhaltigkeit / Alltagssysteme,1201,active,canonical
+T15,Wirtschaft / Finanzen / Arbeitswelt,1257,active,canonical
+T16,Wissenschaft / Technik / Forschung,904,active,canonical
+T17,Politik / Öffentlichkeit / Debatte,910,active,canonical
+T18,Analyse / Interpretation / Argumentation,900,active,canonical

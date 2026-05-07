@@ -604,6 +604,29 @@ allowed_levels
 status
 ```
 
+Current canonical German theme family titles:
+
+| theme_id | title_de |
+|---|---|
+| T01 | Person / Identität / Familie |
+| T02 | Alltag / Zeit / Organisation |
+| T03 | Wohnen / Haushalt / Verträge |
+| T04 | Einkaufen / Geld / Konsum |
+| T05 | Essen / Gesundheit / Pflege |
+| T06 | Arbeit / Beruf / Karriere |
+| T07 | Schule / Bildung / Weiterbildung |
+| T08 | Verkehr / Reise / Orientierung |
+| T09 | Kommunikation / Telefon / Nachricht / E-Mail |
+| T10 | Termine / Formulare / Behörden / Recht |
+| T11 | Freizeit / Kultur / Service / soziale Kontakte |
+| T12 | Medien / Digitales / Nachrichten |
+| T13 | Gesellschaft / Integration / Werte |
+| T14 | Umwelt / Nachhaltigkeit / Alltagssysteme |
+| T15 | Wirtschaft / Finanzen / Arbeitswelt |
+| T16 | Wissenschaft / Technik / Forschung |
+| T17 | Politik / Öffentlichkeit / Debatte |
+| T18 | Analyse / Interpretation / Argumentation |
+
 ### 11.4. Objectives
 
 Each objective MUST have:

@@ -11,6 +11,7 @@ from quizbank_common import (
     CANONICAL_LEVELS,
     EXPECTED_HEADER,
     ITEM_STATUSES,
+    THEME_TITLES,
     counter_for,
     load_inventory,
 )
@@ -21,10 +22,18 @@ def write_text(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-def write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, object]]) -> None:
+def write_csv(
+    path: Path,
+    fieldnames: list[str],
+    rows: list[dict[str, object]],
+    lineterminator: str | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    writer_options = {}
+    if lineterminator is not None:
+        writer_options["lineterminator"] = lineterminator
     with path.open("w", encoding="utf-8", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer = csv.DictWriter(file, fieldnames=fieldnames, **writer_options)
         writer.writeheader()
         writer.writerows(rows)
 
@@ -92,14 +101,15 @@ def write_taxonomy(inventory) -> None:
         ["theme_id", "title", "observed_item_count", "status", "label_status"],
         [
             {
-                "theme_id": f"T{index:02d}",
-                "title": f"Theme T{index:02d}",
-                "observed_item_count": theme_counts[f"T{index:02d}"],
+                "theme_id": theme_id,
+                "title": title,
+                "observed_item_count": theme_counts[theme_id],
                 "status": "active",
-                "label_status": "seed",
+                "label_status": "canonical",
             }
-            for index in range(1, 19)
+            for theme_id, title in THEME_TITLES.items()
         ],
+        lineterminator="\n",
     )
     write_csv(
         Path("data/taxonomy/objectives.csv"),

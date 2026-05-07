@@ -16,6 +16,7 @@ from quizbank_common import (
     EXPECTED_HEADER,
     ITEM_STATUSES,
     PARSER_PROFILE_ID,
+    THEME_TITLES,
     file_sha256,
 )
 
@@ -122,6 +123,14 @@ class RepositoryInvariantTests(unittest.TestCase):
         self.assertEqual(schema["properties"]["language"], {"type": "string", "const": "de"})
         self.assertEqual(schema["properties"]["sublevel"]["enum"], list(CANONICAL_LEVELS))
         self.assertEqual(schema["properties"]["status"]["enum"], list(ITEM_STATUSES))
+
+    def test_theme_taxonomy_uses_canonical_titles(self) -> None:
+        theme_rows = read_csv_dicts("data/taxonomy/themes.csv")
+        self.assertEqual(len(theme_rows), len(THEME_TITLES))
+        for row in theme_rows:
+            self.assertEqual(row["title"], THEME_TITLES[row["theme_id"]])
+            self.assertEqual(row["status"], "active")
+            self.assertEqual(row["label_status"], "canonical")
 
     def test_openapi_seed_preserves_public_delivery_boundary(self) -> None:
         openapi = (ROOT / "api" / "openapi.yaml").read_text(encoding="utf-8")
