@@ -15,6 +15,7 @@ python3 tools/quizbank_inventory.py --quizbank-dir QuizBank
 python3 tools/quizbank_constitution_check.py --quizbank-dir QuizBank
 python3 tools/quizbank_import_sample.py
 python3 tools/quizbank_gap_map.py --quizbank-dir QuizBank --write-artifacts
+python3 tools/quizbank_selection_smoke.py
 python3 -m unittest discover -s tests -p "test_*.py"
 ```
 
@@ -25,6 +26,7 @@ python3 -m unittest discover -s tests -p "test_*.py"
 - Regenerate schema/taxonomy/API seed artifacts with `python3 tools/quizbank_emit_standards.py`.
 - Regenerate the control import evidence and canonical JSONL sample with `python3 tools/quizbank_import_sample.py`.
 - Regenerate the corpus coverage report with `python3 tools/quizbank_gap_map.py --quizbank-dir QuizBank --write-artifacts`.
+- Regenerate the selection smoke evidence with `python3 tools/quizbank_selection_smoke.py`.
 
 ## Protected Content
 

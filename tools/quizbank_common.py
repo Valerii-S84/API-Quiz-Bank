@@ -77,6 +77,7 @@ ITEM_STATUSES = (
     "retired",
     "blocked",
 )
+NORMAL_DELIVERY_STATUSES = ("approved", "published")
 TEMPLATE_FILENAMES = {"logik_luecke_sheet_template.csv"}
 PARSER_PROFILE_ID = "csv_quiz_bank_v1"
 

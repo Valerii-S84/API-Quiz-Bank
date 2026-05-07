@@ -1,0 +1,47 @@
+{
+  "delivery_created": false,
+  "delivery_log": null,
+  "diagnostics": {
+    "candidate_count": 2,
+    "eligible_count": 0,
+    "rejected_by_status": {
+      "draft": 2
+    },
+    "traceability_violations": []
+  },
+  "generated_at": "2026-05-07T00:00:00+00:00",
+  "problem_details": {
+    "instance": "/v1/quiz-items/next",
+    "reason_code": "SELECTION_NO_ELIGIBLE_ITEM",
+    "selection_context": {
+      "cefr_levels": [
+        "A2"
+      ],
+      "consumer_id": "consumer_control_normal",
+      "filters_applied": [
+        "status",
+        "cefr_level",
+        "theme_id",
+        "source_traceability"
+      ],
+      "theme_ids": [
+        "T10"
+      ]
+    },
+    "status": 409,
+    "title": "No eligible quiz item",
+    "type": "https://api.quizbank.example/problems/no-eligible-item"
+  },
+  "report_type": "selection_smoke",
+  "selected_item": null,
+  "selection_request": {
+    "cefr_level": "A2",
+    "consumer_id": "consumer_control_normal",
+    "normal_delivery_statuses": [
+      "approved",
+      "published"
+    ],
+    "selection_request_id": "sel_control_001",
+    "theme_id": "T10"
+  }
+}

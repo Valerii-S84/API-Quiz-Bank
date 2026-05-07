@@ -27,6 +27,7 @@ The project is not a raw CSV delivery layer. Raw CSV files under `QuizBank/` are
 - `api/` — seed OpenAPI contract.
 - `reports/imports/` — local dry-run import evidence artifacts.
 - `reports/coverage/` — reproducible corpus coverage evidence.
+- `reports/delivery/` — local selection/delivery smoke evidence.
 - `tools/` — local corpus tooling.
 - `tests/` — repository invariant tests.
 
@@ -37,6 +38,7 @@ python3 tools/quizbank_inventory.py --quizbank-dir QuizBank
 python3 tools/quizbank_constitution_check.py --quizbank-dir QuizBank
 python3 tools/quizbank_import_sample.py
 python3 tools/quizbank_gap_map.py --quizbank-dir QuizBank --write-artifacts
+python3 tools/quizbank_selection_smoke.py
 python3 -m unittest discover -s tests -p "test_*.py"
 ```
 

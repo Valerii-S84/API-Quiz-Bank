@@ -15,6 +15,7 @@ from quizbank_common import (
     CANONICAL_LEVELS,
     EXPECTED_HEADER,
     ITEM_STATUSES,
+    NORMAL_DELIVERY_STATUSES,
     PARSER_PROFILE_ID,
     THEME_TITLES,
     file_sha256,
@@ -172,10 +173,12 @@ class RepositoryInvariantTests(unittest.TestCase):
             "data/imports/control_sample_items.jsonl",
             "data/registry/source_registry.csv",
             "reports/coverage/corpus_coverage.json",
+            "reports/delivery/control_selection_report.json",
             "reports/imports/control_sample_import.json",
             "tests/fixtures/control_source/control_sample.csv",
             "tools/quizbank_import_sample.py",
             "tools/quizbank_gap_map.py",
+            "tools/quizbank_selection_smoke.py",
         ]
         for relative_path in required_paths:
             self.assertTrue((ROOT / relative_path).exists(), relative_path)
@@ -302,6 +305,30 @@ class RepositoryInvariantTests(unittest.TestCase):
             "last_generated_at",
         }
         self.assertEqual(set(first_cell), required_fields)
+
+    def test_selection_smoke_report_is_current(self) -> None:
+        artifact_paths = ["reports/delivery/control_selection_report.json"]
+        before = file_texts(artifact_paths)
+        run_command(sys.executable, "tools/quizbank_selection_smoke.py")
+        self.assertEqual(file_texts(artifact_paths), before)
+
+        report = json.loads((ROOT / "reports/delivery/control_selection_report.json").read_text())
+        self.assertEqual(report["report_type"], "selection_smoke")
+        self.assertEqual(
+            report["selection_request"]["normal_delivery_statuses"],
+            list(NORMAL_DELIVERY_STATUSES),
+        )
+        self.assertEqual(report["diagnostics"]["candidate_count"], 2)
+        self.assertEqual(report["diagnostics"]["eligible_count"], 0)
+        self.assertEqual(report["diagnostics"]["rejected_by_status"], {"draft": 2})
+        self.assertEqual(report["diagnostics"]["traceability_violations"], [])
+        self.assertIsNone(report["selected_item"])
+        self.assertFalse(report["delivery_created"])
+        self.assertIsNone(report["delivery_log"])
+        self.assertEqual(
+            report["problem_details"]["reason_code"],
+            "SELECTION_NO_ELIGIBLE_ITEM",
+        )
 
 
 if __name__ == "__main__":
