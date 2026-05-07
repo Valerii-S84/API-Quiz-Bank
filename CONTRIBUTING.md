@@ -22,7 +22,7 @@ python3 -m unittest discover -s tests -p "test_*.py"
 - Regenerate `QuizBank/README.md` with `python3 tools/quizbank_readme.py`.
 - Regenerate manifest/parser artifacts with `python3 tools/quizbank_inventory.py --quizbank-dir QuizBank --write-artifacts`.
 - Regenerate schema/taxonomy/API seed artifacts with `python3 tools/quizbank_emit_standards.py`.
-- Regenerate the control import evidence with `python3 tools/quizbank_import_sample.py`.
+- Regenerate the control import evidence and canonical JSONL sample with `python3 tools/quizbank_import_sample.py`.
 
 ## Protected Content
 

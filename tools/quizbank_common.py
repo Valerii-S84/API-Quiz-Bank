@@ -44,6 +44,8 @@ EXPECTED_HEADER = [
 ]
 
 CANONICAL_LEVELS = ("A1", "A2", "B1", "B2", "C1", "C2")
+OBJECTIVE_IDS = tuple(f"O{index:02d}" for index in range(1, 17))
+PATTERN_IDS = tuple(f"P{index:02d}" for index in range(1, 13))
 THEME_TITLES = {
     "T01": "Person / Identität / Familie",
     "T02": "Alltag / Zeit / Organisation",

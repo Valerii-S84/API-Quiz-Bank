@@ -5,6 +5,14 @@
   "parser_profile_id": "csv_quiz_bank_v1",
   "checksum_sha256": "ac17ee2680f883c16290d0f522f1dcb91708957b46bdd69d3845ebd1f5254d32",
   "row_count_detected": 2,
+  "canonical_output_path": "data/imports/control_sample_items.jsonl",
+  "validation_summary": {
+    "canonical_item_count": 2,
+    "accepted_candidate_count": 2,
+    "rejected_candidate_count": 0,
+    "publishable_item_count": 0,
+    "validation_errors": []
+  },
   "generated_at": "2026-05-07T00:00:00+00:00",
   "imported_items": [
     {

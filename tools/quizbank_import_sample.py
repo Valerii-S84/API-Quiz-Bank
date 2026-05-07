@@ -12,7 +12,10 @@ from quizbank_common import (
     CANONICAL_LEVELS,
     EXPECTED_HEADER,
     ITEM_STATUSES,
+    OBJECTIVE_IDS,
     PARSER_PROFILE_ID,
+    PATTERN_IDS,
+    THEME_TITLES,
     file_sha256,
 )
 
@@ -20,6 +23,7 @@ from quizbank_common import (
 DEFAULT_SOURCE_PATH = Path("tests/fixtures/control_source/control_sample.csv")
 DEFAULT_REGISTRY_PATH = Path("data/registry/source_registry.csv")
 DEFAULT_REPORT_PATH = Path("reports/imports/control_sample_import.json")
+DEFAULT_CANONICAL_OUT_PATH = Path("data/imports/control_sample_items.jsonl")
 DEFAULT_GENERATED_AT = "2026-05-07T00:00:00+00:00"
 
 
@@ -52,15 +56,18 @@ def validate_source(header: list[str], rows: list[dict[str, str]]) -> list[str]:
         else:
             seen_item_ids.add(item_id)
 
-        level = row.get("sublevel", "").strip()
-        if level not in CANONICAL_LEVELS:
-            errors.append(f"invalid_level:{line_number}:{level}")
-
-        status = row.get("status", "").strip()
-        if status not in ITEM_STATUSES:
-            errors.append(f"invalid_status:{line_number}:{status}")
-        elif status != "draft":
-            errors.append(f"non_draft_sample_item:{line_number}:{status}")
+        if row.get("sublevel", "").strip() not in CANONICAL_LEVELS:
+            errors.append(f"invalid_level:{line_number}:{row.get('sublevel', '')}")
+        if row.get("theme_id", "").strip() not in THEME_TITLES:
+            errors.append(f"invalid_theme:{line_number}:{row.get('theme_id', '')}")
+        if row.get("objective_id", "").strip() not in OBJECTIVE_IDS:
+            errors.append(f"invalid_objective:{line_number}:{row.get('objective_id', '')}")
+        if row.get("pattern_id", "").strip() not in PATTERN_IDS:
+            errors.append(f"invalid_pattern:{line_number}:{row.get('pattern_id', '')}")
+        if row.get("status", "").strip() not in ITEM_STATUSES:
+            errors.append(f"invalid_status:{line_number}:{row.get('status', '')}")
+        elif row.get("status", "").strip() != "draft":
+            errors.append(f"non_draft_sample_item:{line_number}:{row.get('status', '')}")
 
         try:
             options = json.loads(row.get("options", ""))
@@ -71,7 +78,56 @@ def validate_source(header: list[str], rows: list[dict[str, str]]) -> list[str]:
                 errors.append(f"invalid_options_shape:{line_number}")
             elif not all(isinstance(option, str) and option for option in options):
                 errors.append(f"invalid_option_value:{line_number}")
+            validate_answer_key(row.get("answer_key", ""), len(options), line_number, errors)
 
+    return errors
+
+
+def validate_answer_key(
+    answer_key: str,
+    option_count: int,
+    line_number: int,
+    errors: list[str],
+) -> None:
+    try:
+        answer_index = int(answer_key)
+    except ValueError:
+        errors.append(f"invalid_answer_key:{line_number}:{answer_key}")
+        return
+
+    if answer_index < 0 or answer_index >= option_count:
+        errors.append(f"answer_key_out_of_bounds:{line_number}:{answer_key}")
+
+
+def canonical_row(row: dict[str, str]) -> dict[str, str]:
+    return {field: row.get(field, "") for field in EXPECTED_HEADER}
+
+
+def canonical_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    return [canonical_row(row) for row in rows]
+
+
+def validate_canonical_rows(rows: list[dict[str, str]]) -> list[str]:
+    errors: list[str] = []
+    for item_index, row in enumerate(rows, start=1):
+        extra_fields = sorted(set(row) - set(EXPECTED_HEADER))
+        if extra_fields:
+            errors.append(f"extra_fields:{item_index}:{','.join(extra_fields)}")
+        missing_fields = [field for field in EXPECTED_HEADER if field not in row]
+        if missing_fields:
+            errors.append(f"missing_fields:{item_index}:{','.join(missing_fields)}")
+        if row.get("language") != "de":
+            errors.append(f"invalid_language:{item_index}:{row.get('language', '')}")
+        if row.get("sublevel", "") not in CANONICAL_LEVELS:
+            errors.append(f"invalid_level:{item_index}:{row.get('sublevel', '')}")
+        if row.get("theme_id", "") not in THEME_TITLES:
+            errors.append(f"invalid_theme:{item_index}:{row.get('theme_id', '')}")
+        if row.get("objective_id", "") not in OBJECTIVE_IDS:
+            errors.append(f"invalid_objective:{item_index}:{row.get('objective_id', '')}")
+        if row.get("pattern_id", "") not in PATTERN_IDS:
+            errors.append(f"invalid_pattern:{item_index}:{row.get('pattern_id', '')}")
+        if row.get("status", "") not in ITEM_STATUSES:
+            errors.append(f"invalid_status:{item_index}:{row.get('status', '')}")
     return errors
 
 
@@ -123,9 +179,15 @@ def build_report(
     source_id: str,
     source_path: Path,
     rows: list[dict[str, str]],
+    canonical_items: list[dict[str, str]],
     checksum_sha256: str,
     generated_at: str,
+    canonical_output_path: Path,
 ) -> dict[str, object]:
+    validation_errors = validate_canonical_rows(canonical_items)
+    publishable_count = len(
+        [row for row in canonical_items if row["status"] in {"approved", "published"}]
+    )
     return {
         "import_mode": "dry_run",
         "source_id": source_id,
@@ -133,6 +195,14 @@ def build_report(
         "parser_profile_id": PARSER_PROFILE_ID,
         "checksum_sha256": checksum_sha256,
         "row_count_detected": len(rows),
+        "canonical_output_path": canonical_output_path.as_posix(),
+        "validation_summary": {
+            "canonical_item_count": len(canonical_items),
+            "accepted_candidate_count": len(canonical_items) if not validation_errors else 0,
+            "rejected_candidate_count": 0 if not validation_errors else len(canonical_items),
+            "publishable_item_count": publishable_count,
+            "validation_errors": validation_errors,
+        },
         "generated_at": generated_at,
         "imported_items": [public_projection(row, source_id) for row in rows],
     }
@@ -144,10 +214,17 @@ def write_report(path: Path, report: dict[str, object]) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def write_jsonl(path: Path, rows: list[dict[str, str]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def run_import(
     source_path: Path,
     registry_path: Path,
     report_path: Path,
+    canonical_output_path: Path,
     source_id: str,
     generated_at: str,
 ) -> None:
@@ -161,9 +238,19 @@ def run_import(
         registry_path,
         registry_row(source_id, source_path, checksum_sha256, len(rows), generated_at),
     )
+    canonical_items = canonical_rows(rows)
+    write_jsonl(canonical_output_path, canonical_items)
     write_report(
         report_path,
-        build_report(source_id, source_path, rows, checksum_sha256, generated_at),
+        build_report(
+            source_id,
+            source_path,
+            rows,
+            canonical_items,
+            checksum_sha256,
+            generated_at,
+            canonical_output_path,
+        ),
     )
 
 
@@ -172,6 +259,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source", default=DEFAULT_SOURCE_PATH, type=Path)
     parser.add_argument("--registry-out", default=DEFAULT_REGISTRY_PATH, type=Path)
     parser.add_argument("--report-out", default=DEFAULT_REPORT_PATH, type=Path)
+    parser.add_argument("--canonical-out", default=DEFAULT_CANONICAL_OUT_PATH, type=Path)
     parser.add_argument("--source-id", default="sample_control_001")
     parser.add_argument("--generated-at", default=DEFAULT_GENERATED_AT)
     return parser.parse_args()
@@ -184,6 +272,7 @@ def main() -> int:
             args.source,
             args.registry_out,
             args.report_out,
+            args.canonical_out,
             args.source_id,
             args.generated_at,
         )

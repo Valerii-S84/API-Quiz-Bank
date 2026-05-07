@@ -169,6 +169,7 @@ class RepositoryInvariantTests(unittest.TestCase):
             "api/openapi.yaml",
             "data/parser_profiles/parser_profiles.yml",
             "data/manifests/import_manifest.yml",
+            "data/imports/control_sample_items.jsonl",
             "data/registry/source_registry.csv",
             "reports/imports/control_sample_import.json",
             "tests/fixtures/control_source/control_sample.csv",
@@ -223,6 +224,7 @@ class RepositoryInvariantTests(unittest.TestCase):
 
     def test_control_sample_import_pipeline_is_current(self) -> None:
         artifact_paths = [
+            "data/imports/control_sample_items.jsonl",
             "data/registry/source_registry.csv",
             "reports/imports/control_sample_import.json",
         ]
@@ -243,8 +245,20 @@ class RepositoryInvariantTests(unittest.TestCase):
         report = json.loads((ROOT / "reports/imports/control_sample_import.json").read_text())
         self.assertEqual(report["import_mode"], "dry_run")
         self.assertEqual(report["row_count_detected"], 2)
+        self.assertEqual(report["canonical_output_path"], "data/imports/control_sample_items.jsonl")
+        self.assertEqual(report["validation_summary"]["canonical_item_count"], 2)
+        self.assertEqual(report["validation_summary"]["accepted_candidate_count"], 2)
+        self.assertEqual(report["validation_summary"]["rejected_candidate_count"], 0)
+        self.assertEqual(report["validation_summary"]["publishable_item_count"], 0)
+        self.assertEqual(report["validation_summary"]["validation_errors"], [])
         self.assertEqual(len(report["imported_items"]), 2)
         self.assertNotIn("answer_key", report["imported_items"][0])
+
+        canonical_lines = (ROOT / "data/imports/control_sample_items.jsonl").read_text().splitlines()
+        canonical_items = [json.loads(line) for line in canonical_lines]
+        self.assertEqual(len(canonical_items), 2)
+        self.assertTrue(all(item["status"] == "draft" for item in canonical_items))
+        self.assertTrue(all(set(item) == set(EXPECTED_HEADER) for item in canonical_items))
 
 
 if __name__ == "__main__":

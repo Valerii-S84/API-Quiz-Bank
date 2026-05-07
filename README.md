@@ -20,6 +20,7 @@ The project is not a raw CSV delivery layer. Raw CSV files under `QuizBank/` are
 - `QuizBank/` — source CSV corpus and generated corpus README.
 - `data/manifests/` — generated source inventory, checksums and import manifest.
 - `data/parser_profiles/` — parser profile seed for current CSV corpus.
+- `data/imports/` — canonical sample JSONL output from local dry-run imports.
 - `data/registry/` — MVP source registry seed for controlled import evidence.
 - `data/taxonomy/` — taxonomy seed files derived from the current corpus.
 - `schemas/` — seed JSON Schema artifacts.
