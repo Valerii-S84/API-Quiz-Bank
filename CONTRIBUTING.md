@@ -27,6 +27,7 @@ python3 -m unittest discover -s tests -p "test_*.py"
 - Regenerate the control import evidence and canonical JSONL sample with `python3 tools/quizbank_import_sample.py`.
 - Regenerate the corpus coverage report with `python3 tools/quizbank_gap_map.py --quizbank-dir QuizBank --write-artifacts`.
 - Regenerate the selection smoke evidence with `python3 tools/quizbank_selection_smoke.py`.
+- Regenerate the approved-item delivery evidence with `python3 tools/quizbank_selection_smoke.py --canonical-input tests/fixtures/selection/approved_traceable_items.jsonl --report-out reports/delivery/control_approved_selection_report.json`.
 
 ## Protected Content
 

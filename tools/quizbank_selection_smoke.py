@@ -94,7 +94,23 @@ def public_projection(item: dict[str, str]) -> dict[str, str]:
         "pattern_id": item["pattern_id"],
         "prompt": item["prompt"],
         "stem_text": item["stem_text"],
-        "options": item["options"],
+        "options": json.loads(item["options"]),
+    }
+
+
+def delivery_log(item: dict[str, str], consumer_id: str) -> dict[str, object]:
+    return {
+        "delivery_id": "delivery_control_001",
+        "selection_request_id": "sel_control_001",
+        "consumer_id": consumer_id,
+        "quiz_item_id": item["item_id"],
+        "item_status": item["status"],
+        "source_traceability": {
+            "source_type": item["source_type"],
+            "provenance_note": item["provenance_note"],
+        },
+        "delivery_status": "created",
+        "reason_summary": "eligible_by_status_level_theme_traceability",
     }
 
 
@@ -123,7 +139,7 @@ def build_report(
             problem_details(consumer_id, cefr_level, theme_id) if no_eligible else None
         ),
         "delivery_created": not no_eligible,
-        "delivery_log": None if no_eligible else {"delivery_id": "delivery_control_001"},
+        "delivery_log": None if no_eligible else delivery_log(selected_item, consumer_id),
     }
 
 
@@ -175,4 +191,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -1,0 +1,51 @@
+{
+  "delivery_created": true,
+  "delivery_log": {
+    "consumer_id": "consumer_control_normal",
+    "delivery_id": "delivery_control_001",
+    "delivery_status": "created",
+    "item_status": "approved",
+    "quiz_item_id": "approved_traceable_001",
+    "reason_summary": "eligible_by_status_level_theme_traceability",
+    "selection_request_id": "sel_control_001",
+    "source_traceability": {
+      "provenance_note": "control_selection_fixture:approved_traceable",
+      "source_type": "fixture_approved_source"
+    }
+  },
+  "diagnostics": {
+    "candidate_count": 1,
+    "eligible_count": 1,
+    "rejected_by_status": {},
+    "traceability_violations": []
+  },
+  "generated_at": "2026-05-07T00:00:00+00:00",
+  "problem_details": null,
+  "report_type": "selection_smoke",
+  "selected_item": {
+    "cefr_level": "A2",
+    "item_id": "approved_traceable_001",
+    "language": "de",
+    "objective_id": "O02",
+    "options": [
+      "buchen",
+      "trinken",
+      "lesen",
+      "öffnen"
+    ],
+    "pattern_id": "P01",
+    "prompt": "Welche Ergänzung passt hier am besten?",
+    "stem_text": "Ich muss morgen einen Termin ___.",
+    "theme_id": "T10"
+  },
+  "selection_request": {
+    "cefr_level": "A2",
+    "consumer_id": "consumer_control_normal",
+    "normal_delivery_statuses": [
+      "approved",
+      "published"
+    ],
+    "selection_request_id": "sel_control_001",
+    "theme_id": "T10"
+  }
+}

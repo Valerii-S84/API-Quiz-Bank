@@ -173,9 +173,11 @@ class RepositoryInvariantTests(unittest.TestCase):
             "data/imports/control_sample_items.jsonl",
             "data/registry/source_registry.csv",
             "reports/coverage/corpus_coverage.json",
+            "reports/delivery/control_approved_selection_report.json",
             "reports/delivery/control_selection_report.json",
             "reports/imports/control_sample_import.json",
             "tests/fixtures/control_source/control_sample.csv",
+            "tests/fixtures/selection/approved_traceable_items.jsonl",
             "tools/quizbank_import_sample.py",
             "tools/quizbank_gap_map.py",
             "tools/quizbank_selection_smoke.py",
@@ -328,6 +330,41 @@ class RepositoryInvariantTests(unittest.TestCase):
         self.assertEqual(
             report["problem_details"]["reason_code"],
             "SELECTION_NO_ELIGIBLE_ITEM",
+        )
+
+    def test_approved_selection_report_is_current(self) -> None:
+        artifact_paths = ["reports/delivery/control_approved_selection_report.json"]
+        before = file_texts(artifact_paths)
+        run_command(
+            sys.executable,
+            "tools/quizbank_selection_smoke.py",
+            "--canonical-input",
+            "tests/fixtures/selection/approved_traceable_items.jsonl",
+            "--report-out",
+            "reports/delivery/control_approved_selection_report.json",
+        )
+        self.assertEqual(file_texts(artifact_paths), before)
+
+        report = json.loads(
+            (ROOT / "reports/delivery/control_approved_selection_report.json").read_text()
+        )
+        self.assertEqual(report["report_type"], "selection_smoke")
+        self.assertEqual(report["diagnostics"]["candidate_count"], 1)
+        self.assertEqual(report["diagnostics"]["eligible_count"], 1)
+        self.assertEqual(report["diagnostics"]["rejected_by_status"], {})
+        self.assertEqual(report["diagnostics"]["traceability_violations"], [])
+        self.assertTrue(report["delivery_created"])
+        self.assertIsNone(report["problem_details"])
+        self.assertEqual(report["selected_item"]["item_id"], "approved_traceable_001")
+        self.assertNotIn("answer_key", report["selected_item"])
+        self.assertNotIn("explanation", report["selected_item"])
+        self.assertEqual(report["delivery_log"]["item_status"], "approved")
+        self.assertEqual(
+            report["delivery_log"]["source_traceability"],
+            {
+                "provenance_note": "control_selection_fixture:approved_traceable",
+                "source_type": "fixture_approved_source",
+            },
         )
 
 
