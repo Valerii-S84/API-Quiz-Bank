@@ -10,9 +10,9 @@ They must remain separate from local pre-pilot evidence.
 | Blocker | Required external evidence |
 |---|---|
 | Public/broader pilot environment | Protected public route exists for `api.valerchik.de`; broader beta/prod environment still needs owner approval and evidence boundary. |
-| Telegram controlled send | Executed dry-run log or controlled real send evidence with failure visibility after explicit approval. |
-| Worker monitoring | API/worker log source or dashboard showing delivery failures and denials. |
-| Automated pilot backup schedule | Automated or independently reviewed backup mechanism beyond manual local-only VPS evidence. |
+| Telegram controlled send | Controlled real send succeeded after bot administrator access was confirmed and channel-compatible anonymous poll payload was used. Runtime worker delivery id remains separate because worker path is not implemented. |
+| Worker monitoring | Owner-reviewed VPS health/readiness evidence exists; external dashboard or alert source still needed for beta/prod closure. |
+| Automated pilot backup schedule | Manual live VPS backup/restore evidence exists; automated or formally monitored backup cadence still needed. |
 | Production-like restore drill | Restore into isolated target using managed/pilot-like data beyond MVP SQLite and recorded result. |
 | Support execution | Named support channel and at least one issue/containment record. |
 
@@ -20,8 +20,8 @@ They must remain separate from local pre-pilot evidence.
 
 | Blocker | Required external evidence |
 |---|---|
-| Alerting cadence | Alert source, owner review cadence or dashboard evidence. |
-| Controlled backup schedule | Automated or reliably controlled backup schedule for beta data. |
+| Alerting cadence | Owner-reviewed VPS evidence exists; alert source, formal owner review cadence or dashboard evidence still needed. |
+| Controlled backup schedule | Manual live VPS backup proof exists; automated or reliably controlled backup schedule for beta data still needed. |
 | Release execution | Completed release/rollback checklist for beta scope. |
 | Public support/abuse path | User-visible support, abuse and security contact path. |
 | Beta legal/privacy review | Scope-specific completed review in `reports/compliance/legal_review_record.md`. |

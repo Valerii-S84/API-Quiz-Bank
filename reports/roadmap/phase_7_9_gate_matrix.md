@@ -23,7 +23,7 @@ Status values:
 | OPS-PILOT-004 backup process exists | closed-local | `runbooks/backup_restore.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Backup is manual/owner-reviewed for local-only pilot, not automated public beta backup. |
 | OPS-PILOT-005 restore procedure exists | closed-local | `runbooks/backup_restore.md`, `reports/restore/mvp_sqlite_restore_drill_2026-05-08.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Restore evidence is local-only VPS SQLite, not production-like managed DB. |
 | OPS-PILOT-006 incident playbook exists | closed-local | `runbooks/incident_response.md`, `runbooks/support_triage.md`, `runbooks/rollback.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Incident drill not executed. |
-| OPS-PILOT-007 Telegram failures observable | closed-local | `docs/18_telegram_delivery_playbook.md`, delivery negative controls, `reports/pre_pilot/telegram_dry_run_readiness_2026-05-08.md`, `reports/pre_pilot/telegram_secret_wiring_2026-05-08.md` | Dry-run and token secret wiring only; no real Telegram worker target or controlled send evidence. |
+| OPS-PILOT-007 Telegram failures observable | partial | `docs/18_telegram_delivery_playbook.md`, delivery negative controls, `reports/pre_pilot/telegram_dry_run_readiness_2026-05-08.md`, `reports/pre_pilot/telegram_secret_wiring_2026-05-08.md`, `reports/pre_pilot/telegram_controlled_send_2026-05-08.md` | Controlled direct Bot API send succeeded; worker delivery id still absent because Telegram worker path is not implemented. |
 | OPS-PILOT-008 consumer disable path exists | closed-local | `transition-consumer-status` CLI, `reports/pre_pilot/local_pre_pilot_dry_run_2026-05-08.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md`, runtime tests | Covered for local-only VPS; public/beta/prod operator execution remains out of scope. |
 | OPS-PILOT-009 support/issue path exists | closed-local | `runbooks/support_triage.md`, `SECURITY.md` | No external pilot support channel is configured. |
 
@@ -33,27 +33,32 @@ public-beta or production ready, and Telegram remains dry-run only.
 Local pre-pilot result: active -> suspended -> blocked -> reactivated -> allowed
 consumer lifecycle is proven locally; delivery, repeat and quota behavior are
 proven locally; health, readiness, smoke, backup, restore drill, lifecycle,
-delivery, repeat guard, quota denial, Telegram dry-run and Telegram token secret
-wiring are proven on the VPS; Telegram real send remains blocked.
+delivery, repeat guard, quota denial, Telegram dry-run, Telegram token secret
+wiring, protected public route smoke and one controlled Telegram real send are
+proven on the VPS; Telegram worker delivery remains blocked because worker path
+is not implemented.
 
 ## Phase 8 Public Beta Readiness
 
 | Gate | Status | Evidence | Remaining blocker |
 |---|---|---|---|
 | OPS-BETA-001 rate/usage controls operational | closed-local | quota/entitlement/auth runtime tests, pre-pilot dry run, 429 quota response, `reports/beta/local_beta_security_smoke_2026-05-08.md` | No public beta traffic or deployed control evidence. |
-| OPS-BETA-002 alerts or monitored review exists | partial | `docs/observability_contract.md`, `runbooks/incident_response.md`, `reports/observability/beta_alert_review_2026-05-08.md`, `reports/pre_pilot/public_api_key_route_evidence_2026-05-08.md` | No external beta dashboard or alert source. |
-| OPS-BETA-003 backup schedule controlled | partial | `runbooks/backup_restore.md` | No automated/reliable beta backup schedule. |
-| OPS-BETA-004 restore drill evidence exists | partial | `reports/restore/mvp_sqlite_restore_drill_2026-05-08.md` | Local SQLite only; no beta environment drill. |
+| OPS-BETA-002 alerts or monitored review exists | partial | `docs/observability_contract.md`, `runbooks/incident_response.md`, `reports/observability/beta_alert_review_2026-05-08.md`, `reports/beta/vps_live_ops_evidence_2026-05-08.md`, `reports/pre_pilot/public_api_key_route_evidence_2026-05-08.md` | Owner-reviewed evidence only; no external dashboard or alert source. |
+| OPS-BETA-003 backup schedule controlled | partial | `runbooks/backup_restore.md`, `reports/beta/vps_live_ops_evidence_2026-05-08.md` | Manual backup proof exists; no automated/reliable beta backup schedule. |
+| OPS-BETA-004 restore drill evidence exists | partial | `reports/restore/mvp_sqlite_restore_drill_2026-05-08.md`, `reports/beta/vps_live_ops_evidence_2026-05-08.md` | VPS SQLite restore drill exists; no production-like PostgreSQL restore drill. |
 | OPS-BETA-005 incident escalation model exists | closed-local | `runbooks/incident_response.md`, `runbooks/support_triage.md` | No beta owner assignment. |
 | OPS-BETA-006 release/rollback process exists | partial | `runbooks/release_rollback.md`, `runbooks/rollback.md`, `reports/release/local_beta_release_rollback_2026-05-08.md`, `.github/workflows/ci.yml` | No external beta release/rollback execution. |
 | OPS-BETA-007 security operations baseline exists | partial | `SECURITY.md`, `docs/08_security_threat_model.md`, consumer-bound API credentials, no-secrets CI scan | No public vulnerability channel or beta monitoring. |
 | OPS-BETA-008 privacy/legal review completed | blocked-external | `reports/compliance/legal_review_record.md` | Beta review remains pending. |
 
 Phase 8 result: still `NO-GO public beta`. Local auth/security, publication,
-release/rollback and alert-review evidence improved, but public beta readiness
-remains blocked by external beta dashboard/alert source, controlled public/beta
-backup cadence, published support/abuse path, legal/privacy approval and
-protected public route smoke with real beta credentials.
+release/rollback and alert-review evidence improved, and protected public route
+smoke exists in `reports/beta/public_route_smoke_2026-05-08.md`, one controlled
+Telegram real send succeeded, and live VPS backup/restore mechanics are proven
+in `reports/beta/vps_live_ops_evidence_2026-05-08.md`. Public beta readiness
+remains blocked by app-level beta credential deployment/smoke, automated or
+formally monitored backup cadence, published support/abuse path and
+legal/privacy approval.
 
 ## Phase 9 Production Readiness
 
