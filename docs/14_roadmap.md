@@ -374,6 +374,13 @@ Current phase status and evidence are tracked in:
 reports/roadmap/roadmap_evidence_register.md
 ```
 
+Current execution status for roadmap sections 17-20 is tracked in:
+
+```text
+reports/roadmap/section_17_20_execution_closure_2026-05-08.md
+reports/roadmap/server_section_17_20_evidence_2026-05-08.md
+```
+
 That register is the phase closure ledger. It must distinguish local MVP proof from pilot,
 beta or production evidence, and it must not mark external gates complete without
 artifact-backed environment proof.
