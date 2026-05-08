@@ -247,7 +247,13 @@ def find_eligible_item(connection, request: SelectionRequest) -> dict[str, Any] 
               SELECT 1 FROM deliveries d
               WHERE d.consumer_id = ?
                 AND d.quiz_item_id = qi.item_id
-                AND d.delivery_status IN ('created', 'delivered', 'reserved')
+                AND d.delivery_status IN (
+                    'created',
+                    'delivered',
+                    'reserved',
+                    'sent',
+                    'failed'
+                )
           )
         """
     ]

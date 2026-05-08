@@ -460,6 +460,22 @@ created_at
 
 If Telegram send happened but the platform cannot later show which item, which version, which channel and which outcome occurred, the Telegram path is operationally incomplete.
 
+### 11.5. Current MVP worker path
+
+The committed MVP worker path is:
+
+```text
+src/quizbank_mvp/telegram_delivery.py
+tools/run_telegram_delivery_smoke.py
+database/migrations/003_add_telegram_delivery_results.sql
+```
+
+The worker requests selection through `select_next_item`, creates the canonical
+delivery id, builds a Telegram quiz-poll payload from the selected runtime item,
+and records `sent`, `failed` or `skipped` in SQLite. Dry-run records `skipped`
+with `dry_run_no_bot_api_call`; real send requires an explicit CLI approval flag
+and a token supplied outside Git.
+
 ---
 
 ## 12. Failure Handling and Pause Paths
