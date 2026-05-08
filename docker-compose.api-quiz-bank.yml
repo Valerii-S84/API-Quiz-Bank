@@ -1,0 +1,26 @@
+services:
+  api-quiz-bank:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: api-quiz-bank:pilot
+    container_name: api-quiz-bank-pilot
+    restart: unless-stopped
+    env_file:
+      - .env.api-quiz-bank.example
+    ports:
+      - "127.0.0.1:8010:8000"
+    volumes:
+      - ./var/api-quiz-bank:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=2).status == 200 else 1)",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
