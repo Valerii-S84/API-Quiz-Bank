@@ -23,6 +23,7 @@ from quizbank_mvp.database import (
     transition_consumer_status,
     transition_item_status,
 )
+from quizbank_mvp.selection import QuizBankProblem
 from quizbank_mvp.telegram_delivery import (
     TelegramDeliveryError,
     TelegramDeliveryRequest,
@@ -239,14 +240,57 @@ class MvpTelegramDeliveryTests(MvpRuntimeCase):
         self.assertEqual(result.telegram_message_id, "12345")
         self.assertEqual(result.telegram_poll_id, "poll_abc")
         self.assertEqual(adapter.payloads[0]["correct_option_ids"], [0])
+        self.assertEqual(
+            adapter.payloads[0]["explanation"],
+            "Internal answer explanation is retained in canonical data only.",
+        )
         self.assertNotIn("correct_option_id", adapter.payloads[0])
-        self.assertEqual(telegram_api_payload(adapter.payloads[0])["correct_option_id"], 0)
+        api_payload = telegram_api_payload(adapter.payloads[0])
+        self.assertEqual(api_payload["correct_option_id"], 0)
+        self.assertEqual(
+            api_payload["explanation"],
+            "Internal answer explanation is retained in canonical data only.",
+        )
         with connect(self.db_path) as connection:
             delivery = connection.execute(
                 "SELECT delivery_status FROM deliveries WHERE delivery_id = ?",
                 (result.delivery_id,),
             ).fetchone()
         self.assertEqual(delivery["delivery_status"], "sent")
+
+    def test_telegram_target_repeat_guard_blocks_same_item_for_channel(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        self.seed_access()
+        self.seed_access("consumer_second_channel_run")
+        adapter = FakeTelegramAdapter()
+
+        result = run_telegram_delivery(
+            self.db_path,
+            TelegramDeliveryRequest(
+                consumer_id="consumer_allowed",
+                chat_id="@controlled_channel",
+                mode="real",
+                cefr_level="A2",
+                theme_ids=("T10",),
+            ),
+            adapter=adapter,
+        )
+        with self.assertRaises(QuizBankProblem) as repeat_error:
+            run_telegram_delivery(
+                self.db_path,
+                TelegramDeliveryRequest(
+                    consumer_id="consumer_second_channel_run",
+                    chat_id="@controlled_channel",
+                    mode="real",
+                    cefr_level="A2",
+                    theme_ids=("T10",),
+                ),
+                adapter=adapter,
+            )
+
+        self.assertEqual(result.status, "sent")
+        self.assertEqual(repeat_error.exception.reason_code, "SELECTION_NO_ELIGIBLE_ITEM")
+        self.assertEqual(len(adapter.payloads), 1)
 
     def test_telegram_real_send_failure_is_recorded_without_duplicate_retry(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
@@ -279,7 +323,7 @@ class MvpTelegramDeliveryTests(MvpRuntimeCase):
     def test_telegram_validation_accepts_twelve_options_profile_limit(self) -> None:
         options = [f"Option {index}" for index in range(12)]
 
-        validate_telegram_poll("Welche Antwort ist richtig?", options, [11])
+        validate_telegram_poll("Welche Antwort ist richtig?", options, [11], "Kurz erklaert.")
 
 
 class MvpRuntimeAccessControlTests(MvpRuntimeCase):
