@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import __version__
+from .auth import authenticate_consumer
 from .database import configured_db_path, database_is_ready
 from .selection import QuizBankProblem, SelectionRequest, get_delivery, select_next_item
 
@@ -85,8 +86,10 @@ def register_delivery_routes(app: FastAPI, database_path: Path) -> None:
     def next_quiz_item(
         payload: NextQuizRequest,
         x_consumer_id: Annotated[str | None, Header()] = None,
+        x_api_key: Annotated[str | None, Header()] = None,
     ) -> dict[str, object]:
-        authorize_consumer(x_consumer_id, payload.consumer_id)
+        authenticated = authenticate_consumer(database_path, x_consumer_id, x_api_key)
+        authorize_consumer(authenticated.consumer_id, payload.consumer_id)
         result = select_next_item(
             database_path,
             SelectionRequest(
@@ -103,9 +106,10 @@ def register_delivery_routes(app: FastAPI, database_path: Path) -> None:
     def delivery(
         delivery_id: str,
         x_consumer_id: Annotated[str | None, Header()] = None,
+        x_api_key: Annotated[str | None, Header()] = None,
     ) -> dict[str, object]:
-        require_consumer_header(x_consumer_id)
-        return get_delivery(database_path, delivery_id, x_consumer_id or "")
+        authenticated = authenticate_consumer(database_path, x_consumer_id, x_api_key)
+        return get_delivery(database_path, delivery_id, authenticated.consumer_id)
 
 
 def next_quiz_response(consumer_id: str, result: dict[str, object]) -> dict[str, object]:
@@ -129,20 +133,8 @@ def next_quiz_response(consumer_id: str, result: dict[str, object]) -> dict[str,
     }
 
 
-def require_consumer_header(x_consumer_id: str | None) -> None:
-    if not x_consumer_id:
-        raise QuizBankProblem(
-            401,
-            "AUTH_REQUIRED",
-            "Authentication required",
-            "Provide X-Consumer-Id for consumer-scoped requests.",
-            "https://api.quizbank.example/problems/auth-required",
-        )
-
-
-def authorize_consumer(x_consumer_id: str | None, requested_consumer_id: str) -> None:
-    require_consumer_header(x_consumer_id)
-    if x_consumer_id != requested_consumer_id:
+def authorize_consumer(authenticated_consumer_id: str, requested_consumer_id: str) -> None:
+    if authenticated_consumer_id != requested_consumer_id:
         raise QuizBankProblem(
             403,
             "AUTH_CONSUMER_MISMATCH",

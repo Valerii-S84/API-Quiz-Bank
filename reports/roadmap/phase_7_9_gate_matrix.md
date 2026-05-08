@@ -40,33 +40,34 @@ wiring are proven on the VPS; Telegram real send remains blocked.
 
 | Gate | Status | Evidence | Remaining blocker |
 |---|---|---|---|
-| OPS-BETA-001 rate/usage controls operational | closed-local | quota/entitlement runtime tests, pre-pilot dry run, 429 quota response | No public beta traffic or deployed control evidence. |
-| OPS-BETA-002 alerts or monitored review exists | partial | `docs/observability_contract.md`, `runbooks/incident_response.md`, `reports/pre_pilot/public_api_key_route_evidence_2026-05-08.md` | No beta dashboard or alert source. |
+| OPS-BETA-001 rate/usage controls operational | closed-local | quota/entitlement/auth runtime tests, pre-pilot dry run, 429 quota response, `reports/beta/local_beta_security_smoke_2026-05-08.md` | No public beta traffic or deployed control evidence. |
+| OPS-BETA-002 alerts or monitored review exists | partial | `docs/observability_contract.md`, `runbooks/incident_response.md`, `reports/observability/beta_alert_review_2026-05-08.md`, `reports/pre_pilot/public_api_key_route_evidence_2026-05-08.md` | No external beta dashboard or alert source. |
 | OPS-BETA-003 backup schedule controlled | partial | `runbooks/backup_restore.md` | No automated/reliable beta backup schedule. |
 | OPS-BETA-004 restore drill evidence exists | partial | `reports/restore/mvp_sqlite_restore_drill_2026-05-08.md` | Local SQLite only; no beta environment drill. |
 | OPS-BETA-005 incident escalation model exists | closed-local | `runbooks/incident_response.md`, `runbooks/support_triage.md` | No beta owner assignment. |
-| OPS-BETA-006 release/rollback process exists | partial | `runbooks/release_rollback.md`, `runbooks/rollback.md`, `reports/rollback/local_rollback_tabletop_2026-05-08.md`, `.github/workflows/ci.yml` | No executed beta release/rollback checklist. |
-| OPS-BETA-007 security operations baseline exists | partial | `SECURITY.md`, `docs/08_security_threat_model.md` | No public vulnerability channel or beta monitoring. |
+| OPS-BETA-006 release/rollback process exists | partial | `runbooks/release_rollback.md`, `runbooks/rollback.md`, `reports/release/local_beta_release_rollback_2026-05-08.md`, `.github/workflows/ci.yml` | No external beta release/rollback execution. |
+| OPS-BETA-007 security operations baseline exists | partial | `SECURITY.md`, `docs/08_security_threat_model.md`, consumer-bound API credentials, no-secrets CI scan | No public vulnerability channel or beta monitoring. |
 | OPS-BETA-008 privacy/legal review completed | blocked-external | `reports/compliance/legal_review_record.md` | Beta review remains pending. |
 
-Phase 8 result: still `NO-GO public beta`. Protected public route evidence now
-exists for `api.valerchik.de`, but public beta readiness remains blocked by
-beta alerting/dashboard, controlled public/beta backup cadence, public
-support/abuse path and legal review evidence.
+Phase 8 result: still `NO-GO public beta`. Local auth/security, publication,
+release/rollback and alert-review evidence improved, but public beta readiness
+remains blocked by external beta dashboard/alert source, controlled public/beta
+backup cadence, published support/abuse path, legal/privacy approval and
+protected public route smoke with real beta credentials.
 
 ## Phase 9 Production Readiness
 
 | Gate | Status | Evidence | Remaining blocker |
 |---|---|---|---|
 | OPS-PROD-001 controlled deployment exists | partial | `.github/workflows/ci.yml`, branch/PR governance docs | No production deployment target or release owner. |
-| OPS-PROD-002 monitored backups exist | blocked-external | `runbooks/backup_restore.md` | No production DB, backup monitor or owner. |
-| OPS-PROD-003 restore drill completed | blocked-external | local restore drill report | No production-like restore drill. |
+| OPS-PROD-002 monitored backups exist | blocked-external | `runbooks/backup_restore.md`, `runbooks/backup_restore_operational_runbook.md` | No production DB, backup monitor or owner. |
+| OPS-PROD-003 restore drill completed | blocked-external | local restore drill report, PostgreSQL profile in `database/postgresql/001_create_runtime.sql` | No production-like restore drill execution. |
 | OPS-PROD-004 monitoring dashboard exists | blocked-external | none | No dashboard. |
 | OPS-PROD-005 critical alerts or owner review exists | blocked-external | `docs/observability_contract.md`, `runbooks/incident_response.md` | No alert source or formal review owner. |
 | OPS-PROD-006 incident playbook owner assigned | partial | `runbooks/incident_response.md`, `runbooks/support_triage.md` | No production owner assignment or drill. |
 | OPS-PROD-007 rollback/disable paths verified | partial | `runbooks/rollback.md`, `reports/rollback/local_rollback_tabletop_2026-05-08.md`, consumer lifecycle dry run | No production rollback execution. |
-| OPS-PROD-008 migrations versioned/tested | closed-local | `database/migrations/001_create_mvp_runtime.sql`, tests | SQLite MVP only; not production PostgreSQL. |
-| OPS-PROD-009 security baseline implemented | partial | `SECURITY.md`, threat model, tests | No production hardening or security review. |
+| OPS-PROD-008 migrations versioned/tested | partial | SQLite migrations, PostgreSQL schema profile, tests | PostgreSQL profile not executed against a database target. |
+| OPS-PROD-009 security baseline implemented | partial | `SECURITY.md`, threat model, consumer-bound API credentials, no-secrets CI scan, tests | No production hardening or security review. |
 | OPS-PROD-010 support/contact path exists | partial | `runbooks/support_triage.md`, `SECURITY.md` | No public production support/contact. |
 | OPS-PROD-011 launch risks documented | closed-local | `reports/roadmap/roadmap_evidence_register.md`, `reports/roadmap/external_evidence_blockers.md`, this matrix | External launch risks still unresolved. |
 | OPS-PROD-012 launch approval recorded | blocked-external | `reports/compliance/legal_review_record.md` | No production approval. |

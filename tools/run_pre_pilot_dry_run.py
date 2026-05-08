@@ -18,6 +18,7 @@ from quizbank_mvp.app import create_app
 from quizbank_mvp.database import (
     connect,
     initialize_database,
+    seed_api_credential,
     seed_consumer,
     seed_control_fixture,
     seed_entitlement,
@@ -28,13 +29,17 @@ from quizbank_mvp.database import (
 REPORT_PATH = ROOT / "reports" / "pre_pilot" / "local_pre_pilot_dry_run_2026-05-08.md"
 FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
 REQUEST = {"consumer_id": "consumer_lifecycle", "cefr_level": "A2", "theme_ids": ["T10"]}
+API_KEYS = {
+    "consumer_lifecycle": "lifecycle_api_key",
+    "consumer_quota_blocked": "quota_blocked_api_key",
+}
 
 
 def post_next_item(client: TestClient, consumer_id: str) -> dict[str, Any]:
     response = client.post(
         "/v1/quiz-items/next",
         json={**REQUEST, "consumer_id": consumer_id},
-        headers={"X-Consumer-Id": consumer_id},
+        headers={"X-Consumer-Id": consumer_id, "X-API-Key": API_KEYS[consumer_id]},
     )
     payload = response.json()
     return {
@@ -42,6 +47,16 @@ def post_next_item(client: TestClient, consumer_id: str) -> dict[str, Any]:
         "reason_code": payload.get("reason_code"),
         "delivery_created": "delivery_id" in payload,
     }
+
+
+def post_invalid_key(client: TestClient) -> dict[str, Any]:
+    response = client.post(
+        "/v1/quiz-items/next",
+        json=REQUEST,
+        headers={"X-Consumer-Id": "consumer_lifecycle", "X-API-Key": "invalid_key"},
+    )
+    payload = response.json()
+    return {"status_code": response.status_code, "reason_code": payload.get("reason_code")}
 
 
 def consumer_status(db_path: Path, consumer_id: str) -> str:
@@ -59,8 +74,10 @@ def prepare_database(db_path: Path) -> None:
     initialize_database(db_path)
     seed_control_fixture(db_path, FIXTURE, "approved")
     seed_consumer(db_path, "consumer_lifecycle", 2, ["A2"], ["T10"])
+    seed_api_credential(db_path, "consumer_lifecycle", API_KEYS["consumer_lifecycle"])
     seed_entitlement(db_path, "consumer_lifecycle", ["A2"], ["T10"])
     seed_consumer(db_path, "consumer_quota_blocked", 0, ["A2"], ["T10"])
+    seed_api_credential(db_path, "consumer_quota_blocked", API_KEYS["consumer_quota_blocked"])
     seed_entitlement(db_path, "consumer_quota_blocked", ["A2"], ["T10"])
 
 
@@ -108,6 +125,7 @@ def run_dry_run(report_path: Path | None = REPORT_PATH) -> dict[str, Any]:
             "health": client.get("/health").json()["status"],
             "ready": client.get("/ready").json()["status"],
             "consumer_lifecycle": run_lifecycle(db_path, client),
+            "auth_behavior": post_invalid_key(client),
             "repeat_behavior": post_next_item(client, "consumer_lifecycle"),
             "quota_behavior": post_next_item(client, "consumer_quota_blocked"),
             "audit_summary": audit_summary(db_path),
@@ -116,6 +134,7 @@ def run_dry_run(report_path: Path | None = REPORT_PATH) -> dict[str, Any]:
                 "ready",
                 "consumer_status_transition",
                 "delivery_created",
+                "auth_denial",
                 "selection_denial",
                 "quota_denial",
             ],

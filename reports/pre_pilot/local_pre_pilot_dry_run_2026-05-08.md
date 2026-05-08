@@ -16,6 +16,10 @@ Scope: local only; no pilot, beta, production or external send.
     ],
     "delivery_count": 1
   },
+  "auth_behavior": {
+    "reason_code": "AUTH_INVALID_API_KEY",
+    "status_code": 401
+  },
   "consumer_lifecycle": {
     "blocked_denial": {
       "delivery_created": false,
@@ -45,6 +49,7 @@ Scope: local only; no pilot, beta, production or external send.
     "ready",
     "consumer_status_transition",
     "delivery_created",
+    "auth_denial",
     "selection_denial",
     "quota_denial"
   ],

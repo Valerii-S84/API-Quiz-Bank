@@ -52,6 +52,19 @@ Current repo evidence:
 - `data/governance/privacy_retention_schedule.csv`
 - `data/governance/vendor_register.csv`
 - `runbooks/privacy_request_workflow.md`
+- `reports/beta/local_beta_security_smoke_2026-05-08.md`
+- `reports/publication/beta_launch_subset_2026-05-08.md`
+- `reports/observability/beta_alert_review_2026-05-08.md`
+
+## 4.1 Beta Scope Review Snapshot
+
+Current status: pending external approval.
+
+Local beta package now documents consumer-bound API credential behavior,
+approved/published-only delivery, local alert-review signals and support/privacy
+runbooks. It does not close public beta privacy/legal review because no legal
+entity, public support surface, real data processor list or launch owner
+approval has been recorded.
 
 ---
 

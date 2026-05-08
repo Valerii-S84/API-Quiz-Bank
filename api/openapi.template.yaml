@@ -84,6 +84,12 @@ paths:
           schema:
             type: string
             minLength: 1
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
       requestBody:
         required: true
         content:
@@ -104,13 +110,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
         '401':
-          description: Missing consumer authentication header.
+          description: Missing or invalid consumer-bound API credentials.
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
         '403':
-          description: Consumer is not authorized or entitled.
+          description: Consumer credential is inactive, unauthorized or not entitled.
           content:
             application/problem+json:
               schema:
@@ -139,6 +145,12 @@ paths:
           schema:
             type: string
             minLength: 1
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
       responses:
         '200':
           description: Consumer-visible delivery log.
@@ -147,7 +159,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/DeliveryProjection'
         '401':
-          description: Missing consumer authentication header.
+          description: Missing or invalid consumer-bound API credentials.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: Consumer API key is inactive or consumer is not active.
           content:
             application/problem+json:
               schema:

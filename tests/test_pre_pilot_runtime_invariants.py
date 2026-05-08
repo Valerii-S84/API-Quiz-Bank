@@ -20,6 +20,7 @@ class PrePilotRuntimeInvariantTests(unittest.TestCase):
         self.assertEqual(lifecycle["blocked_denial"]["reason_code"], "CONSUMER_NOT_ACTIVE")
         self.assertEqual(lifecycle["reactivated_allowed"]["status_code"], 200)
         self.assertTrue(lifecycle["reactivated_allowed"]["delivery_created"])
+        self.assertEqual(report["auth_behavior"]["reason_code"], "AUTH_INVALID_API_KEY")
         self.assertEqual(report["repeat_behavior"]["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
         self.assertEqual(report["quota_behavior"]["reason_code"], "QUOTA_EXCEEDED")
         self.assertEqual(
@@ -28,6 +29,7 @@ class PrePilotRuntimeInvariantTests(unittest.TestCase):
         )
         self.assertEqual(report["audit_summary"]["delivery_count"], 1)
         self.assertIn("consumer_status_transition", report["observability_events"])
+        self.assertIn("auth_denial", report["observability_events"])
         self.assertTrue(report_text.startswith("# Local Pre-Pilot"))
 
 

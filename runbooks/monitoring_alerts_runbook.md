@@ -14,6 +14,7 @@ pilot. It does not create a dashboard, alert rule or external monitoring system.
 | Service health | `/health` or equivalent output from pilot environment. |
 | Service readiness | `/ready` or dependency readiness output. |
 | Delivery creation | Count and log excerpt for created deliveries. |
+| Auth denial | `AUTH_REQUIRED`, `AUTH_INVALID_API_KEY`, `AUTH_CONSUMER_MISMATCH` or inactive credential/consumer count. |
 | Selection denial | Reason codes for no eligible item, repeat denial or status denial. |
 | Quota denial | `QUOTA_EXCEEDED` count or log excerpt. |
 | Consumer status transition | Audit rows for suspend/block/reactivate. |
@@ -32,6 +33,7 @@ For closed pilot, one of these must exist:
 ## Suggested Pilot Alert Conditions
 
 - `/ready` fails.
+- API credential denial spikes or cross-consumer mismatch occurs.
 - delivery failure count exceeds pilot threshold.
 - Telegram send failure occurs.
 - blocked/suspended consumer receives delivery.
