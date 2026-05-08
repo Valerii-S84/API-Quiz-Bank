@@ -17,7 +17,7 @@ TELEGRAM_API_BASE = "https://api.telegram.org"
 TELEGRAM_QUESTION_LIMIT = 300
 TELEGRAM_OPTION_LIMIT = 100
 TELEGRAM_MIN_OPTIONS = 2
-TELEGRAM_MAX_OPTIONS = 10
+TELEGRAM_MAX_OPTIONS = 12
 
 
 class TelegramDeliveryError(Exception):
@@ -83,7 +83,7 @@ class TelegramBotApiAdapter:
         url = f"{self.api_base}/bot{self.bot_token}/sendPoll"
         request = urllib.request.Request(
             url,
-            data=json.dumps(payload).encode("utf-8"),
+            data=json.dumps(telegram_api_payload(payload)).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST",
         )
@@ -167,7 +167,7 @@ def handle_telegram_send(
         )
     if adapter is None:
         raise TelegramDeliveryError("real_send_requires_adapter")
-    send_result = adapter.send_quiz_poll(telegram_api_payload(payload))
+    send_result = adapter.send_quiz_poll(payload)
     return TelegramDeliveryResult(
         delivery_id=delivery_id,
         consumer_id=consumer_id,
@@ -203,8 +203,8 @@ def load_delivery_item(
 def build_telegram_poll_payload(chat_id: str, item: dict[str, Any]) -> dict[str, Any]:
     question = build_question(item)
     options = json.loads(item["options_json"])
-    correct_option_id = parse_correct_option_id(item["answer_key"], len(options))
-    validate_telegram_poll(question, options)
+    correct_option_ids = parse_correct_option_ids(item["answer_key"], len(options))
+    validate_telegram_poll(question, options, correct_option_ids)
     return {
         "delivery_id": item["delivery_id"],
         "consumer_id": item["consumer_id"],
@@ -213,7 +213,7 @@ def build_telegram_poll_payload(chat_id: str, item: dict[str, Any]) -> dict[str,
         "question": question,
         "options": options,
         "type": "quiz",
-        "correct_option_id": correct_option_id,
+        "correct_option_ids": correct_option_ids,
         "is_anonymous": True,
     }
 
@@ -227,17 +227,21 @@ def build_question(item: dict[str, Any]) -> str:
     return question
 
 
-def parse_correct_option_id(answer_key: str, option_count: int) -> int:
+def parse_correct_option_ids(answer_key: str, option_count: int) -> list[int]:
     try:
         correct_option_id = int(answer_key)
     except ValueError as error:
         raise TelegramDeliveryError("telegram_answer_key_not_numeric") from error
     if correct_option_id < 0 or correct_option_id >= option_count:
         raise TelegramDeliveryError("telegram_answer_key_out_of_range")
-    return correct_option_id
+    return [correct_option_id]
 
 
-def validate_telegram_poll(question: str, options: list[str]) -> None:
+def validate_telegram_poll(
+    question: str,
+    options: list[str],
+    correct_option_ids: list[int],
+) -> None:
     if len(question) > TELEGRAM_QUESTION_LIMIT:
         raise TelegramDeliveryError("telegram_question_too_long")
     if not TELEGRAM_MIN_OPTIONS <= len(options) <= TELEGRAM_MAX_OPTIONS:
@@ -245,15 +249,29 @@ def validate_telegram_poll(question: str, options: list[str]) -> None:
     for option in options:
         if not option or len(option) > TELEGRAM_OPTION_LIMIT:
             raise TelegramDeliveryError("telegram_option_invalid")
+    validate_correct_option_ids(correct_option_ids, len(options))
+
+
+def validate_correct_option_ids(correct_option_ids: list[int], option_count: int) -> None:
+    if not correct_option_ids:
+        raise TelegramDeliveryError("telegram_correct_option_ids_empty")
+    previous = -1
+    for option_id in correct_option_ids:
+        if option_id <= previous or option_id < 0 or option_id >= option_count:
+            raise TelegramDeliveryError("telegram_correct_option_ids_invalid")
+        previous = option_id
 
 
 def telegram_api_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    correct_option_ids = payload["correct_option_ids"]
+    if not isinstance(correct_option_ids, list) or len(correct_option_ids) != 1:
+        raise TelegramDeliveryError("telegram_bot_api_requires_single_correct_option")
     return {
         "chat_id": payload["chat_id"],
         "question": payload["question"],
         "options": payload["options"],
         "type": payload["type"],
-        "correct_option_id": payload["correct_option_id"],
+        "correct_option_id": correct_option_ids[0],
         "is_anonymous": payload["is_anonymous"],
     }
 
