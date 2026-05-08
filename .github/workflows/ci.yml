@@ -16,11 +16,22 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Run corpus inventory
-        run: python3 tools/quizbank_inventory.py --quizbank-dir QuizBank
+      - name: Run public fixture inventory
+        run: |
+          echo "Private QuizBank corpus is excluded from public CI by design."
+          python3 tools/quizbank_inventory.py --quizbank-dir tests/fixtures/quizbank_public_smoke
 
-      - name: Run constitution check
-        run: python3 tools/quizbank_constitution_check.py --quizbank-dir QuizBank
+      - name: Run public fixture constitution check
+        run: |
+          echo "Full QuizBank corpus checks are local-only."
+          python3 tools/quizbank_constitution_check.py --quizbank-dir tests/fixtures/quizbank_public_smoke
 
-      - name: Run invariant tests
-        run: python3 -m unittest discover -s tests -p "test_*.py"
+      - name: Run public invariant tests
+        run: |
+          echo "Private corpus-dependent tests are local-only."
+          python3 -m unittest \
+            tests.test_contract_schema_invariants \
+            tests.test_import_validation \
+            tests.test_mvp_runtime \
+            tests.test_pre_pilot_runtime_invariants \
+            tests.test_style_numeric_limits
