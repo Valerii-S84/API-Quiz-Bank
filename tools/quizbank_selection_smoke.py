@@ -54,21 +54,12 @@ def select_eligible_item(
 ) -> tuple[dict[str, str] | None, dict[str, object]]:
     matching_items = [item for item in items if matches_filters(item, cefr_level, theme_id)]
     status_counts = Counter(item.get("status", "(missing)") for item in matching_items)
-    status_eligible_items = [
-        item
-        for item in matching_items
-        if item.get("status") in NORMAL_DELIVERY_STATUSES and has_traceability(item)
-    ]
+    status_eligible_items = status_eligible_items_with_traceability(matching_items)
     repeat_blocked_items = [
         item for item in status_eligible_items if item["item_id"] in delivered_item_ids_for_consumer
     ]
     eligible_items = [
         item for item in status_eligible_items if item["item_id"] not in delivered_item_ids_for_consumer
-    ]
-    traceability_violations = [
-        item.get("item_id", "(missing)")
-        for item in matching_items
-        if item.get("status") in NORMAL_DELIVERY_STATUSES and not has_traceability(item)
     ]
     diagnostics = {
         "candidate_count": len(matching_items),
@@ -80,9 +71,27 @@ def select_eligible_item(
         },
         "excluded_by_repeat_count": len(repeat_blocked_items),
         "excluded_by_repeat_item_ids": [item["item_id"] for item in repeat_blocked_items],
-        "traceability_violations": traceability_violations,
+        "traceability_violations": traceability_violations(matching_items),
     }
     return (eligible_items[0] if eligible_items else None), diagnostics
+
+
+def status_eligible_items_with_traceability(
+    items: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    return [
+        item
+        for item in items
+        if item.get("status") in NORMAL_DELIVERY_STATUSES and has_traceability(item)
+    ]
+
+
+def traceability_violations(items: list[dict[str, str]]) -> list[str]:
+    return [
+        item.get("item_id", "(missing)")
+        for item in items
+        if item.get("status") in NORMAL_DELIVERY_STATUSES and not has_traceability(item)
+    ]
 
 
 def filters_applied(repeat_policy_applied: bool) -> list[str]:
@@ -148,6 +157,39 @@ def delivery_log(item: dict[str, str], consumer_id: str) -> dict[str, object]:
     }
 
 
+def selection_request_payload(
+    consumer_id: str,
+    cefr_level: str,
+    theme_id: str,
+    delivered_item_ids_for_consumer: set[str],
+) -> dict[str, object]:
+    return {
+        "selection_request_id": "sel_control_001",
+        "consumer_id": consumer_id,
+        "cefr_level": cefr_level,
+        "theme_id": theme_id,
+        "normal_delivery_statuses": list(NORMAL_DELIVERY_STATUSES),
+        "repeat_policy": {
+            "applied": bool(delivered_item_ids_for_consumer),
+            "delivered_item_ids_for_consumer": sorted(delivered_item_ids_for_consumer),
+        },
+    }
+
+
+def selection_problem_payload(
+    consumer_id: str,
+    cefr_level: str,
+    theme_id: str,
+    repeat_policy_applied: bool,
+) -> dict[str, object] | None:
+    return problem_details(
+        consumer_id,
+        cefr_level,
+        theme_id,
+        repeat_policy_applied,
+    )
+
+
 def build_report(
     items: list[dict[str, str]],
     consumer_id: str,
@@ -167,21 +209,16 @@ def build_report(
     return {
         "report_type": "selection_smoke",
         "generated_at": generated_at,
-        "selection_request": {
-            "selection_request_id": "sel_control_001",
-            "consumer_id": consumer_id,
-            "cefr_level": cefr_level,
-            "theme_id": theme_id,
-            "normal_delivery_statuses": list(NORMAL_DELIVERY_STATUSES),
-            "repeat_policy": {
-                "applied": repeat_policy_applied,
-                "delivered_item_ids_for_consumer": sorted(delivered_item_ids_for_consumer),
-            },
-        },
+        "selection_request": selection_request_payload(
+            consumer_id,
+            cefr_level,
+            theme_id,
+            delivered_item_ids_for_consumer,
+        ),
         "diagnostics": diagnostics,
         "selected_item": None if no_eligible else public_projection(selected_item),
         "problem_details": (
-            problem_details(
+            selection_problem_payload(
                 consumer_id,
                 cefr_level,
                 theme_id,

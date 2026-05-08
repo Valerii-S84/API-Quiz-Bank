@@ -48,39 +48,60 @@ def validate_source(header: list[str], rows: list[dict[str, str]]) -> list[str]:
 
     seen_item_ids: set[str] = set()
     for line_number, row in enumerate(rows, start=2):
-        item_id = row.get("item_id", "").strip()
-        if not item_id:
-            errors.append(f"missing_item_id:{line_number}")
-        elif item_id in seen_item_ids:
-            errors.append(f"duplicate_item_id:{item_id}")
-        else:
-            seen_item_ids.add(item_id)
-
-        if row.get("sublevel", "").strip() not in CANONICAL_LEVELS:
-            errors.append(f"invalid_level:{line_number}:{row.get('sublevel', '')}")
-        if row.get("theme_id", "").strip() not in THEME_TITLES:
-            errors.append(f"invalid_theme:{line_number}:{row.get('theme_id', '')}")
-        if row.get("objective_id", "").strip() not in OBJECTIVE_IDS:
-            errors.append(f"invalid_objective:{line_number}:{row.get('objective_id', '')}")
-        if row.get("pattern_id", "").strip() not in PATTERN_IDS:
-            errors.append(f"invalid_pattern:{line_number}:{row.get('pattern_id', '')}")
-        if row.get("status", "").strip() not in ITEM_STATUSES:
-            errors.append(f"invalid_status:{line_number}:{row.get('status', '')}")
-        elif row.get("status", "").strip() != "draft":
-            errors.append(f"non_draft_sample_item:{line_number}:{row.get('status', '')}")
-
-        try:
-            options = json.loads(row.get("options", ""))
-        except json.JSONDecodeError:
-            errors.append(f"invalid_options_json:{line_number}")
-        else:
-            if not isinstance(options, list) or len(options) < 2:
-                errors.append(f"invalid_options_shape:{line_number}")
-            elif not all(isinstance(option, str) and option for option in options):
-                errors.append(f"invalid_option_value:{line_number}")
-            validate_answer_key(row.get("answer_key", ""), len(options), line_number, errors)
+        validate_row_identity(row, seen_item_ids, line_number, errors)
+        validate_row_taxonomy(row, line_number, errors)
+        validate_row_status(row, line_number, errors)
+        validate_row_options(row, line_number, errors)
 
     return errors
+
+
+def validate_row_identity(
+    row: dict[str, str],
+    seen_item_ids: set[str],
+    line_number: int,
+    errors: list[str],
+) -> None:
+    item_id = row.get("item_id", "").strip()
+    if not item_id:
+        errors.append(f"missing_item_id:{line_number}")
+    elif item_id in seen_item_ids:
+        errors.append(f"duplicate_item_id:{item_id}")
+    else:
+        seen_item_ids.add(item_id)
+
+
+def validate_row_taxonomy(row: dict[str, str], line_number: int, errors: list[str]) -> None:
+    if row.get("sublevel", "").strip() not in CANONICAL_LEVELS:
+        errors.append(f"invalid_level:{line_number}:{row.get('sublevel', '')}")
+    if row.get("theme_id", "").strip() not in THEME_TITLES:
+        errors.append(f"invalid_theme:{line_number}:{row.get('theme_id', '')}")
+    if row.get("objective_id", "").strip() not in OBJECTIVE_IDS:
+        errors.append(f"invalid_objective:{line_number}:{row.get('objective_id', '')}")
+    if row.get("pattern_id", "").strip() not in PATTERN_IDS:
+        errors.append(f"invalid_pattern:{line_number}:{row.get('pattern_id', '')}")
+
+
+def validate_row_status(row: dict[str, str], line_number: int, errors: list[str]) -> None:
+    status = row.get("status", "").strip()
+    if status not in ITEM_STATUSES:
+        errors.append(f"invalid_status:{line_number}:{row.get('status', '')}")
+    elif status != "draft":
+        errors.append(f"non_draft_sample_item:{line_number}:{row.get('status', '')}")
+
+
+def validate_row_options(row: dict[str, str], line_number: int, errors: list[str]) -> None:
+    try:
+        options = json.loads(row.get("options", ""))
+    except json.JSONDecodeError:
+        errors.append(f"invalid_options_json:{line_number}")
+        return
+
+    if not isinstance(options, list) or len(options) < 2:
+        errors.append(f"invalid_options_shape:{line_number}")
+    elif not all(isinstance(option, str) and option for option in options):
+        errors.append(f"invalid_option_value:{line_number}")
+    validate_answer_key(row.get("answer_key", ""), len(options), line_number, errors)
 
 
 def validate_answer_key(
@@ -175,6 +196,20 @@ def public_projection(row: dict[str, str], source_id: str) -> dict[str, object]:
     }
 
 
+def validation_summary(canonical_items: list[dict[str, str]]) -> dict[str, object]:
+    validation_errors = validate_canonical_rows(canonical_items)
+    publishable_count = len(
+        [row for row in canonical_items if row["status"] in {"approved", "published"}]
+    )
+    return {
+        "canonical_item_count": len(canonical_items),
+        "accepted_candidate_count": len(canonical_items) if not validation_errors else 0,
+        "rejected_candidate_count": 0 if not validation_errors else len(canonical_items),
+        "publishable_item_count": publishable_count,
+        "validation_errors": validation_errors,
+    }
+
+
 def build_report(
     source_id: str,
     source_path: Path,
@@ -184,10 +219,6 @@ def build_report(
     generated_at: str,
     canonical_output_path: Path,
 ) -> dict[str, object]:
-    validation_errors = validate_canonical_rows(canonical_items)
-    publishable_count = len(
-        [row for row in canonical_items if row["status"] in {"approved", "published"}]
-    )
     return {
         "import_mode": "dry_run",
         "source_id": source_id,
@@ -196,13 +227,7 @@ def build_report(
         "checksum_sha256": checksum_sha256,
         "row_count_detected": len(rows),
         "canonical_output_path": canonical_output_path.as_posix(),
-        "validation_summary": {
-            "canonical_item_count": len(canonical_items),
-            "accepted_candidate_count": len(canonical_items) if not validation_errors else 0,
-            "rejected_candidate_count": 0 if not validation_errors else len(canonical_items),
-            "publishable_item_count": publishable_count,
-            "validation_errors": validation_errors,
-        },
+        "validation_summary": validation_summary(canonical_items),
         "generated_at": generated_at,
         "imported_items": [public_projection(row, source_id) for row in rows],
     }

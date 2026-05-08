@@ -109,6 +109,24 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
         self.assertEqual(repeat.status_code, 404)
         self.assertEqual(repeat.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
 
+    def test_published_items_are_delivery_eligible(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "published")
+        self.seed_access()
+
+        response = self.next_item()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["delivery"]["item_status"], "published")
+
+    def test_retired_items_are_not_delivery_eligible(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "retired")
+        self.seed_access()
+
+        response = self.next_item()
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
+
     def test_entitlement_and_quota_denials_happen_before_selection(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         seed_consumer(self.db_path, "consumer_no_entitlement", 5, ["A2"], ["T10"])

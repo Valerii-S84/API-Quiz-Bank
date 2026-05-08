@@ -9,17 +9,17 @@
 
 - Project name: `API Quiz Bank` (internal historical names: `QuizBank`, `German QuizBank Platform`)
 - Primary languages: `Markdown` documentation, `CSV` corpus/governance data, `Python 3.12+` local tooling/tests, `YAML` OpenAPI/manifest/profile seeds and `JSON Schema`
-- Runtime / platform: `Current snapshot is a documentation-and-data repository with committed local validation/generation tooling but without runnable API services; target platform is an API-first quiz platform with versioned HTTP API, workers and Telegram integration`
-- Main frameworks / libraries: `Python standard-library tooling and unittest are committed; no runtime web framework is committed yet; target architecture documents FastAPI or equivalent ASGI framework, JSON Schema/OpenAPI contracts and PostgreSQL-backed services`
-- Data stores: `Current source assets are top-level CSV files under QuizBank/; target operational source of truth is PostgreSQL after controlled import`
+- Runtime / platform: `Current snapshot is a documentation-and-data repository with committed local validation/generation tooling plus a FastAPI/SQLite MVP runtime under src/quizbank_mvp/; target platform remains an API-first quiz platform with versioned HTTP API, workers and Telegram integration`
+- Main frameworks / libraries: `Python standard-library tooling and unittest are committed; MVP runtime uses FastAPI, Pydantic, Uvicorn and SQLite; tests use unittest plus FastAPI TestClient/httpx; target production architecture still documents FastAPI or equivalent ASGI framework, JSON Schema/OpenAPI contracts and PostgreSQL-backed services`
+- Data stores: `Current source assets are top-level CSV files under QuizBank/; MVP runtime uses local SQLite via database/migrations/001_create_mvp_runtime.sql; target operational source of truth is PostgreSQL or an equivalent governed DB model after controlled import`
 - Default user-facing language: `Ukrainian for documentation and operator-facing text, with canonical technical terms in English; quiz content itself is German`
 
 ## 2. Project structure
 
 - Root entrypoints: `README.md`, `CONSTITUTION.md`, `.agent/`, `docs/`, `QuizBank/`, `tools/`, `tests/`, `api/`, `schemas/`, `data/`, `policies/`, `runbooks/`, `reports/`, `.github/`
-- Source directories: `QuizBank/` for source corpus assets, `QuizBank/staging/` for staged source work, `tools/` for local validation/generation tooling, `api/` for OpenAPI seed, `schemas/` for JSON Schema seed, `docs/` for normative project documents, `policies/` and `runbooks/` for operational policy/workflow baselines, `reports/compliance/` for compliance evidence registers, `data/` for manifests, parser profiles, taxonomy and governance CSV registers, `.agent/` for agent governance`
-- Test directories: `tests/` for repository invariant tests using Python unittest`
-- Config / infra directories: `.github/workflows/` for baseline CI; no committed runtime deploy/infra directories yet; docs reserve future runtime paths such as services/ and infra/`
+- Source directories: `QuizBank/` for source corpus assets, `QuizBank/staging/` for staged source work, `tools/` for local validation/generation tooling, `src/quizbank_mvp/` for the FastAPI/SQLite MVP runtime, `database/migrations/` for MVP SQLite schema migration, `api/` for OpenAPI seed, `schemas/` for JSON Schema seed, `docs/` for normative project documents, `policies/` and `runbooks/` for operational policy/workflow baselines, `reports/compliance/` for compliance evidence registers, `data/` for manifests, parser profiles, taxonomy and governance CSV registers, `.agent/` for agent governance`
+- Test directories: `tests/` for repository invariant and MVP runtime tests using Python unittest`
+- Config / infra directories: `.github/workflows/` for baseline CI; `pyproject.toml` for the local Python package/runtime dependency seed; no committed runtime deploy/infra directories yet; docs reserve future runtime paths such as services/ and infra/`
 - Read-only or protected paths: `.agent/core/` as normative agent rules, `CONSTITUTION.md` as project source of truth, `QuizBank/README.md` as generated inventory snapshot, raw corpus files in `QuizBank/*.csv` unless the task explicitly targets corpus changes`
 
 ## 3. Key commands
@@ -30,15 +30,20 @@
 | Corpus validation | `python3 tools/quizbank_constitution_check.py --quizbank-dir QuizBank` | Validates current corpus baseline and constitutional invariants |
 | Inventory generation | `python3 tools/quizbank_inventory.py --quizbank-dir QuizBank --write-artifacts` | Regenerates manifest, inventory, checksums and parser profile artifacts |
 | Contract seed generation | `python3 tools/quizbank_emit_standards.py` | Regenerates taxonomy, JSON Schema and OpenAPI seed artifacts |
+| MVP demo | `PYTHONPATH=src python3 tools/run_mvp_demo.py` | Exercises local SQLite/FastAPI app in-process through TestClient |
+| MVP init DB | `PYTHONPATH=src python3 -m quizbank_mvp.cli --db-path var/quizbank_mvp.sqlite3 init-db` | Creates the local SQLite MVP schema |
+| MVP seed demo | `PYTHONPATH=src python3 -m quizbank_mvp.cli --db-path var/quizbank_mvp.sqlite3 seed-demo` | Seeds approved demo item, consumers, entitlement and quota controls |
+| Dev / Run | `QUIZBANK_DB_PATH=var/quizbank_mvp.sqlite3 PYTHONPATH=src uvicorn quizbank_mvp.app:app --host 127.0.0.1 --port 8000` | Runs the local FastAPI MVP service after DB init/seed |
 | Lint | `Not defined in current snapshot.` | No committed generic linter or style-check pipeline exists yet |
-| Build | `Not defined in current snapshot.` | No buildable API/service implementation is committed yet |
-| Dev / Run | `Not defined in current snapshot.` | Target runtime is documented, but runnable services are not present in the repository snapshot |
+| Build | `python3 -m pip install -e ".[dev]"` | Installs the local package/runtime for development; no separate deploy build pipeline is committed |
 
 ## 4. External dependencies
 
 | System / service | Purpose | Access mode | Notes |
 |---|---|---|---|
 | `Telegram Bot API` | Planned quiz/poll delivery consumer | Planned external integration; not configured in current snapshot | Telegram is an adapter/consumer and must not own selection logic |
+| `FastAPI / Pydantic / Uvicorn` | Local MVP API runtime and request/response validation | Declared in `pyproject.toml`; installed in the local Python environment when running the API | Do not treat MVP service as production deployment |
+| `SQLite` | Local MVP database for runtime proof and tests | Python stdlib sqlite3 with committed SQL migration | Equivalent DB model for MVP proof only; not the target production database |
 | `PostgreSQL` | Planned canonical operational data store | Planned runtime dependency; not configured in current snapshot | Raw CSV remains source asset, PostgreSQL is the intended operational truth after import |
 | `GitHub / GitHub Actions or equivalent` | Planned repository governance, CI and protected-branch workflow | Local Git repository is initialized; remote hosting is not configured yet | Docs repeatedly require PR/check discipline for production-relevant changes |
 
