@@ -107,7 +107,7 @@ class ContractSchemaInvariantTests(unittest.TestCase):
         self.assertIn("NextQuizRequest:", openapi)
         self.assertIn("QuizItemPublicProjection:", openapi)
         self.assertIn("ProblemDetails:", openapi)
-        self.assertIn("X-API-Key", openapi)
+        self.assertIn("X-QuizBank-API-Key", openapi)
         self.assertIn("options:", public_projection)
         self.assertNotIn("answer_key", public_projection)
         self.assertNotIn("explanation", public_projection)

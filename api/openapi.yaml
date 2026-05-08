@@ -84,7 +84,7 @@ paths:
           schema:
             type: string
             minLength: 1
-        - name: X-API-Key
+        - name: X-QuizBank-API-Key
           in: header
           required: true
           schema:
@@ -145,7 +145,7 @@ paths:
           schema:
             type: string
             minLength: 1
-        - name: X-API-Key
+        - name: X-QuizBank-API-Key
           in: header
           required: true
           schema:

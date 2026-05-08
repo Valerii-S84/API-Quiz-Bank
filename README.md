@@ -73,7 +73,7 @@ curl http://127.0.0.1:8000/ready
 curl -X POST http://127.0.0.1:8000/v1/quiz-items/next \
   -H 'Content-Type: application/json' \
   -H 'X-Consumer-Id: consumer_demo' \
-  -H 'X-API-Key: demo_consumer_api_key' \
+  -H 'X-QuizBank-API-Key: demo_consumer_api_key' \
   -d '{"consumer_id":"consumer_demo","cefr_level":"A2","theme_ids":["T10"]}'
 PYTHONPATH=src python3 tools/run_mvp_demo.py
 ```

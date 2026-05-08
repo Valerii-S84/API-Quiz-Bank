@@ -39,7 +39,7 @@ def post_next_item(client: TestClient, consumer_id: str) -> dict[str, Any]:
     response = client.post(
         "/v1/quiz-items/next",
         json={**REQUEST, "consumer_id": consumer_id},
-        headers={"X-Consumer-Id": consumer_id, "X-API-Key": API_KEYS[consumer_id]},
+        headers={"X-Consumer-Id": consumer_id, "X-QuizBank-API-Key": API_KEYS[consumer_id]},
     )
     payload = response.json()
     return {
@@ -53,7 +53,7 @@ def post_invalid_key(client: TestClient) -> dict[str, Any]:
     response = client.post(
         "/v1/quiz-items/next",
         json=REQUEST,
-        headers={"X-Consumer-Id": "consumer_lifecycle", "X-API-Key": "invalid_key"},
+        headers={"X-Consumer-Id": "consumer_lifecycle", "X-QuizBank-API-Key": "invalid_key"},
     )
     payload = response.json()
     return {"status_code": response.status_code, "reason_code": payload.get("reason_code")}

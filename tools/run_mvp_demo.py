@@ -45,7 +45,7 @@ def post_next_item(client: TestClient, consumer_id: str, payload: dict[str, obje
     return client.post(
         "/v1/quiz-items/next",
         json={**payload, "consumer_id": consumer_id},
-        headers={"X-Consumer-Id": consumer_id, "X-API-Key": DEMO_API_KEYS[consumer_id]},
+        headers={"X-Consumer-Id": consumer_id, "X-QuizBank-API-Key": DEMO_API_KEYS[consumer_id]},
     )
 
 
@@ -61,7 +61,7 @@ def run_demo_steps(client: TestClient) -> None:
         f"/v1/deliveries/{delivery_id}",
         headers={
             "X-Consumer-Id": "consumer_demo",
-            "X-API-Key": DEMO_API_KEYS["consumer_demo"],
+            "X-QuizBank-API-Key": DEMO_API_KEYS["consumer_demo"],
         },
     )
     print_step("delivery_log", delivery.json())
