@@ -82,6 +82,8 @@ PYTHONPATH=src python3 tools/run_mvp_demo.py
 
 - Use GitHub issues for non-sensitive documentation, corpus, tooling and
   security-boundary changes through the committed issue templates.
+- Use the support/abuse issue template for non-sensitive beta support,
+  content-quality, abuse and access/quota reports.
 - Do not place secrets, tokens, private identifiers or raw request/response
   dumps in public issues.
 - Report sensitive security, privacy or abuse issues to the project owner
