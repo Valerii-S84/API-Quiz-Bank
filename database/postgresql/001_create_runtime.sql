@@ -42,9 +42,9 @@ CREATE TABLE quiz_items (
     version TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,
-    reviewed_at TIMESTAMPTZ NOT NULL,
+    reviewed_at TIMESTAMPTZ,
     level_locked TEXT NOT NULL,
-    locked_at TIMESTAMPTZ NOT NULL
+    locked_at TIMESTAMPTZ
 );
 
 CREATE TABLE consumers (

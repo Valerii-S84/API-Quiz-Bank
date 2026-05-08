@@ -65,6 +65,12 @@ class GeneratedArtifactsInvariantTests(unittest.TestCase):
         self.assert_control_sample_report()
         self.assert_control_sample_jsonl()
 
+    def test_postgresql_load_plan_is_current(self) -> None:
+        artifact_paths = ["reports/imports/control_sample_postgresql_load_plan.json"]
+        before = file_texts(artifact_paths)
+        run_command(sys.executable, "tools/quizbank_postgresql_load_plan.py")
+        self.assertEqual(file_texts(artifact_paths), before)
+
     def assert_control_sample_registry(self) -> None:
         registry_rows = read_csv_dicts("data/registry/source_registry.csv")
         self.assertEqual(len(registry_rows), 1)
