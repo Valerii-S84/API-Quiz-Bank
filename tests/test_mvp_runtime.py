@@ -18,6 +18,7 @@ from quizbank_mvp.database import (
     seed_consumer,
     seed_control_fixture,
     seed_entitlement,
+    transition_consumer_status,
     transition_item_status,
 )
 
@@ -153,6 +154,29 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["reason_code"], "DELIVERY_NOT_FOUND")
+
+    def test_suspended_consumer_is_denied_before_delivery(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        self.seed_access()
+
+        transition_consumer_status(
+            self.db_path,
+            "consumer_allowed",
+            "suspended",
+            "local_admin",
+            "pilot suspension test",
+        )
+        response = self.next_item()
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["reason_code"], "CONSUMER_NOT_ACTIVE")
+        with connect(self.db_path) as connection:
+            delivery_count = connection.execute("SELECT COUNT(*) AS count FROM deliveries").fetchone()
+            audit = connection.execute(
+                "SELECT * FROM audit_log WHERE entity_type = 'consumer'"
+            ).fetchone()
+        self.assertEqual(delivery_count["count"], 0)
+        self.assertEqual(audit["action"], "consumer_status_transition")
 
 
 class MvpRuntimeDatabaseTests(MvpRuntimeCase):

@@ -27,7 +27,23 @@ Do not place secrets, raw tokens, private identifiers or full request dumps in p
 | Wrong entitlement/quota behavior | Suspend affected consumer access and preserve quota records. |
 | API access mismatch | Verify `X-Consumer-Id` behavior and delivery ownership checks. |
 | Import/source issue | Stop publication, rerun dry-run import, preserve checksum evidence. |
-| Privacy/security issue | Follow `runbooks/privacy_request_workflow.md` and `SECURITY.md`. |
+| Privacy/security issue | Follow `runbooks/incident_response.md`, `runbooks/privacy_request_workflow.md` and `SECURITY.md`. |
+
+## MVP Consumer Suspension Path
+
+Use the governed CLI path for local MVP consumer suspension:
+
+```bash
+PYTHONPATH=src python3 -m quizbank_mvp.cli \
+  --db-path var/quizbank_mvp.sqlite3 \
+  transition-consumer-status \
+  --consumer-id consumer_demo \
+  --to-status suspended \
+  --actor local_admin \
+  --reason "support containment"
+```
+
+Record the related audit log entry with the support issue.
 
 ## Pilot/Beta Requirements
 

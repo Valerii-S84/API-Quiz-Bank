@@ -13,6 +13,7 @@ from .database import (
     seed_control_fixture,
     seed_demo_state,
     seed_entitlement,
+    transition_consumer_status,
     transition_item_status,
 )
 
@@ -48,6 +49,19 @@ def parse_args() -> argparse.Namespace:
     transition.add_argument("--actor", default="local_admin")
     transition.add_argument("--reason", required=True)
 
+    consumer_transition = subparsers.add_parser(
+        "transition-consumer-status",
+        help="Suspend or reactivate a consumer.",
+    )
+    consumer_transition.add_argument("--consumer-id", required=True)
+    consumer_transition.add_argument(
+        "--to-status",
+        choices=["active", "suspended", "blocked"],
+        required=True,
+    )
+    consumer_transition.add_argument("--actor", default="local_admin")
+    consumer_transition.add_argument("--reason", required=True)
+
     subparsers.add_parser("show-audit-log", help="Print audit log as JSON.")
     return parser.parse_args()
 
@@ -81,6 +95,16 @@ def main() -> int:
     if args.command == "transition-status":
         transition_item_status(args.db_path, args.item_id, args.to_status, args.actor, args.reason)
         print(f"transitioned {args.item_id} to {args.to_status}")
+        return 0
+    if args.command == "transition-consumer-status":
+        transition_consumer_status(
+            args.db_path,
+            args.consumer_id,
+            args.to_status,
+            args.actor,
+            args.reason,
+        )
+        print(f"transitioned consumer {args.consumer_id} to {args.to_status}")
         return 0
     if args.command == "show-audit-log":
         with connect(args.db_path) as connection:
