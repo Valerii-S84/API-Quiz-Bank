@@ -1,11 +1,13 @@
 # Monitoring and Alerts Runbook
 
-Status: future pilot monitoring protocol; no server monitoring configured.
+Status: Public MVP / Protected Beta owner-review monitoring protocol; not a
+production monitoring system.
 
 ## Scope
 
-This runbook defines monitoring and alert expectations for a future controlled
-pilot. It does not create a dashboard, alert rule or external monitoring system.
+This runbook defines monitoring and alert expectations for controlled pilot and
+Public MVP / Protected Beta operation. It records an owner-reviewed monitoring
+surface, not an external dashboard or production alerting system.
 
 ## Minimum Pilot Signals
 
@@ -54,7 +56,21 @@ Each monitoring review should record:
 - containment action;
 - follow-up owner.
 
+## Public MVP / Protected Beta Evidence
+
+Protected beta monitoring is closed by owner-reviewed evidence only:
+
+- `reports/observability/public_mvp_monitoring_review_2026-05-08.md`;
+- `reports/beta/vps_live_ops_evidence_2026-05-08.md`;
+- `reports/beta/backup_timer_evidence_2026-05-08.md`;
+- `reports/rollback/public_mvp_runtime_rollback_drill_2026-05-08.md`.
+
+This surface covers health, readiness, smoke result, delivery/credential
+failure signals, auth failures, quota denial, backup timer status, backup
+result, restore drill result and rollback/disable evidence.
+
 ## Non-Closure Rule
 
-This runbook does not close monitoring readiness. Monitoring readiness requires
-actual pilot log source, dashboard, alert rule or owner-review evidence.
+This runbook does not close production monitoring readiness. Production
+monitoring readiness requires an external log source, dashboard, alert rule,
+incident owner and production drill evidence.

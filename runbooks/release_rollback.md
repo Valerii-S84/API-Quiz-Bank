@@ -1,6 +1,7 @@
 # API Quiz Bank Release and Rollback Runbook
 
-Status: MVP-local checklist and future controlled-deployment gate placeholder.
+Status: MVP-local and Public MVP / Protected Beta controlled-deployment
+rollback checklist; not a production release process.
 
 ## Release Preconditions
 
@@ -28,7 +29,22 @@ PYTHONPATH=src python3 tools/run_mvp_demo.py
 | Bad consumer access | Disable or remove entitlement/quota access in the governed DB workflow. |
 | Bad import artifact | Regenerate from source or revert the generated artifact through normal Git review. |
 
+## Public MVP / Protected Beta Drill Evidence
+
+The protected VPS rollback drill is recorded in
+`reports/rollback/public_mvp_runtime_rollback_drill_2026-05-08.md`.
+
+The drill verified:
+
+- backup before runtime rollback;
+- previous Git ref checkout and container recreate;
+- health, readiness and smoke on rollback ref;
+- roll-forward to `main`;
+- health, readiness and smoke after recovery;
+- credential revocation and consumer suspension containment.
+
 ## Production Boundary
 
-This repo has no committed production deployment pipeline. Production rollback remains blocked
-until deployment target, release owner, backup/restore drill and monitored rollback path exist.
+This repo has no committed production deployment pipeline. Production rollback
+remains blocked until production target, release owner, production
+backup/restore drill and monitored rollback path exist.

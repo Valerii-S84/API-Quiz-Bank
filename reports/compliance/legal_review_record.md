@@ -22,7 +22,8 @@ It is not a legal opinion. It is the project record of review status.
 | MVP internal/documentation baseline | documented | no | Privacy baseline exists in repo |
 | Stanford/demo presentation safety | partially documented | no, if demo remains controlled | Demo data must remain labeled/safe |
 | Closed pilot with limited real consumers | pending | yes for personal-data-heavy pilot | Scope-specific review still needed |
-| Public beta privacy posture | pending | yes | Required before broad external access |
+| Public MVP / Protected Beta privacy posture | approved for protected beta only | no for protected beta; yes for production | Scope-specific owner approval recorded in section 4.2 |
+| Broad public beta privacy posture | pending | yes | Required before unauthenticated, broad or paid external access |
 | School deployment review | pending | yes | Required before school/teacher learner data scale |
 | EU learner-facing production review | pending | yes | Required before EU public learner production |
 | Paid public billing/privacy/tax review | pending | yes | Required before public paid launch |
@@ -55,16 +56,68 @@ Current repo evidence:
 - `reports/beta/local_beta_security_smoke_2026-05-08.md`
 - `reports/publication/beta_launch_subset_2026-05-08.md`
 - `reports/observability/beta_alert_review_2026-05-08.md`
+- `reports/compliance/public_mvp_support_security_contact_2026-05-08.md`
+- `reports/observability/public_mvp_monitoring_review_2026-05-08.md`
+- `reports/restore/public_mvp_backup_restore_2026-05-08.md`
+- `reports/rollback/public_mvp_runtime_rollback_drill_2026-05-08.md`
 
 ## 4.1 Beta Scope Review Snapshot
 
-Current status: pending external approval.
+Current status: protected beta privacy/legal gate approved; broad public beta
+and production remain pending.
 
 Local beta package now documents consumer-bound API credential behavior,
 approved/published-only delivery, local alert-review signals and support/privacy
-runbooks. It does not close public beta privacy/legal review because no legal
-entity, public support surface, real data processor list or launch owner
-approval has been recorded.
+runbooks. The protected beta gate is limited to the owner-operated runtime and
+does not approve paid launch, school deployment, unauthenticated access or
+production use.
+
+## 4.2 Public MVP / Protected Beta Approval
+
+Decision:
+
+```text
+GO for Public MVP / Protected Beta privacy/legal gate
+NO-GO for production, paid public launch, school deployment or broad public beta
+```
+
+Scope approved:
+
+- protected public access behind `X-API-Key`;
+- owner-operated VPS runtime;
+- approved/published controlled quiz items only;
+- Telegram delivery only after explicit controlled-send approval;
+- manual support/privacy/security intake through documented public and private
+  paths;
+- no paid launch, no production claim and no school deployment claim.
+
+Data categories in scope:
+
+- consumer id and consumer configuration;
+- API credential hash and prefix, not raw API key;
+- entitlement/quota records;
+- delivery id, quiz item id, delivery status and runtime audit records;
+- Telegram target references only when Telegram delivery is explicitly enabled;
+- support/privacy/security issue metadata supplied by the reporter.
+
+Access and retention:
+
+- access is limited to project owner / authorized operator for the protected
+  beta runtime;
+- retention follows `policies/data_retention_policy.md` and
+  `data/governance/privacy_retention_schedule.csv`;
+- backups are retained under the controlled VPS path documented in
+  `reports/restore/public_mvp_backup_restore_2026-05-08.md`;
+- deletion/export/correction requests follow
+  `runbooks/privacy_request_workflow.md`.
+
+Owner approval:
+
+```text
+Approved by project owner for Public MVP / Protected Beta scope on 2026-05-08.
+```
+
+This is a project launch-gate record, not external legal advice.
 
 ---
 

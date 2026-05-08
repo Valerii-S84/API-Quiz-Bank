@@ -1,18 +1,25 @@
 # API Quiz Bank Support and Issue Triage Runbook
 
-Status: MVP-local support path and future pilot/beta gate placeholder.
+Status: Public MVP / Protected Beta support path baseline; not a production
+support SLA.
 
 ## Intake Channels
 
-Use private owner-approved channels for security, privacy, billing or sensitive learner data.
-Do not place secrets, raw tokens, private identifiers or full request dumps in public issues.
+Use private owner-approved channels for security, privacy, billing or sensitive
+learner data. Do not place secrets, raw tokens, private identifiers or full
+request dumps in public issues.
 
-Public beta intake must expose these user-visible paths before launch:
+Public MVP / Protected Beta intake exposes these user-visible paths:
 
-- support/contact path for delivery, content and account issues;
-- abuse/security report path linked to `SECURITY.md`;
-- privacy request path linked to `runbooks/privacy_request_workflow.md`;
-- owner-reviewed internal triage register for every beta issue.
+- GitHub `support_abuse` issue template for non-sensitive delivery, content,
+  access/quota, abuse and privacy-routing issues;
+- `SECURITY.md` for security and sensitive-report routing;
+- `runbooks/privacy_request_workflow.md` for export, deletion, correction and
+  access-scope complaints;
+- owner-reviewed internal triage register for every protected beta issue.
+
+Private sensitive contact is recorded without public contact details in
+`reports/compliance/public_mvp_support_security_contact_2026-05-08.md`.
 
 ## Triage Fields
 
@@ -52,11 +59,15 @@ PYTHONPATH=src python3 -m quizbank_mvp.cli \
 
 Record the related audit log entry with the support issue.
 
-## Pilot/Beta Requirements
+## Public MVP / Protected Beta Gate
 
-- Named support owner.
-- Consumer suspension path tested.
-- Incident path linked from support records.
-- Privacy/security escalation route confirmed.
-- Quality issue reporting visible to pilot/beta consumers.
-- Public support/abuse/privacy paths published in the beta surface.
+| Requirement | Status | Evidence |
+|---|---|---|
+| Named support owner | closed for protected beta | project owner / authorized VPS operator |
+| Consumer suspension path tested | closed for protected beta | `reports/rollback/public_mvp_runtime_rollback_drill_2026-05-08.md` |
+| Incident path linked from support records | closed for protected beta | `runbooks/incident_response.md` and this runbook |
+| Privacy/security escalation route confirmed | closed for protected beta | `SECURITY.md` and `reports/compliance/public_mvp_support_security_contact_2026-05-08.md` |
+| Quality issue reporting visible to protected beta consumers | closed for protected beta | GitHub support/abuse issue template |
+| Public support/abuse/privacy paths published | closed for protected beta | `.github/ISSUE_TEMPLATE/support_abuse.md`, `SECURITY.md`, `runbooks/privacy_request_workflow.md` |
+
+Production support remains out of scope.

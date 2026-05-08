@@ -5,6 +5,10 @@ title: "security: "
 labels: security
 ---
 
+Use this template for non-sensitive security-boundary changes only. Do not use
+it to disclose vulnerabilities with secrets, private identifiers, personal data
+or exploitable operational details; follow `SECURITY.md` for sensitive reports.
+
 ## Scope
 
 Security boundary:
@@ -20,4 +24,3 @@ Expected change:
 ## Verification
 
 Required checks or review gates:
-

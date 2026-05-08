@@ -1,12 +1,14 @@
 # API Quiz Bank Rollback Runbook
 
-Status: local rollback/disable baseline and future pilot/beta/production gate placeholder.
+Status: Public MVP / Protected Beta rollback/disable baseline executed on the
+protected VPS runtime; production rollback remains separate.
 
 ## Scope
 
-Use this runbook for local MVP rollback tabletop and containment planning.
-It does not prove production rollback readiness without a deployment target,
-release owner, backup/restore evidence and monitored rollback execution.
+Use this runbook for local MVP and protected-beta rollback/disable planning.
+It does not prove production rollback readiness without a production deployment
+target, release owner, production backup/restore evidence and monitored
+rollback execution.
 
 ## Local Rollback Table
 
@@ -38,8 +40,23 @@ Rollback evidence must record:
 - limitation;
 - whether an external environment remains blocked.
 
+## Public MVP / Protected Beta Evidence
+
+Protected beta rollback evidence is recorded in
+`reports/rollback/public_mvp_runtime_rollback_drill_2026-05-08.md`.
+
+Executed coverage:
+
+- runtime backup before rollback;
+- credential revocation denial;
+- consumer suspension denial;
+- isolated SQLite restore drill;
+- container rollback to previous Git ref and image;
+- roll-forward back to `main`;
+- health, readiness and smoke after rollback and roll-forward.
+
 ## Production Boundary
 
 Production rollback remains blocked until a production deployment target,
-release owner, monitored backup, restore drill, migration discipline and launch
-approval exist.
+release owner, monitored production backup, production restore drill, migration
+discipline and launch approval exist.
