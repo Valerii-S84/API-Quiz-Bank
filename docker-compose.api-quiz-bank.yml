@@ -12,6 +12,9 @@ services:
       - "127.0.0.1:8010:8000"
     volumes:
       - ./var/api-quiz-bank:/data
+    networks:
+      - default
+      - quiz-arena-public
     healthcheck:
       test:
         [
@@ -24,3 +27,8 @@ services:
       timeout: 3s
       retries: 6
       start_period: 10s
+
+networks:
+  quiz-arena-public:
+    external: true
+    name: quiz-arena_default

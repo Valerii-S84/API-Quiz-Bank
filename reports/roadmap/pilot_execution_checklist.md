@@ -2,25 +2,28 @@
 
 Updated: 2026-05-08
 
-Status: package prepared; pilot not executed.
+Status: local-only/internal closed pilot evidence and protected public route
+smoke recorded; public beta, production and Telegram real send not executed.
 
 ## Checklist
 
 | Item | Current status | Evidence now | Evidence required on server |
 |---|---|---|---|
-| Pilot environment named | not done | `docs/pilot_environment_requirements.md` | Environment id, owner and access boundary. |
+| Pilot environment named | done for local-only VPS | `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | New evidence required for public/beta/prod scope. |
 | Pilot launch contract accepted | not done | `docs/pilot_launch_contract.md` | Signed/approved launch decision. |
-| Health/readiness available | local only | local runtime tests and dry run | `/health` and `/ready` output from pilot environment. |
-| Consumer lifecycle control | local only | pre-pilot dry run | active -> suspended -> blocked -> active evidence from pilot environment. |
-| Delivery/repeat/quota behavior | local only | pre-pilot dry run | delivery, repeat denial and quota denial from pilot environment. |
-| Telegram dry-run | not done | Telegram controlled-send runbook | Dry-run payload and compatibility result from pilot environment. |
+| Health/readiness available | done for local-only VPS | `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Public/beta/prod scope remains out of scope. |
+| Protected public route | done for `api.valerchik.de` smoke | `reports/pre_pilot/public_api_key_route_evidence_2026-05-08.md` | Beta/prod approval remains out of scope. |
+| Consumer lifecycle control | done for local-only VPS | `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Public/beta/prod scope remains out of scope. |
+| Delivery/repeat/quota behavior | done for local-only VPS | `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Public/beta/prod traffic remains out of scope. |
+| Telegram dry-run | done for local-only VPS | `reports/pre_pilot/telegram_dry_run_readiness_2026-05-08.md` | Real send evidence required only if explicitly approved later. |
+| Telegram token secret | wired on VPS | `reports/pre_pilot/telegram_secret_wiring_2026-05-08.md` | Rotate before production closure if required by owner. |
 | Telegram controlled real send | not done | Telegram controlled-send runbook | Approval record and send/failure evidence, only if approved. |
-| Backup execution | local only | local restore report and operational runbook | Pilot backup metadata. |
-| Restore drill | local only | local restore report | Restore drill against isolated pilot-like target. |
-| Monitoring/alerts | not done | monitoring runbook and observability contract | Dashboard, alert or owner-review record. |
+| Backup execution | done for local-only VPS | `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Automated/public beta backup metadata remains out of scope. |
+| Restore drill | done for local-only VPS | `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Production-like managed DB restore remains out of scope. |
+| Monitoring/alerts | owner-review cadence recorded | `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Dashboard or alert evidence required for broader launch. |
 | Support path | package only | support and incident runbooks | Named reachable support/security channel. |
-| Rollback path | tabletop only | rollback runbook/tabletop | Pilot rollback/disable execution or drill evidence. |
-| Go/no-go decision | not done | go/no-go matrix template | Completed owner decision. |
+| Rollback path | disable path recorded | `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Deployment rollback execution remains out of scope. |
+| Go/no-go decision | local-only/internal GO recorded | `reports/roadmap/pilot_go_no_go_matrix.md`, `reports/roadmap/phase_7_10_closure_decision_2026-05-08.md` | Owner approval required before broader launch. |
 
 ## Rule
 

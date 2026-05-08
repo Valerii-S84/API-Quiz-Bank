@@ -4,8 +4,9 @@ Status: VPS local-only pilot runtime record.
 
 ## Scope
 
-This runbook records the current isolated VPS deployment for API Quiz Bank.
-It does not define public exposure, Caddy routing, bot integration or production launch.
+This runbook records the current VPS deployment for API Quiz Bank.
+It defines the protected `api.valerchik.de` Caddy route and does not define bot
+integration, public beta or production launch.
 
 ## Current VPS Runtime
 
@@ -17,14 +18,16 @@ It does not define public exposure, Caddy routing, bot integration or production
 | Backup path | `/var/backups/api-quiz-bank` |
 | API bind | `127.0.0.1:8010` |
 | Public access | disabled |
-| Caddy | not connected |
+| Caddy | `api.valerchik.de` connected with `X-API-Key` gate |
 | Container | `api-quiz-bank-pilot` |
-| Current deployed HEAD | `61e32d7` |
+| Current checkout HEAD | `a86d625` |
+| Runtime image state | recreated during public-route network update on 2026-05-08 |
 
 ## Boundaries
 
-- Do not expose the API on a public interface.
-- Do not connect this service to Caddy until a separate public-access slice is approved.
+- Do not expose the API on a public interface without the `X-API-Key` gate.
+- Do not remove or weaken the Caddy `X-API-Key` gate without a separate approved
+  security slice.
 - Do not reuse `.env` files from other projects.
 - Do not modify `/opt/quiz-arena`.
 - Do not modify `/opt/it-quiz-bot`.
@@ -40,6 +43,89 @@ git checkout main
 git pull --ff-only origin main
 docker compose -f docker-compose.api-quiz-bank.yml up --build -d
 ```
+
+## Checkout-Only Sync Evidence
+
+Date: 2026-05-08.
+
+Scope: align `/opt/api-quiz-bank` checkout with GitHub `main` without
+restarting `api-quiz-bank-pilot`.
+
+Commands executed inside `/opt/api-quiz-bank`:
+
+```bash
+git fetch origin main
+git checkout main
+git pull --ff-only origin main
+```
+
+Evidence:
+
+| Check | Result |
+|---|---|
+| HEAD before sync | `61e32d7362203d9b765d5fe89a09930f585f3758` |
+| HEAD after sync | `a86d6251148adbb574067ca68d429a531c0f8380` |
+| `origin/main` after sync | `a86d6251148adbb574067ca68d429a531c0f8380` |
+| Container started at before/after | `2026-05-08T07:46:48.873758412Z` |
+| Container restart count before/after/final | `0` |
+| Container state before/after/final | `running/healthy` |
+| Port bind before/after/final | `127.0.0.1:8010` |
+
+Full evidence is recorded in
+`reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md`.
+
+## Protected Public Route Evidence
+
+Date: 2026-05-08.
+
+Scope: expose API Quiz Bank through Caddy at `api.valerchik.de` with mandatory
+`X-API-Key`.
+
+Evidence:
+
+| Check | Result |
+|---|---|
+| Public host | `api.valerchik.de` |
+| Public no-key health | `401 Unauthorized` |
+| Public authorized health | `200 {"status":"ok","service":"api-quiz-bank","version":"0.1.0"}` |
+| Public authorized ready | `200 {"status":"ok","checks":[{"name":"database","status":"ok"}]}` |
+| Public no-key delivery request | `401 Unauthorized` |
+| Public authorized entitlement control | `403 ENTITLEMENT_MISSING_FEATURE` |
+| API key storage | `/root/api-quiz-bank/public-api-key` on VPS, mode `600` |
+| API host bind | `127.0.0.1:8010` remains present |
+
+Full evidence is recorded in
+`reports/pre_pilot/public_api_key_route_evidence_2026-05-08.md`.
+
+## Telegram Token Secret Wiring
+
+Real Telegram send remains disabled until a separate controlled-send approval.
+The server-side token is stored outside Git and exposed to the container only as
+a file path:
+
+| Field | Value |
+|---|---|
+| VPS secret path | `/root/api-quiz-bank/telegram-bot-token` |
+| Container secret path | `/run/secrets/api_quiz_bank_telegram_bot_token` |
+| Env references | `QUIZBANK_TELEGRAM_BOT_TOKEN_FILE`, `TELEGRAM_BOT_TOKEN_FILE` |
+| Compose override | `/opt/api-quiz-bank/docker-compose.api-quiz-bank.secrets.yml` |
+| Git policy | secret file and server override are not committed |
+| Current send status | token wired; real Telegram send not approved/not done |
+
+Expected permission check:
+
+```bash
+stat -c '%a %U:%G %n' /root/api-quiz-bank/telegram-bot-token
+```
+
+Expected mode:
+
+```text
+600 root:root /root/api-quiz-bank/telegram-bot-token
+```
+
+Secret wiring evidence is recorded in
+`reports/pre_pilot/telegram_secret_wiring_2026-05-08.md`.
 
 ## Health Checks
 

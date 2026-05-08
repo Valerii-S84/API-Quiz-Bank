@@ -9,11 +9,11 @@ They must remain separate from local pre-pilot evidence.
 
 | Blocker | Required external evidence |
 |---|---|
-| Pilot environment | Named pilot/staging environment with owner and access boundary. |
-| Telegram controlled send | Approved dry-run log or controlled real send evidence with failure visibility. |
+| Public/broader pilot environment | Protected public route exists for `api.valerchik.de`; broader beta/prod environment still needs owner approval and evidence boundary. |
+| Telegram controlled send | Executed dry-run log or controlled real send evidence with failure visibility after explicit approval. |
 | Worker monitoring | API/worker log source or dashboard showing delivery failures and denials. |
-| Pilot backup schedule | Backup mechanism, owner and retention window for pilot data. |
-| Pilot restore drill | Restore into isolated target using pilot-like data and recorded result. |
+| Automated pilot backup schedule | Automated or independently reviewed backup mechanism beyond manual local-only VPS evidence. |
+| Production-like restore drill | Restore into isolated target using managed/pilot-like data beyond MVP SQLite and recorded result. |
 | Support execution | Named support channel and at least one issue/containment record. |
 
 ## Phase 8 Public Beta Blockers
