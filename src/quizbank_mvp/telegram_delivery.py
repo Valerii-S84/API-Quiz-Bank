@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -19,6 +20,7 @@ TELEGRAM_OPTION_LIMIT = 100
 TELEGRAM_EXPLANATION_LIMIT = 200
 TELEGRAM_MIN_OPTIONS = 2
 TELEGRAM_MAX_OPTIONS = 12
+INTERNAL_PROMPT_PATTERN = re.compile(r"^[a-z0-9]+(?:_[a-z0-9]+)+$")
 
 
 class TelegramDeliveryError(Exception):
@@ -226,12 +228,21 @@ def build_telegram_poll_payload(chat_id: str, item: dict[str, Any]) -> dict[str,
 
 
 def build_question(item: dict[str, Any]) -> str:
-    prompt = str(item["prompt"]).strip()
+    prompt = public_prompt(str(item["prompt"]))
     stem = str(item["stem_text"]).strip()
     question = f"{prompt}\n{stem}" if prompt else stem
     if not question:
         raise TelegramDeliveryError("telegram_question_empty")
     return question
+
+
+def public_prompt(prompt: str) -> str:
+    clean_prompt = prompt.strip()
+    if not clean_prompt:
+        return ""
+    if "_" in clean_prompt or INTERNAL_PROMPT_PATTERN.fullmatch(clean_prompt.lower()):
+        return ""
+    return clean_prompt
 
 
 def build_explanation(item: dict[str, Any]) -> str:

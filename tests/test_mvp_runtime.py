@@ -28,6 +28,7 @@ from quizbank_mvp.telegram_delivery import (
     TelegramDeliveryError,
     TelegramDeliveryRequest,
     TelegramSendResult,
+    build_telegram_poll_payload,
     run_telegram_delivery,
     telegram_api_payload,
     validate_telegram_poll,
@@ -257,6 +258,28 @@ class MvpTelegramDeliveryTests(MvpRuntimeCase):
                 (result.delivery_id,),
             ).fetchone()
         self.assertEqual(delivery["delivery_status"], "sent")
+
+    def test_telegram_question_omits_internal_prompt_keys_only(self) -> None:
+        stem = "Im Portal ist der Antrag neu, und Lena will jetzt ___."
+        cases = {
+            "a1_klein_kommentar_nom_def_1": stem,
+            "Welche Antwort passt zur Situation?": f"Welche Antwort passt zur Situation?\n{stem}",
+        }
+        for prompt, expected_question in cases.items():
+            payload = build_telegram_poll_payload(
+                "@controlled_channel",
+                {
+                    "delivery_id": f"deliv_{prompt[:2]}",
+                    "consumer_id": "consumer_allowed",
+                    "item_id": f"item_{prompt[:2]}",
+                    "prompt": prompt,
+                    "stem_text": stem,
+                    "options_json": "[\"den Antrag senden\", \"das Brot schneiden\"]",
+                    "answer_key": "0",
+                    "explanation": "Die Wendung passt, weil es um das Absenden eines Antrags geht.",
+                },
+            )
+            self.assertEqual(payload["question"], expected_question)
 
     def test_telegram_target_repeat_guard_blocks_same_item_for_channel(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
