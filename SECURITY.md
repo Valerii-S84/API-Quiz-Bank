@@ -14,7 +14,11 @@ Security-sensitive areas include:
 
 ## Reporting
 
-Report suspected security, privacy or corpus-integrity issues to the project owner through a private channel. Do not open public issues containing secrets, credentials, private identifiers, raw request dumps or sensitive operational details.
+Use GitHub issues for non-sensitive security-boundary, documentation, corpus or
+tooling reports. Report suspected security, privacy, abuse or corpus-integrity
+issues that include sensitive details to the project owner through a private
+channel. Do not open public issues containing secrets, credentials, private
+identifiers, raw request dumps or sensitive operational details.
 
 ## Handling Rules
 
@@ -25,5 +29,7 @@ Report suspected security, privacy or corpus-integrity issues to the project own
 
 ## Current Limitations
 
-No public vulnerability disclosure channel, production incident process or signed security contact is configured yet. This blocks production or public-beta claims until resolved.
-
+No signed security contact, production incident process or formal vulnerability
+disclosure program is configured yet. Sensitive reports still require a private
+owner channel, which blocks broad public-beta or production claims until
+resolved.

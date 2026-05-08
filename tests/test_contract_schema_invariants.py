@@ -63,6 +63,7 @@ REQUIRED_CONTRACT_PATHS = [
     "reports/pre_pilot/local_pre_pilot_dry_run_2026-05-08.md",
     "reports/beta/local_beta_security_smoke_2026-05-08.md",
     "reports/beta/public_route_smoke_2026-05-08.md",
+    "reports/beta/vps_live_ops_evidence_2026-05-08.md",
     "reports/observability/beta_alert_review_2026-05-08.md",
     "reports/publication/beta_launch_subset_2026-05-08.md",
     "reports/release/local_beta_release_rollback_2026-05-08.md",

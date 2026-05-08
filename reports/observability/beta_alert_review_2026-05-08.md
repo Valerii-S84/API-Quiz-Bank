@@ -15,9 +15,11 @@ Scope: local owner-review style evidence from dry-run signals.
 | Selection denial | `SELECTION_NO_ELIGIBLE_ITEM` in local pre-pilot dry run |
 | Quota denial | `QUOTA_EXCEEDED` in local pre-pilot dry run |
 | Consumer disable path | active -> suspended -> blocked -> active in audit summary |
-| Backup status | runbook-defined only; no automated beta backup monitor |
+| Live VPS health | `running/healthy` in `reports/beta/vps_live_ops_evidence_2026-05-08.md` |
+| Backup status | `backup-ok` in `reports/beta/vps_live_ops_evidence_2026-05-08.md` |
+| Restore status | `restore-drill-ok` in `reports/beta/vps_live_ops_evidence_2026-05-08.md` |
 
 ## Limitation
 
-No external dashboard, alerting service or beta log source was configured. This
-keeps Phase 8 alerting as local evidence, not external beta closure.
+No external dashboard or alerting service was configured. This keeps Phase 8
+alerting as owner-reviewed evidence, not automated beta monitoring closure.

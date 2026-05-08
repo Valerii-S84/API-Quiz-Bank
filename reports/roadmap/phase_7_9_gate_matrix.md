@@ -43,9 +43,9 @@ is not implemented.
 | Gate | Status | Evidence | Remaining blocker |
 |---|---|---|---|
 | OPS-BETA-001 rate/usage controls operational | closed-local | quota/entitlement/auth runtime tests, pre-pilot dry run, 429 quota response, `reports/beta/local_beta_security_smoke_2026-05-08.md` | No public beta traffic or deployed control evidence. |
-| OPS-BETA-002 alerts or monitored review exists | partial | `docs/observability_contract.md`, `runbooks/incident_response.md`, `reports/observability/beta_alert_review_2026-05-08.md`, `reports/pre_pilot/public_api_key_route_evidence_2026-05-08.md` | No external beta dashboard or alert source. |
-| OPS-BETA-003 backup schedule controlled | partial | `runbooks/backup_restore.md` | No automated/reliable beta backup schedule. |
-| OPS-BETA-004 restore drill evidence exists | partial | `reports/restore/mvp_sqlite_restore_drill_2026-05-08.md` | Local SQLite only; no beta environment drill. |
+| OPS-BETA-002 alerts or monitored review exists | partial | `docs/observability_contract.md`, `runbooks/incident_response.md`, `reports/observability/beta_alert_review_2026-05-08.md`, `reports/beta/vps_live_ops_evidence_2026-05-08.md`, `reports/pre_pilot/public_api_key_route_evidence_2026-05-08.md` | Owner-reviewed evidence only; no external dashboard or alert source. |
+| OPS-BETA-003 backup schedule controlled | partial | `runbooks/backup_restore.md`, `reports/beta/vps_live_ops_evidence_2026-05-08.md` | Manual backup proof exists; no automated/reliable beta backup schedule. |
+| OPS-BETA-004 restore drill evidence exists | partial | `reports/restore/mvp_sqlite_restore_drill_2026-05-08.md`, `reports/beta/vps_live_ops_evidence_2026-05-08.md` | VPS SQLite restore drill exists; no production-like PostgreSQL restore drill. |
 | OPS-BETA-005 incident escalation model exists | closed-local | `runbooks/incident_response.md`, `runbooks/support_triage.md` | No beta owner assignment. |
 | OPS-BETA-006 release/rollback process exists | partial | `runbooks/release_rollback.md`, `runbooks/rollback.md`, `reports/release/local_beta_release_rollback_2026-05-08.md`, `.github/workflows/ci.yml` | No external beta release/rollback execution. |
 | OPS-BETA-007 security operations baseline exists | partial | `SECURITY.md`, `docs/08_security_threat_model.md`, consumer-bound API credentials, no-secrets CI scan | No public vulnerability channel or beta monitoring. |
@@ -53,10 +53,11 @@ is not implemented.
 
 Phase 8 result: still `NO-GO public beta`. Local auth/security, publication,
 release/rollback and alert-review evidence improved, and protected public route
-smoke exists in `reports/beta/public_route_smoke_2026-05-08.md`, and one
-controlled Telegram real send succeeded. Public beta readiness remains blocked
-by app-level beta credential deployment/smoke, external beta dashboard/alert
-source, controlled public/beta backup cadence, published support/abuse path and
+smoke exists in `reports/beta/public_route_smoke_2026-05-08.md`, one controlled
+Telegram real send succeeded, and live VPS backup/restore mechanics are proven
+in `reports/beta/vps_live_ops_evidence_2026-05-08.md`. Public beta readiness
+remains blocked by app-level beta credential deployment/smoke, automated or
+formally monitored backup cadence, published support/abuse path and
 legal/privacy approval.
 
 ## Phase 9 Production Readiness
