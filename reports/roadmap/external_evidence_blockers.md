@@ -22,7 +22,7 @@ They must remain separate from local pre-pilot evidence.
 |---|---|
 | Alerting cadence | Owner-reviewed VPS evidence exists; alert source, formal owner review cadence or dashboard evidence still needed. |
 | Controlled backup schedule | VPS backup timer is enabled and latest run succeeded; production monitored backup remains separate. |
-| Release execution | App-level credential deploy and protected public smoke are recorded; rollback execution remains limited to disable/tabletop evidence. |
+| Release execution | App-level credential deploy, edge/app header split and protected public smoke are recorded; rollback execution remains limited to disable/tabletop evidence. |
 | Public support/abuse path | Public GitHub support/abuse issue path exists; signed/private security contact remains unresolved. |
 | Beta legal/privacy review | Scope-specific completed review in `reports/compliance/legal_review_record.md`. |
 

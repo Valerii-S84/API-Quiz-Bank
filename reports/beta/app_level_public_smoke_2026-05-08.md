@@ -44,3 +44,6 @@ The edge Caddy key is currently also seeded as the app credential for controlled
 smoke consumers because the public route and app both use `X-API-Key`. This is
 acceptable for this controlled smoke but should be split into separate edge and
 consumer credential headers before broader beta.
+
+This boundary was later closed by
+`reports/beta/edge_app_header_split_smoke_2026-05-08.md`.

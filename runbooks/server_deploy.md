@@ -92,10 +92,18 @@ Evidence:
 | Public no-key delivery request | `401 Unauthorized` |
 | Public authorized entitlement control | `403 ENTITLEMENT_MISSING_FEATURE` |
 | API key storage | `/root/api-quiz-bank/public-api-key` on VPS, mode `600` |
+| App credential storage | `/root/api-quiz-bank/app-consumer-api-key` on VPS, mode `600` |
 | API host bind | `127.0.0.1:8010` remains present |
 
 Full evidence is recorded in
 `reports/pre_pilot/public_api_key_route_evidence_2026-05-08.md`.
+
+## App-Level Credential Header
+
+The protected public route keeps the edge Caddy gate on `X-API-Key`.
+The application-level consumer credential uses `X-QuizBank-API-Key`.
+This prevents the edge key and consumer credential from sharing the same header
+before broader beta traffic.
 
 ## Telegram Token Secret Wiring
 

@@ -65,6 +65,7 @@ REQUIRED_CONTRACT_PATHS = [
     "reports/beta/local_beta_security_smoke_2026-05-08.md",
     "reports/beta/app_level_public_smoke_2026-05-08.md",
     "reports/beta/backup_timer_evidence_2026-05-08.md",
+    "reports/beta/edge_app_header_split_smoke_2026-05-08.md",
     "reports/beta/public_route_smoke_2026-05-08.md",
     "reports/beta/vps_live_ops_evidence_2026-05-08.md",
     "reports/observability/beta_alert_review_2026-05-08.md",
