@@ -10,7 +10,7 @@ They must remain separate from local pre-pilot evidence.
 | Blocker | Required external evidence |
 |---|---|
 | Public/broader pilot environment | Protected public route exists for `api.valerchik.de`; broader beta/prod environment still needs owner approval and evidence boundary. |
-| Telegram controlled send | Controlled real send was attempted after approval and failed with `chat not found`; target/channel access must be fixed before a successful send can close this blocker. |
+| Telegram controlled send | Controlled real sends were attempted after approval and failed with `chat not found`; target/channel access must be fixed before a successful send can close this blocker. |
 | Worker monitoring | API/worker log source or dashboard showing delivery failures and denials. |
 | Automated pilot backup schedule | Automated or independently reviewed backup mechanism beyond manual local-only VPS evidence. |
 | Production-like restore drill | Restore into isolated target using managed/pilot-like data beyond MVP SQLite and recorded result. |

@@ -2,8 +2,8 @@
 
 Date: 2026-05-08
 
-Scope: one controlled Telegram `sendPoll` attempt using the server-side bot
-token file and the user-approved target channel. Token and target identifier are
+Scope: controlled Telegram `sendPoll` attempts using the server-side bot token
+file and user-approved target channels. Token and target identifiers are
 redacted in this report.
 
 ## Preconditions Checked
@@ -19,7 +19,21 @@ redacted in this report.
 | Correct option id | redacted adapter-only index |
 | Protected content | true |
 
-## Result
+## Results
+
+First approved target:
+
+```json
+{
+  "event": "telegram_controlled_send",
+  "ok": false,
+  "target": "<redacted_approved_channel>",
+  "error_code": 400,
+  "description": "Bad Request: chat not found"
+}
+```
+
+Second approved target:
 
 ```json
 {
@@ -33,9 +47,9 @@ redacted in this report.
 
 ## Decision
 
-No Telegram message was created. The controlled send gate remains blocked until
-the bot is added to the target channel, the channel id is confirmed for this
-bot, or a different approved test target is provided.
+No Telegram message was created for either target. The controlled send gate
+remains blocked until the bot is added to the target channel, the channel id is
+confirmed for this bot, or a different approved test target is provided.
 
 ## Boundary
 
