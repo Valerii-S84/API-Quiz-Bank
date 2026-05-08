@@ -16,6 +16,7 @@ from .selection import SelectionRequest, select_next_item
 TELEGRAM_API_BASE = "https://api.telegram.org"
 TELEGRAM_QUESTION_LIMIT = 300
 TELEGRAM_OPTION_LIMIT = 100
+TELEGRAM_EXPLANATION_LIMIT = 200
 TELEGRAM_MIN_OPTIONS = 2
 TELEGRAM_MAX_OPTIONS = 12
 
@@ -110,7 +111,7 @@ def run_telegram_delivery(
     adapter: TelegramAdapter | None = None,
 ) -> TelegramDeliveryResult:
     validate_delivery_mode(request.mode)
-    selection = select_next_item(db_path, selection_request_from_telegram(request))
+    selection = select_next_item(db_path, selection_request_from_telegram(db_path, request))
     delivery = selection["delivery"]
     delivery_id = str(delivery["delivery_id"])
     item = load_delivery_item(db_path, delivery_id, request.consumer_id)
@@ -131,13 +132,17 @@ def run_telegram_delivery(
     return result
 
 
-def selection_request_from_telegram(request: TelegramDeliveryRequest) -> SelectionRequest:
+def selection_request_from_telegram(
+    db_path: Path | None,
+    request: TelegramDeliveryRequest,
+) -> SelectionRequest:
     return SelectionRequest(
         consumer_id=request.consumer_id,
         cefr_level=request.cefr_level,
         theme_ids=request.theme_ids,
         objective_ids=request.objective_ids,
         pattern_ids=request.pattern_ids,
+        excluded_item_ids=sent_item_ids_for_target(db_path, request.chat_id),
     )
 
 
@@ -204,7 +209,8 @@ def build_telegram_poll_payload(chat_id: str, item: dict[str, Any]) -> dict[str,
     question = build_question(item)
     options = json.loads(item["options_json"])
     correct_option_ids = parse_correct_option_ids(item["answer_key"], len(options))
-    validate_telegram_poll(question, options, correct_option_ids)
+    explanation = build_explanation(item)
+    validate_telegram_poll(question, options, correct_option_ids, explanation)
     return {
         "delivery_id": item["delivery_id"],
         "consumer_id": item["consumer_id"],
@@ -214,6 +220,7 @@ def build_telegram_poll_payload(chat_id: str, item: dict[str, Any]) -> dict[str,
         "options": options,
         "type": "quiz",
         "correct_option_ids": correct_option_ids,
+        "explanation": explanation,
         "is_anonymous": True,
     }
 
@@ -225,6 +232,13 @@ def build_question(item: dict[str, Any]) -> str:
     if not question:
         raise TelegramDeliveryError("telegram_question_empty")
     return question
+
+
+def build_explanation(item: dict[str, Any]) -> str:
+    explanation = str(item["explanation"]).strip()
+    if not explanation:
+        raise TelegramDeliveryError("telegram_explanation_empty")
+    return explanation
 
 
 def parse_correct_option_ids(answer_key: str, option_count: int) -> list[int]:
@@ -241,9 +255,12 @@ def validate_telegram_poll(
     question: str,
     options: list[str],
     correct_option_ids: list[int],
+    explanation: str,
 ) -> None:
     if len(question) > TELEGRAM_QUESTION_LIMIT:
         raise TelegramDeliveryError("telegram_question_too_long")
+    if len(explanation) > TELEGRAM_EXPLANATION_LIMIT:
+        raise TelegramDeliveryError("telegram_explanation_too_long")
     if not TELEGRAM_MIN_OPTIONS <= len(options) <= TELEGRAM_MAX_OPTIONS:
         raise TelegramDeliveryError("telegram_option_count_invalid")
     for option in options:
@@ -272,8 +289,26 @@ def telegram_api_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "options": payload["options"],
         "type": payload["type"],
         "correct_option_id": correct_option_ids[0],
+        "explanation": payload["explanation"],
         "is_anonymous": payload["is_anonymous"],
     }
+
+
+def sent_item_ids_for_target(db_path: Path | None, chat_id: str) -> tuple[str, ...]:
+    target_ref = redact_telegram_target(chat_id)
+    with connect(db_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT d.quiz_item_id
+            FROM telegram_delivery_results t
+            JOIN deliveries d ON d.delivery_id = t.delivery_id
+            WHERE t.telegram_target_ref = ?
+              AND t.status = 'sent'
+            ORDER BY t.recorded_at DESC
+            """,
+            (target_ref,),
+        ).fetchall()
+    return tuple(str(row["quiz_item_id"]) for row in rows)
 
 
 def record_telegram_result(db_path: Path | None, result: TelegramDeliveryResult) -> None:

@@ -52,6 +52,7 @@ class SelectionRequest:
     theme_ids: tuple[str, ...] = ()
     objective_ids: tuple[str, ...] = ()
     pattern_ids: tuple[str, ...] = ()
+    excluded_item_ids: tuple[str, ...] = ()
 
 
 def select_next_item(db_path: Path | None, request: SelectionRequest) -> dict[str, Any]:
@@ -262,6 +263,7 @@ def find_eligible_item(connection, request: SelectionRequest) -> dict[str, Any] 
     append_in_filter(query, parameters, "qi.theme_id", request.theme_ids)
     append_in_filter(query, parameters, "qi.objective_id", request.objective_ids)
     append_in_filter(query, parameters, "qi.pattern_id", request.pattern_ids)
+    append_not_in_filter(query, parameters, "qi.item_id", request.excluded_item_ids)
     query.append("ORDER BY qi.item_id ASC LIMIT 1")
     row = connection.execute(" ".join(query), parameters).fetchone()
     return None if row is None else row_to_dict(row)
@@ -284,6 +286,19 @@ def append_in_filter(
         return
     placeholders = ", ".join("?" for _ in values)
     query.append(f"AND {column} IN ({placeholders})")
+    parameters.extend(values)
+
+
+def append_not_in_filter(
+    query: list[str],
+    parameters: list[Any],
+    column: str,
+    values: tuple[str, ...],
+) -> None:
+    if not values:
+        return
+    placeholders = ", ".join("?" for _ in values)
+    query.append(f"AND {column} NOT IN ({placeholders})")
     parameters.extend(values)
 
 
