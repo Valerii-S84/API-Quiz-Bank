@@ -2,14 +2,16 @@
 set -eu
 
 BASE_URL="${API_QUIZ_BANK_BASE_URL:-http://127.0.0.1:8010}"
+APP_API_KEY="${API_QUIZ_BANK_APP_API_KEY:-no_entitlement_api_key}"
 
-python3 - "$BASE_URL" <<'PY'
+python3 - "$BASE_URL" "$APP_API_KEY" <<'PY'
 import json
 import sys
 import urllib.error
 import urllib.request
 
 base_url = sys.argv[1].rstrip("/")
+app_api_key = sys.argv[2]
 
 
 def request(path, method="GET", payload=None, headers=None):
@@ -52,7 +54,10 @@ denial_status, denial = request(
         "cefr_level": "A2",
         "theme_ids": ["T10"],
     },
-    headers={"X-Consumer-Id": "consumer_no_entitlement"},
+    headers={
+        "X-Consumer-Id": "consumer_no_entitlement",
+        "X-QuizBank-API-Key": app_api_key,
+    },
 )
 if denial_status != 403 or denial.get("reason_code") != "ENTITLEMENT_MISSING_FEATURE":
     raise SystemExit(f"entitlement denial failed: {denial_status} {denial}")

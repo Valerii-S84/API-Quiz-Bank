@@ -42,12 +42,12 @@ is not implemented.
 
 | Gate | Status | Evidence | Remaining blocker |
 |---|---|---|---|
-| OPS-BETA-001 rate/usage controls operational | closed-local | quota/entitlement/auth runtime tests, pre-pilot dry run, 429 quota response, `reports/beta/local_beta_security_smoke_2026-05-08.md`, `reports/beta/app_level_public_smoke_2026-05-08.md` | Controlled public route smoke exists; broader beta traffic not started. |
+| OPS-BETA-001 rate/usage controls operational | closed-local | quota/entitlement/auth runtime tests, pre-pilot dry run, 429 quota response, `reports/beta/local_beta_security_smoke_2026-05-08.md`, `reports/beta/app_level_public_smoke_2026-05-08.md`, `reports/beta/edge_app_header_split_smoke_2026-05-08.md` | Controlled public route smoke exists; broader beta traffic not started. |
 | OPS-BETA-002 alerts or monitored review exists | partial | `docs/observability_contract.md`, `runbooks/incident_response.md`, `reports/observability/beta_alert_review_2026-05-08.md`, `reports/beta/vps_live_ops_evidence_2026-05-08.md`, `reports/pre_pilot/public_api_key_route_evidence_2026-05-08.md` | Owner-reviewed evidence only; no external dashboard or alert source. |
 | OPS-BETA-003 backup schedule controlled | closed-local | `runbooks/backup_restore.md`, `reports/beta/vps_live_ops_evidence_2026-05-08.md`, `reports/beta/backup_timer_evidence_2026-05-08.md` | VPS SQLite cadence exists; production monitored backup still separate. |
 | OPS-BETA-004 restore drill evidence exists | partial | `reports/restore/mvp_sqlite_restore_drill_2026-05-08.md`, `reports/beta/vps_live_ops_evidence_2026-05-08.md` | VPS SQLite restore drill exists; no production-like PostgreSQL restore drill. |
 | OPS-BETA-005 incident escalation model exists | closed-local | `runbooks/incident_response.md`, `runbooks/support_triage.md` | No beta owner assignment. |
-| OPS-BETA-006 release/rollback process exists | partial | `runbooks/release_rollback.md`, `runbooks/rollback.md`, `reports/release/local_beta_release_rollback_2026-05-08.md`, `reports/beta/app_level_public_smoke_2026-05-08.md`, `.github/workflows/ci.yml` | Deploy/smoke exists; rollback execution still limited to disable path/tabletop. |
+| OPS-BETA-006 release/rollback process exists | partial | `runbooks/release_rollback.md`, `runbooks/rollback.md`, `reports/release/local_beta_release_rollback_2026-05-08.md`, `reports/beta/app_level_public_smoke_2026-05-08.md`, `reports/beta/edge_app_header_split_smoke_2026-05-08.md`, `.github/workflows/ci.yml` | Deploy/smoke exists; rollback execution still limited to disable path/tabletop. |
 | OPS-BETA-007 security operations baseline exists | partial | `SECURITY.md`, `docs/08_security_threat_model.md`, consumer-bound API credentials, no-secrets CI scan | No public vulnerability channel or beta monitoring. |
 | OPS-BETA-008 privacy/legal review completed | blocked-external | `reports/compliance/legal_review_record.md` | Beta review remains pending. |
 
@@ -56,10 +56,12 @@ release/rollback and alert-review evidence improved, and protected public route
 smoke exists in `reports/beta/public_route_smoke_2026-05-08.md`, one controlled
 Telegram real send succeeded, live VPS backup/restore mechanics are proven in
 `reports/beta/vps_live_ops_evidence_2026-05-08.md`, app-level public credential
-smoke is proven in `reports/beta/app_level_public_smoke_2026-05-08.md`, and a
-backup timer is active in `reports/beta/backup_timer_evidence_2026-05-08.md`.
-Public beta readiness remains blocked by legal/privacy approval, a signed or
-private security contact and a broader beta launch owner decision.
+smoke is proven in `reports/beta/app_level_public_smoke_2026-05-08.md`, edge/app
+credential header separation is proven in
+`reports/beta/edge_app_header_split_smoke_2026-05-08.md`, and a backup timer is
+active in `reports/beta/backup_timer_evidence_2026-05-08.md`. Public beta
+readiness remains blocked by legal/privacy approval, a signed or private
+security contact and a broader beta launch owner decision.
 
 ## Phase 9 Production Readiness
 

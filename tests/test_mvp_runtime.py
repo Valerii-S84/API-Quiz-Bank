@@ -53,7 +53,7 @@ class MvpRuntimeCase(unittest.TestCase):
             json={"consumer_id": consumer_id, "cefr_level": "A2", "theme_ids": ["T10"]},
             headers={
                 "X-Consumer-Id": consumer_id,
-                "X-API-Key": self.api_key_for(consumer_id),
+                "X-QuizBank-API-Key": self.api_key_for(consumer_id),
             },
         )
 
@@ -96,7 +96,7 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
             f"/v1/deliveries/{payload['delivery_id']}",
             headers={
                 "X-Consumer-Id": "consumer_allowed",
-                "X-API-Key": self.api_key_for("consumer_allowed"),
+                "X-QuizBank-API-Key": self.api_key_for("consumer_allowed"),
             },
         )
         self.assertEqual(delivery.status_code, 200)
@@ -177,7 +177,7 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
             f"/v1/deliveries/{delivery_id}",
             headers={
                 "X-Consumer-Id": "consumer_two",
-                "X-API-Key": self.api_key_for("consumer_two"),
+                "X-QuizBank-API-Key": self.api_key_for("consumer_two"),
             },
         )
 
@@ -227,7 +227,7 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
         response = self.client.post(
             "/v1/quiz-items/next",
             json={"consumer_id": "consumer_allowed", "cefr_level": "A2"},
-            headers={"X-Consumer-Id": "consumer_allowed", "X-API-Key": "wrong_key"},
+            headers={"X-Consumer-Id": "consumer_allowed", "X-QuizBank-API-Key": "wrong_key"},
         )
 
         self.assertEqual(response.status_code, 401)
@@ -256,7 +256,7 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
             json={"consumer_id": "consumer_two", "cefr_level": "A2"},
             headers={
                 "X-Consumer-Id": "consumer_one",
-                "X-API-Key": self.api_key_for("consumer_one"),
+                "X-QuizBank-API-Key": self.api_key_for("consumer_one"),
             },
         )
 

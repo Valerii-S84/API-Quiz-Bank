@@ -86,9 +86,13 @@ def register_delivery_routes(app: FastAPI, database_path: Path) -> None:
     def next_quiz_item(
         payload: NextQuizRequest,
         x_consumer_id: Annotated[str | None, Header()] = None,
-        x_api_key: Annotated[str | None, Header()] = None,
+        x_quizbank_api_key: Annotated[str | None, Header(alias="X-QuizBank-API-Key")] = None,
     ) -> dict[str, object]:
-        authenticated = authenticate_consumer(database_path, x_consumer_id, x_api_key)
+        authenticated = authenticate_consumer(
+            database_path,
+            x_consumer_id,
+            x_quizbank_api_key,
+        )
         authorize_consumer(authenticated.consumer_id, payload.consumer_id)
         result = select_next_item(
             database_path,
@@ -106,9 +110,13 @@ def register_delivery_routes(app: FastAPI, database_path: Path) -> None:
     def delivery(
         delivery_id: str,
         x_consumer_id: Annotated[str | None, Header()] = None,
-        x_api_key: Annotated[str | None, Header()] = None,
+        x_quizbank_api_key: Annotated[str | None, Header(alias="X-QuizBank-API-Key")] = None,
     ) -> dict[str, object]:
-        authenticated = authenticate_consumer(database_path, x_consumer_id, x_api_key)
+        authenticated = authenticate_consumer(
+            database_path,
+            x_consumer_id,
+            x_quizbank_api_key,
+        )
         return get_delivery(database_path, delivery_id, authenticated.consumer_id)
 
 
