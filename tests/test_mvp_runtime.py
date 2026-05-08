@@ -28,6 +28,8 @@ from quizbank_mvp.telegram_delivery import (
     TelegramDeliveryRequest,
     TelegramSendResult,
     run_telegram_delivery,
+    telegram_api_payload,
+    validate_telegram_poll,
 )
 
 
@@ -236,7 +238,9 @@ class MvpTelegramDeliveryTests(MvpRuntimeCase):
         self.assertEqual(result.status, "sent")
         self.assertEqual(result.telegram_message_id, "12345")
         self.assertEqual(result.telegram_poll_id, "poll_abc")
-        self.assertEqual(adapter.payloads[0]["correct_option_id"], 0)
+        self.assertEqual(adapter.payloads[0]["correct_option_ids"], [0])
+        self.assertNotIn("correct_option_id", adapter.payloads[0])
+        self.assertEqual(telegram_api_payload(adapter.payloads[0])["correct_option_id"], 0)
         with connect(self.db_path) as connection:
             delivery = connection.execute(
                 "SELECT delivery_status FROM deliveries WHERE delivery_id = ?",
@@ -271,6 +275,11 @@ class MvpTelegramDeliveryTests(MvpRuntimeCase):
                 (result.delivery_id,),
             ).fetchone()
         self.assertEqual(telegram_result["status"], "failed")
+
+    def test_telegram_validation_accepts_twelve_options_profile_limit(self) -> None:
+        options = [f"Option {index}" for index in range(12)]
+
+        validate_telegram_poll("Welche Antwort ist richtig?", options, [11])
 
 
 class MvpRuntimeAccessControlTests(MvpRuntimeCase):
