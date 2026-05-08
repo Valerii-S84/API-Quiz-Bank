@@ -17,7 +17,7 @@ Phase 7-10 pilot-package records.
 Commands executed in this pass:
 
 ```text
-python3 -m unittest discover -s tests -p "test_*.py" -> OK, 62 tests
+python3 -m unittest discover -s tests -p "test_*.py" -> OK, 66 tests
 PYTHONPATH=src python3 tools/run_pre_pilot_dry_run.py -> health, readiness, lifecycle, auth denial, repeat denial, quota denial and audit evidence emitted
 PYTHONPATH=src python3 tools/run_mvp_demo.py -> source governance, canonical validation, analytics, billing, next item, delivery log, repeat denial and quota denial emitted
 python3 tools/no_secrets_scan.py -> No committed secrets detected
@@ -65,16 +65,17 @@ Server evidence adds live protected-route delivery, delivery read, no-edge
 denial, missing app-credential denial, repeat denial, quota denial, entitlement
 denial, backup timer, backup execution, restore drill and disable-path evidence.
 
-Remaining launch-approval items after Public MVP sections 6-10:
+Remaining launch-approval items after Public MVP sections 6-12:
 
-- public MVP owner GO/NO-GO decision is not recorded;
-- deployed Telegram worker real-send through the runtime path is not recorded;
+- public MVP GO/NO-GO decision is recorded as `GO public MVP / protected beta` in
+  `reports/roadmap/public_mvp_go_no_go_2026-05-08.md`;
 - production dashboard or equivalent production alert source is not recorded.
 
 Closure decision:
 
 ```text
-GO protected beta smoke and sections 6-10 / NO-GO full public MVP launch
+GO public MVP / protected beta
+NO-GO production
 ```
 
 ## Section 19 Closure

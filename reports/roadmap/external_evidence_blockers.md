@@ -10,7 +10,8 @@ They must remain separate from local pre-pilot evidence.
 | Blocker | Required external evidence |
 |---|---|
 | Public/broader pilot environment | Protected public route exists for `api.valerchik.de`; broader beta/prod environment still needs owner approval and evidence boundary. |
-| Telegram controlled send | Controlled direct real send succeeded after bot administrator access was confirmed and channel-compatible anonymous poll payload was used. Local worker delivery id/status logging now exists, but controlled deployed worker real-send evidence is still required. |
+| Telegram controlled send | Controlled direct real send succeeded after bot administrator access was confirmed and channel-compatible anonymous poll payload was used. Deployed worker real-send also succeeded for Public MVP / Protected Beta; production Telegram monitoring remains separate. |
+| Closed external pilot smoke | End-to-end protected route scenario through the deployed runtime worker is recorded in `reports/beta/closed_external_pilot_smoke_2026-05-08.md`. Production-grade pilot monitoring and incident evidence remain separate. |
 | Worker monitoring | Owner-reviewed VPS health/readiness evidence exists for Public MVP / Protected Beta; external dashboard or alert source still needed for production closure. |
 | Automated pilot backup schedule | VPS backup timer is enabled and latest run succeeded; production monitored backup remains separate. |
 | Production-like restore drill | Restore into isolated target using managed/pilot-like data beyond MVP SQLite and recorded result. |

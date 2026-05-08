@@ -12,7 +12,7 @@ access, deployed Telegram worker real send, production or paid launch.
 | Phase | Decision | Reason |
 |---|---|---|
 | Phase 7 Closed Pilot Hardening | `GO local-only/internal` | Local-only VPS environment is identified; checkout is at `a86d625`; health, readiness, smoke, backup, restore drill, lifecycle, delivery, repeat guard, quota denial, Telegram dry-run, Telegram token secret wiring and disable path evidence are recorded. |
-| Phase 8 Public Beta Readiness | `GO protected beta sections 6-10 / NO-GO full public MVP` | Support/security contact, protected-beta privacy/legal gate, owner-reviewed monitoring, backup/restore and rollback are closed; Telegram worker/runtime send and owner GO remain separate. |
+| Phase 8 Public Beta Readiness | `GO public MVP / protected beta` | Support/security contact, protected-beta privacy/legal gate, owner-reviewed monitoring, backup/restore, rollback, deployed Telegram worker real-send and section 11 external pilot smoke are recorded. |
 | Phase 9 Production Readiness | `NO-GO production` | No production deployment, production DB, monitored production backups, production restore drill, production dashboard, incident drill, production rollback execution or production approval exists. |
 | Phase 10 Pilot Execution Package | `Done local package` | Package docs, runbooks, checklist and go/no-go matrix exist; local-only VPS evidence is linked, but public/broader pilot remains out of scope. |
 
@@ -26,12 +26,10 @@ access, deployed Telegram worker real send, production or paid launch.
 
 ## Phase 8 Closure Boundary
 
-Phase 8 sections 6-10 are closed for Public MVP / Protected Beta only.
+Phase 8 sections 6-12 are closed for Public MVP / Protected Beta only.
 
-Full Public MVP remains blocked by:
-
-- no final owner GO/NO-GO record;
-- no deployed Telegram worker real-send evidence through the runtime path.
+Full Public MVP / Protected Beta is `GO` after
+`reports/roadmap/public_mvp_go_no_go_2026-05-08.md`.
 
 Production, paid launch, school deployment and unauthenticated access remain
 blocked separately.
@@ -61,4 +59,6 @@ Telegram boundary:
 - one controlled direct Telegram Bot API send succeeded as separate evidence;
 - local worker path now creates a delivery id and records `sent`, `failed` or
   `skipped`;
-- deployed worker real-send is not approved, executed or proven.
+- deployed worker real-send is executed and proven for Public MVP / Protected
+  Beta with delivery `deliv_b888a8c3b50c4c87`, Telegram message id `271`, poll
+  id present/redacted and DB status `sent`.

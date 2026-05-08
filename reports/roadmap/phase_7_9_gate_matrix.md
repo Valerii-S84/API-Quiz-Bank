@@ -25,21 +25,19 @@ Status values:
 | OPS-PILOT-004 backup process exists | closed-local | `runbooks/backup_restore.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Backup is manual/owner-reviewed for local-only pilot, not automated public beta backup. |
 | OPS-PILOT-005 restore procedure exists | closed-local | `runbooks/backup_restore.md`, `reports/restore/mvp_sqlite_restore_drill_2026-05-08.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Restore evidence is local-only VPS SQLite, not production-like managed DB. |
 | OPS-PILOT-006 incident playbook exists | closed-local | `runbooks/incident_response.md`, `runbooks/support_triage.md`, `runbooks/rollback.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Incident drill not executed. |
-| OPS-PILOT-007 Telegram failures observable | partial | `docs/18_telegram_delivery_playbook.md`, `src/quizbank_mvp/telegram_delivery.py`, `tools/run_telegram_delivery_smoke.py`, `database/migrations/003_add_telegram_delivery_results.sql`, runtime tests, `reports/pre_pilot/telegram_dry_run_readiness_2026-05-08.md`, `reports/pre_pilot/telegram_secret_wiring_2026-05-08.md`, `reports/pre_pilot/telegram_controlled_send_2026-05-08.md` | Controlled direct Bot API send succeeded; local worker records delivery id and status, but deployed worker real-send evidence is not recorded. |
+| OPS-PILOT-007 Telegram failures observable | closed-protected-beta | `docs/18_telegram_delivery_playbook.md`, `src/quizbank_mvp/telegram_delivery.py`, `tools/run_telegram_delivery_smoke.py`, `database/migrations/003_add_telegram_delivery_results.sql`, runtime tests, `reports/pre_pilot/telegram_dry_run_readiness_2026-05-08.md`, `reports/pre_pilot/telegram_secret_wiring_2026-05-08.md`, `reports/pre_pilot/telegram_controlled_send_2026-05-08.md`, `reports/beta/closed_external_pilot_smoke_2026-05-08.md` | Controlled direct Bot API send and deployed worker real-send succeeded for Public MVP / Protected Beta. Production Telegram monitoring remains separate. |
 | OPS-PILOT-008 consumer disable path exists | closed-local | `transition-consumer-status` CLI, `reports/pre_pilot/local_pre_pilot_dry_run_2026-05-08.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md`, runtime tests | Covered for local-only VPS; public/beta/prod operator execution remains out of scope. |
 | OPS-PILOT-009 support/issue path exists | closed-local | `runbooks/support_triage.md`, `SECURITY.md` | No external pilot support channel is configured. |
 
-Phase 7 result: closed for local-only/internal pilot. The phase is not
-public-beta or production ready. Telegram has local worker dry-run/real-send
-code, but deployed worker real-send remains unproven.
+Phase 7 result: closed for local-only/internal pilot and protected-beta
+Telegram worker evidence. The phase is not production ready.
 
 Local pre-pilot result: active -> suspended -> blocked -> reactivated -> allowed
 consumer lifecycle is proven locally; delivery, repeat and quota behavior are
 proven locally; health, readiness, smoke, backup, restore drill, lifecycle,
 delivery, repeat guard, quota denial, Telegram dry-run, Telegram token secret
-wiring, protected public route smoke and one controlled direct Telegram real
-send are proven on the VPS; runtime worker delivery is now implemented locally,
-but worker real-send through the deployed runtime is not proven.
+wiring, protected public route smoke, one controlled direct Telegram real send
+and one deployed worker real-send are proven on the VPS.
 
 ## Phase 8 Public Beta Readiness
 
@@ -55,11 +53,12 @@ but worker real-send through the deployed runtime is not proven.
 | OPS-BETA-008 privacy/legal review completed | closed-protected-beta | `reports/compliance/legal_review_record.md`, `policies/privacy_notice_baseline.md` | Approved only for Public MVP / Protected Beta; production, paid, school and broad public launch remain pending. |
 
 Phase 8 result: Public MVP / Protected Beta operational gates for support,
-privacy/legal, owner-reviewed monitoring, backup/restore and rollback are
-closed. This does not approve production, paid launch, school deployment,
-unauthenticated access or broad public launch. Overall Public MVP launch still
-requires the remaining Telegram worker/runtime send gates and owner GO/NO-GO
-record.
+privacy/legal, owner-reviewed monitoring, backup/restore, rollback, closed
+external pilot smoke and deployed Telegram worker real-send are closed. This
+does not approve production, paid launch, school deployment, unauthenticated
+access or broad public launch. Overall Public MVP / Protected Beta launch is
+recorded as `GO` in
+`reports/roadmap/public_mvp_go_no_go_2026-05-08.md`.
 
 ## Phase 9 Production Readiness
 
