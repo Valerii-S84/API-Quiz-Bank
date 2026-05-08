@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "api-quiz-bank"
+version = "0.1.0"
+description = "MVP runtime for governed API Quiz Bank delivery."
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.121,<1",
+  "uvicorn[standard]>=0.38,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28,<1",
+]
+
+[project.scripts]
+quizbank-mvp = "quizbank_mvp.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

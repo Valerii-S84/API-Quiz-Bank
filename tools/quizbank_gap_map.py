@@ -64,7 +64,7 @@ def level_theme_matrix(rows: list[dict[str, str]]) -> list[dict[str, object]]:
     return matrix
 
 
-def coverage_cells(rows: list[dict[str, str]], generated_at: str) -> list[dict[str, object]]:
+def coverage_status_counts(rows: list[dict[str, str]]) -> dict[tuple[str, str, str, str], Counter[str]]:
     counts: Counter[tuple[str, str, str, str, str]] = Counter()
     for row in rows:
         key = (
@@ -85,26 +85,37 @@ def coverage_cells(rows: list[dict[str, str]], generated_at: str) -> list[dict[s
             and pattern in PATTERN_IDS
         ):
             grouped.setdefault((level, theme, objective, pattern), Counter())[status] += count
+    return grouped
 
+
+def coverage_cell(
+    key: tuple[str, str, str, str],
+    statuses: Counter[str],
+    generated_at: str,
+) -> dict[str, object]:
+    level, theme, objective, pattern = key
+    total = sum(statuses.values())
+    return {
+        "cefr_level": level,
+        "primary_theme_id": theme,
+        "objective_id": objective,
+        "pattern_id": pattern,
+        "item_count_total": total,
+        "item_count_draft": statuses.get("draft", 0),
+        "item_count_approved": statuses.get("approved", 0),
+        "item_count_published": statuses.get("published", 0),
+        "item_count_retired": statuses.get("retired", 0),
+        "item_count_blocked": statuses.get("blocked", 0),
+        "coverage_status": "covered" if total else "gap",
+        "last_generated_at": generated_at,
+    }
+
+
+def coverage_cells(rows: list[dict[str, str]], generated_at: str) -> list[dict[str, object]]:
+    grouped = coverage_status_counts(rows)
     cells = []
-    for (level, theme, objective, pattern), statuses in sorted(grouped.items()):
-        total = sum(statuses.values())
-        cells.append(
-            {
-                "cefr_level": level,
-                "primary_theme_id": theme,
-                "objective_id": objective,
-                "pattern_id": pattern,
-                "item_count_total": total,
-                "item_count_draft": statuses.get("draft", 0),
-                "item_count_approved": statuses.get("approved", 0),
-                "item_count_published": statuses.get("published", 0),
-                "item_count_retired": statuses.get("retired", 0),
-                "item_count_blocked": statuses.get("blocked", 0),
-                "coverage_status": "covered" if total else "gap",
-                "last_generated_at": generated_at,
-            }
-        )
+    for key, statuses in sorted(grouped.items()):
+        cells.append(coverage_cell(key, statuses, generated_at))
     return cells
 
 

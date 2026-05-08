@@ -82,7 +82,13 @@ def write_taxonomy(inventory) -> None:
     theme_counts = counter_for(inventory.rows, "theme_id")
     objective_counts = counter_for(inventory.rows, "objective_id")
     pattern_counts = counter_for(inventory.rows, "pattern_id")
+    write_cefr_levels(level_counts)
+    write_themes(theme_counts)
+    write_objectives(objective_counts)
+    write_patterns(pattern_counts)
 
+
+def write_cefr_levels(level_counts) -> None:
     write_csv(
         Path("data/taxonomy/cefr_levels.csv"),
         ["cefr_level", "order_index", "observed_item_count", "status"],
@@ -96,6 +102,9 @@ def write_taxonomy(inventory) -> None:
             for index, level in enumerate(CANONICAL_LEVELS, start=1)
         ],
     )
+
+
+def write_themes(theme_counts) -> None:
     write_csv(
         Path("data/taxonomy/themes.csv"),
         ["theme_id", "title", "observed_item_count", "status", "label_status"],
@@ -111,6 +120,9 @@ def write_taxonomy(inventory) -> None:
         ],
         lineterminator="\n",
     )
+
+
+def write_objectives(objective_counts) -> None:
     write_csv(
         Path("data/taxonomy/objectives.csv"),
         ["objective_id", "title", "observed_item_count", "status", "label_status"],
@@ -125,6 +137,9 @@ def write_taxonomy(inventory) -> None:
             for index in range(1, 17)
         ],
     )
+
+
+def write_patterns(pattern_counts) -> None:
     write_csv(
         Path("data/taxonomy/patterns.csv"),
         ["pattern_id", "title", "observed_item_count", "status", "label_status"],
@@ -142,125 +157,7 @@ def write_taxonomy(inventory) -> None:
 
 
 def openapi_seed() -> str:
-    return """openapi: 3.1.0
-info:
-  title: API Quiz Bank
-  version: 0.1.0
-  summary: Seed API contract for governed quiz delivery.
-servers:
-  - url: https://api-quiz-bank.local
-    description: Placeholder local/demo API endpoint.
-paths:
-  /v1/quiz-items/next:
-    post:
-      operationId: getNextQuizItem
-      summary: Select the next eligible quiz item for a governed consumer.
-      tags:
-        - quiz-delivery
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NextQuizRequest'
-      responses:
-        '200':
-          description: Eligible quiz item projection without public answer leakage.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuizItemPublicProjection'
-        '404':
-          description: No eligible quiz item is available.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
-        '403':
-          description: Consumer is not authorized or entitled.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
-components:
-  schemas:
-    NextQuizRequest:
-      type: object
-      additionalProperties: false
-      required:
-        - consumer_id
-      properties:
-        consumer_id:
-          type: string
-          minLength: 1
-        cefr_level:
-          type: string
-          enum: [A1, A2, B1, B2, C1, C2]
-        theme_ids:
-          type: array
-          items:
-            type: string
-            pattern: '^T(0[1-9]|1[0-8])$'
-        objective_ids:
-          type: array
-          items:
-            type: string
-            pattern: '^O(0[1-9]|1[0-6])$'
-    QuizItemPublicProjection:
-      type: object
-      additionalProperties: false
-      required:
-        - item_id
-        - language
-        - cefr_level
-        - theme_id
-        - prompt
-        - stem_text
-        - options
-      properties:
-        item_id:
-          type: string
-        language:
-          type: string
-          const: de
-        cefr_level:
-          type: string
-          enum: [A1, A2, B1, B2, C1, C2]
-        theme_id:
-          type: string
-          pattern: '^T(0[1-9]|1[0-8])$'
-        objective_id:
-          type: string
-          pattern: '^O(0[1-9]|1[0-6])$'
-        pattern_id:
-          type: string
-          pattern: '^P(0[1-9]|1[0-2])$'
-        prompt:
-          type: string
-        stem_text:
-          type: string
-        options:
-          type: array
-          minItems: 2
-          maxItems: 10
-          items:
-            type: string
-    ProblemDetails:
-      type: object
-      additionalProperties: true
-      required: [type, title, status]
-      properties:
-        type:
-          type: string
-        title:
-          type: string
-        status:
-          type: integer
-        detail:
-          type: string
-        code:
-          type: string
-"""
+    return Path("api/openapi.template.yaml").read_text(encoding="utf-8")
 
 
 def main() -> int:

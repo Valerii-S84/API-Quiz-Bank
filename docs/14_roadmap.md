@@ -368,6 +368,16 @@ Recommended roadmap phases:
 9. Public beta readiness
 10. Production readiness
 
+Current phase status and evidence are tracked in:
+
+```text
+reports/roadmap/roadmap_evidence_register.md
+```
+
+That register is the phase closure ledger. It must distinguish local MVP proof from pilot,
+beta or production evidence, and it must not mark external gates complete without
+artifact-backed environment proof.
+
 ---
 
 ## 10. Phase 0 — Documentation Foundation
