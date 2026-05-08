@@ -72,11 +72,27 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
             "/ready",
             "/v1/health",
             "/v1/ready",
+            "/v1/levels",
+            "/v1/topics",
             "/v1/quiz-items/next",
             "/v1/deliveries/{delivery_id}",
         ]:
             self.assertIn(path, app_paths)
             self.assertIn(f"  {path}:", committed_openapi)
+
+    def test_taxonomy_endpoints_return_canonical_levels_and_topics(self) -> None:
+        levels = self.client.get("/v1/levels")
+        topics = self.client.get("/v1/topics")
+
+        self.assertEqual(levels.status_code, 200)
+        self.assertEqual(
+            [level["cefr_level"] for level in levels.json()["data"]],
+            ["A1", "A2", "B1", "B2", "C1", "C2"],
+        )
+        self.assertEqual(topics.status_code, 200)
+        self.assertEqual(len(topics.json()["data"]), 18)
+        self.assertEqual(topics.json()["data"][0]["topic_id"], "T01")
+        self.assertEqual(topics.json()["data"][0]["theme_id"], "T01")
 
     def test_next_item_returns_public_projection_and_delivery_log(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
@@ -149,6 +165,7 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
 
+class MvpRuntimeAccessControlTests(MvpRuntimeCase):
     def test_entitlement_and_quota_denials_happen_before_selection(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         seed_consumer(self.db_path, "consumer_no_entitlement", 5, ["A2"], ["T10"])
@@ -166,6 +183,60 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
         self.assertEqual(entitlement.json()["reason_code"], "ENTITLEMENT_MISSING_FEATURE")
         self.assertEqual(quota.status_code, 429)
         self.assertEqual(quota.json()["reason_code"], "QUOTA_EXCEEDED")
+
+    def test_level_and_theme_filters_control_item_eligibility(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        seed_consumer(self.db_path, "consumer_allowed", 5, ["A2", "B1"], ["T10", "T11"])
+        seed_api_credential(self.db_path, "consumer_allowed", self.api_key_for("consumer_allowed"))
+        seed_entitlement(self.db_path, "consumer_allowed", ["A2", "B1"], ["T10", "T11"])
+
+        level_mismatch = self.client.post(
+            "/v1/quiz-items/next",
+            json={"consumer_id": "consumer_allowed", "cefr_level": "B1", "theme_ids": ["T10"]},
+            headers={
+                "X-Consumer-Id": "consumer_allowed",
+                "X-QuizBank-API-Key": self.api_key_for("consumer_allowed"),
+            },
+        )
+        theme_mismatch = self.client.post(
+            "/v1/quiz-items/next",
+            json={"consumer_id": "consumer_allowed", "cefr_level": "A2", "theme_ids": ["T11"]},
+            headers={
+                "X-Consumer-Id": "consumer_allowed",
+                "X-QuizBank-API-Key": self.api_key_for("consumer_allowed"),
+            },
+        )
+
+        self.assertEqual(level_mismatch.status_code, 404)
+        self.assertEqual(theme_mismatch.status_code, 404)
+        self.assertEqual(level_mismatch.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
+        self.assertEqual(theme_mismatch.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
+
+    def test_consumer_scope_denials_happen_before_selection(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        self.seed_access()
+
+        level_denial = self.client.post(
+            "/v1/quiz-items/next",
+            json={"consumer_id": "consumer_allowed", "cefr_level": "B1", "theme_ids": ["T10"]},
+            headers={
+                "X-Consumer-Id": "consumer_allowed",
+                "X-QuizBank-API-Key": self.api_key_for("consumer_allowed"),
+            },
+        )
+        theme_denial = self.client.post(
+            "/v1/quiz-items/next",
+            json={"consumer_id": "consumer_allowed", "cefr_level": "A2", "theme_ids": ["T11"]},
+            headers={
+                "X-Consumer-Id": "consumer_allowed",
+                "X-QuizBank-API-Key": self.api_key_for("consumer_allowed"),
+            },
+        )
+
+        self.assertEqual(level_denial.status_code, 403)
+        self.assertEqual(theme_denial.status_code, 403)
+        self.assertEqual(level_denial.json()["reason_code"], "CONSUMER_LEVEL_NOT_ALLOWED")
+        self.assertEqual(theme_denial.json()["reason_code"], "CONSUMER_THEME_NOT_ALLOWED")
 
     def test_cross_consumer_delivery_read_is_denied(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
@@ -332,7 +403,38 @@ class MvpRuntimeDatabaseTests(MvpRuntimeCase):
 
         with connect(self.db_path) as connection:
             audit_count = connection.execute("SELECT COUNT(*) AS count FROM audit_log").fetchone()
-        self.assertEqual(audit_count["count"], 2)
+            item_audit_count = connection.execute(
+                "SELECT COUNT(*) AS count FROM audit_log WHERE entity_type = 'quiz_item'"
+            ).fetchone()
+        self.assertGreaterEqual(audit_count["count"], 2)
+        self.assertEqual(item_audit_count["count"], 2)
+
+    def test_manual_entitlement_grant_is_audited(self) -> None:
+        seed_consumer(self.db_path, "consumer_manual_grant", 3, ["A2"], ["T10"])
+        entitlement_id = seed_entitlement(
+            self.db_path,
+            "consumer_manual_grant",
+            ["A2"],
+            ["T10"],
+            valid_until="2026-12-31T00:00:00Z",
+            actor="billing_admin",
+            reason="manual pilot grant",
+        )
+
+        with connect(self.db_path) as connection:
+            entitlement = connection.execute(
+                "SELECT * FROM entitlements WHERE entitlement_id = ?",
+                (entitlement_id,),
+            ).fetchone()
+            audit = connection.execute(
+                "SELECT * FROM audit_log WHERE entity_id = ?",
+                (entitlement_id,),
+            ).fetchone()
+
+        self.assertEqual(entitlement["valid_until"], "2026-12-31T00:00:00Z")
+        self.assertEqual(audit["actor"], "billing_admin")
+        self.assertEqual(audit["action"], "entitlement_grant")
+        self.assertEqual(audit["reason"], "manual pilot grant")
 
     def test_duplicate_item_ids_are_rejected_by_database(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
