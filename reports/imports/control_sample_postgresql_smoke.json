@@ -1,0 +1,27 @@
+{
+  "checks": {
+    "counts": {
+      "import_batch_items": 2,
+      "import_batches": 1,
+      "import_validation_results": 0,
+      "quiz_items": 2,
+      "sources": 1
+    },
+    "lineage_join_count": 2,
+    "load_plan_applied": true,
+    "schema_applied": true,
+    "source_checksum_match": true
+  },
+  "database": "postgres",
+  "docker_image": "postgres:16-alpine",
+  "executed_at": "2026-05-08T00:00:00+00:00",
+  "report_type": "postgresql_contract_smoke",
+  "schema_files": [
+    "database/postgresql/001_create_runtime.sql",
+    "database/postgresql/002_add_import_contract.sql"
+  ],
+  "source_artifacts": {
+    "canonical_input_path": "data/imports/control_sample_items.jsonl",
+    "load_plan_path": "reports/imports/control_sample_postgresql_load_plan.json"
+  }
+}

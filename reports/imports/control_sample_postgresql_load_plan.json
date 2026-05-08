@@ -1,0 +1,73 @@
+{
+  "generated_at": "2026-05-07T00:00:00+00:00",
+  "lineage": {
+    "import_batch_id": "imp_sample_control_001_dry_run_001",
+    "quiz_item_count": 2,
+    "source_id": "sample_control_001",
+    "traceability_chain": [
+      "sources",
+      "import_batches",
+      "import_batch_items",
+      "quiz_items",
+      "deliveries"
+    ]
+  },
+  "plan_type": "postgresql_load_plan",
+  "source_artifacts": {
+    "canonical_input_path": "data/imports/control_sample_items.jsonl",
+    "import_report_path": "reports/imports/control_sample_import.json"
+  },
+  "tables": {
+    "import_batch_items": [
+      {
+        "canonical_status": "draft",
+        "content_hash_sha256": "e80c433fa5f79ea7f329034eded3194844bec8369da6e1fa70e45349bd94dd3c",
+        "created_at": "2026-05-07T00:00:00+00:00",
+        "import_batch_id": "imp_sample_control_001_dry_run_001",
+        "item_id": "control_sample_001",
+        "source_id": "sample_control_001",
+        "source_item_id": "control_sample_001",
+        "source_row_number": 2
+      },
+      {
+        "canonical_status": "draft",
+        "content_hash_sha256": "8969736d00151d444620ff3ab67c6c0ac0fb4da76ecb6df775a41a3e22c3212a",
+        "created_at": "2026-05-07T00:00:00+00:00",
+        "import_batch_id": "imp_sample_control_001_dry_run_001",
+        "item_id": "control_sample_002",
+        "source_id": "sample_control_001",
+        "source_item_id": "control_sample_002",
+        "source_row_number": 3
+      }
+    ],
+    "import_batches": [
+      {
+        "accepted_candidate_count": 2,
+        "completed_at": "2026-05-07T00:00:00+00:00",
+        "created_by": "tool:quizbank_postgresql_load_plan.py",
+        "default_item_status": "draft",
+        "import_batch_id": "imp_sample_control_001_dry_run_001",
+        "import_mode": "dry_run",
+        "import_status": "dry_run_passed",
+        "parser_profile_id": "csv_quiz_bank_v1",
+        "rejected_candidate_count": 0,
+        "report_uri": "reports/imports/control_sample_import.json",
+        "row_count_detected": 2,
+        "source_checksum_sha256": "ac17ee2680f883c16290d0f522f1dcb91708957b46bdd69d3845ebd1f5254d32",
+        "source_id": "sample_control_001",
+        "started_at": "2026-05-07T00:00:00+00:00"
+      }
+    ],
+    "import_validation_results": [],
+    "sources": [
+      {
+        "checksum_sha256": "ac17ee2680f883c16290d0f522f1dcb91708957b46bdd69d3845ebd1f5254d32",
+        "created_at": "2026-05-07T00:00:00+00:00",
+        "provenance_note": "control_sample",
+        "source_id": "sample_control_001",
+        "source_type": "fixture",
+        "status": "active"
+      }
+    ]
+  }
+}

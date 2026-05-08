@@ -1,0 +1,43 @@
+# PostgreSQL Runtime Contract
+
+This directory holds the production-oriented PostgreSQL schema contract for API Quiz Bank.
+
+## Current Boundary
+
+- `database/migrations/` remains the local SQLite MVP runtime path used by the committed FastAPI demo and tests.
+- `database/postgresql/001_create_runtime.sql` defines the production runtime seed tables aligned with the MVP delivery domain.
+- `database/postgresql/002_add_import_contract.sql` adds the governed import path required before PostgreSQL can be treated as the operational source of truth.
+
+## Production Import Path
+
+The PostgreSQL contract preserves this minimum traceability chain:
+
+```text
+sources
+  -> import_batches
+  -> import_batch_items
+  -> quiz_items
+  -> deliveries
+```
+
+Import validation evidence is stored in `import_validation_results`. A committed import batch must keep the source checksum, parser profile, detected row count, accepted/rejected candidate counts, report URI, timestamps and operator identity.
+
+## Local Contract Smoke
+
+Run the local execution proof with:
+
+```bash
+python3 tools/run_postgresql_contract_smoke.py
+```
+
+The smoke uses an ephemeral `postgres:16-alpine` Docker container, applies `001_create_runtime.sql` and `002_add_import_contract.sql`, loads `reports/imports/control_sample_postgresql_load_plan.json`, then writes `reports/imports/control_sample_postgresql_smoke.json`.
+
+## Not Proven By This Directory
+
+These SQL files do not prove a production database is running. Production readiness still requires:
+
+- migration execution against a managed PostgreSQL environment;
+- backup and restore drill evidence for PostgreSQL;
+- runtime application wiring to PostgreSQL;
+- monitored migration and rollback procedures;
+- secret-managed credentials outside the repository.
