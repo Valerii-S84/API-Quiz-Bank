@@ -23,20 +23,21 @@ Status values:
 | OPS-PILOT-004 backup process exists | closed-local | `runbooks/backup_restore.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Backup is manual/owner-reviewed for local-only pilot, not automated public beta backup. |
 | OPS-PILOT-005 restore procedure exists | closed-local | `runbooks/backup_restore.md`, `reports/restore/mvp_sqlite_restore_drill_2026-05-08.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Restore evidence is local-only VPS SQLite, not production-like managed DB. |
 | OPS-PILOT-006 incident playbook exists | closed-local | `runbooks/incident_response.md`, `runbooks/support_triage.md`, `runbooks/rollback.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Incident drill not executed. |
-| OPS-PILOT-007 Telegram failures observable | partial | `docs/18_telegram_delivery_playbook.md`, delivery negative controls, `reports/pre_pilot/telegram_dry_run_readiness_2026-05-08.md`, `reports/pre_pilot/telegram_secret_wiring_2026-05-08.md`, `reports/pre_pilot/telegram_controlled_send_2026-05-08.md` | Controlled direct Bot API send succeeded; worker delivery id still absent because Telegram worker path is not implemented. |
+| OPS-PILOT-007 Telegram failures observable | partial | `docs/18_telegram_delivery_playbook.md`, `src/quizbank_mvp/telegram_delivery.py`, `tools/run_telegram_delivery_smoke.py`, `database/migrations/003_add_telegram_delivery_results.sql`, runtime tests, `reports/pre_pilot/telegram_dry_run_readiness_2026-05-08.md`, `reports/pre_pilot/telegram_secret_wiring_2026-05-08.md`, `reports/pre_pilot/telegram_controlled_send_2026-05-08.md` | Controlled direct Bot API send succeeded; local worker records delivery id and status, but deployed worker real-send evidence is not recorded. |
 | OPS-PILOT-008 consumer disable path exists | closed-local | `transition-consumer-status` CLI, `reports/pre_pilot/local_pre_pilot_dry_run_2026-05-08.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md`, runtime tests | Covered for local-only VPS; public/beta/prod operator execution remains out of scope. |
 | OPS-PILOT-009 support/issue path exists | closed-local | `runbooks/support_triage.md`, `SECURITY.md` | No external pilot support channel is configured. |
 
 Phase 7 result: closed for local-only/internal pilot. The phase is not
-public-beta or production ready, and Telegram remains dry-run only.
+public-beta or production ready. Telegram has local worker dry-run/real-send
+code, but deployed worker real-send remains unproven.
 
 Local pre-pilot result: active -> suspended -> blocked -> reactivated -> allowed
 consumer lifecycle is proven locally; delivery, repeat and quota behavior are
 proven locally; health, readiness, smoke, backup, restore drill, lifecycle,
 delivery, repeat guard, quota denial, Telegram dry-run, Telegram token secret
-wiring, protected public route smoke and one controlled Telegram real send are
-proven on the VPS; Telegram worker delivery remains blocked because worker path
-is not implemented.
+wiring, protected public route smoke and one controlled direct Telegram real
+send are proven on the VPS; runtime worker delivery is now implemented locally,
+but worker real-send through the deployed runtime is not proven.
 
 ## Phase 8 Public Beta Readiness
 

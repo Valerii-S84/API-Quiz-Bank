@@ -23,6 +23,12 @@ from quizbank_mvp.database import (
     transition_consumer_status,
     transition_item_status,
 )
+from quizbank_mvp.telegram_delivery import (
+    TelegramDeliveryError,
+    TelegramDeliveryRequest,
+    TelegramSendResult,
+    run_telegram_delivery,
+)
 
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
@@ -164,6 +170,108 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
+
+
+class FakeTelegramAdapter:
+    def __init__(self, should_fail: bool = False) -> None:
+        self.should_fail = should_fail
+        self.payloads: list[dict[str, object]] = []
+
+    def send_quiz_poll(self, payload: dict[str, object]) -> TelegramSendResult:
+        self.payloads.append(payload)
+        if self.should_fail:
+            raise TelegramDeliveryError("telegram_adapter_failure")
+        return TelegramSendResult(message_id="12345", poll_id="poll_abc")
+
+
+class MvpTelegramDeliveryTests(MvpRuntimeCase):
+    def test_telegram_dry_run_uses_selection_and_records_skipped_result(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        self.seed_access()
+
+        result = run_telegram_delivery(
+            self.db_path,
+            TelegramDeliveryRequest(
+                consumer_id="consumer_allowed",
+                chat_id="-1001234567890",
+                mode="dry_run",
+                cefr_level="A2",
+                theme_ids=("T10",),
+            ),
+        )
+
+        self.assertEqual(result.status, "skipped")
+        self.assertEqual(result.failure_reason, "dry_run_no_bot_api_call")
+        self.assertEqual(result.telegram_target_ref, "***7890")
+        with connect(self.db_path) as connection:
+            delivery = connection.execute(
+                "SELECT delivery_status FROM deliveries WHERE delivery_id = ?",
+                (result.delivery_id,),
+            ).fetchone()
+            telegram_result = connection.execute(
+                "SELECT * FROM telegram_delivery_results WHERE delivery_id = ?",
+                (result.delivery_id,),
+            ).fetchone()
+        self.assertEqual(delivery["delivery_status"], "skipped")
+        self.assertEqual(telegram_result["status"], "skipped")
+        self.assertIsNone(telegram_result["telegram_message_id"])
+
+    def test_telegram_real_send_records_message_and_poll_ids(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        self.seed_access()
+        adapter = FakeTelegramAdapter()
+
+        result = run_telegram_delivery(
+            self.db_path,
+            TelegramDeliveryRequest(
+                consumer_id="consumer_allowed",
+                chat_id="@controlled_channel",
+                mode="real",
+                cefr_level="A2",
+                theme_ids=("T10",),
+            ),
+            adapter=adapter,
+        )
+
+        self.assertEqual(result.status, "sent")
+        self.assertEqual(result.telegram_message_id, "12345")
+        self.assertEqual(result.telegram_poll_id, "poll_abc")
+        self.assertEqual(adapter.payloads[0]["correct_option_id"], 0)
+        with connect(self.db_path) as connection:
+            delivery = connection.execute(
+                "SELECT delivery_status FROM deliveries WHERE delivery_id = ?",
+                (result.delivery_id,),
+            ).fetchone()
+        self.assertEqual(delivery["delivery_status"], "sent")
+
+    def test_telegram_real_send_failure_is_recorded_without_duplicate_retry(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        self.seed_access(quota=2)
+        adapter = FakeTelegramAdapter(should_fail=True)
+
+        result = run_telegram_delivery(
+            self.db_path,
+            TelegramDeliveryRequest(
+                consumer_id="consumer_allowed",
+                chat_id="@controlled_channel",
+                mode="real",
+                cefr_level="A2",
+                theme_ids=("T10",),
+            ),
+            adapter=adapter,
+        )
+        repeat = self.next_item()
+
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.failure_reason, "telegram_adapter_failure")
+        self.assertEqual(repeat.status_code, 404)
+        with connect(self.db_path) as connection:
+            telegram_result = connection.execute(
+                "SELECT * FROM telegram_delivery_results WHERE delivery_id = ?",
+                (result.delivery_id,),
+            ).fetchone()
+        self.assertEqual(telegram_result["status"], "failed")
+
 
 class MvpRuntimeAccessControlTests(MvpRuntimeCase):
     def test_entitlement_and_quota_denials_happen_before_selection(self) -> None:
@@ -354,6 +462,7 @@ class MvpRuntimeDatabaseTests(MvpRuntimeCase):
                 "api_credentials",
                 "quota_usage",
                 "audit_log",
+                "telegram_delivery_results",
             }.issubset(table_names)
         )
 

@@ -107,9 +107,10 @@ before broader beta traffic.
 
 ## Telegram Token Secret Wiring
 
-Real Telegram send remains disabled until a separate controlled-send approval.
-The server-side token is stored outside Git and exposed to the container only as
-a file path:
+One controlled direct Bot API send has succeeded as separate evidence, but that
+was not the runtime worker path. Deployed worker real-send remains disabled
+until an explicit controlled-send execution through the worker. The server-side
+token is stored outside Git and exposed to the container only as a file path:
 
 | Field | Value |
 |---|---|
@@ -118,7 +119,7 @@ a file path:
 | Env references | `QUIZBANK_TELEGRAM_BOT_TOKEN_FILE`, `TELEGRAM_BOT_TOKEN_FILE` |
 | Compose override | `/opt/api-quiz-bank/docker-compose.api-quiz-bank.secrets.yml` |
 | Git policy | secret file and server override are not committed |
-| Current send status | token wired; real Telegram send not approved/not done |
+| Current send status | token wired; direct controlled send succeeded; deployed worker real-send not executed/proven |
 
 Expected permission check:
 

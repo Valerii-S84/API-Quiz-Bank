@@ -4,7 +4,8 @@ Date: 2026-05-08
 
 Scope: roadmap Phase 7, 8, 9 and 10 gate closure decision after local-only VPS
 evidence and protected public-route smoke. This does not approve unauthenticated
-public API access, Telegram real send, public beta or production.
+public API access, deployed Telegram worker real send, public beta or
+production.
 
 ## Decision Summary
 
@@ -50,11 +51,13 @@ Production remains blocked by:
 
 ## Telegram Boundary
 
-Telegram is dry-run only:
+Telegram boundary:
 
 - endpoint and payload protocol are recorded;
 - logging and stop conditions are recorded;
 - VPS dry-run built a redacted `sendPoll` payload summary;
 - current token is stored as a root-only server secret and mounted by file path;
-- no Telegram Bot API call was made;
-- no real send is approved or done.
+- one controlled direct Telegram Bot API send succeeded as separate evidence;
+- local worker path now creates a delivery id and records `sent`, `failed` or
+  `skipped`;
+- deployed worker real-send is not approved, executed or proven.
