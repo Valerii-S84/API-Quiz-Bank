@@ -14,7 +14,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
-MIGRATION_PATH = ROOT / "database" / "migrations" / "001_create_mvp_runtime.sql"
+MIGRATIONS_DIRECTORY = ROOT / "database" / "migrations"
 DEFAULT_DB_PATH = ROOT / "var" / "quizbank_mvp.sqlite3"
 DELIVERABLE_STATUSES = ("approved", "published")
 ALLOWED_TRANSITIONS = {
@@ -53,7 +53,8 @@ def initialize_database(db_path: Path | None = None) -> Path:
     path = (db_path or configured_db_path()).resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     with connect(path) as connection:
-        connection.executescript(MIGRATION_PATH.read_text(encoding="utf-8"))
+        for migration_path in sorted(MIGRATIONS_DIRECTORY.glob("*.sql")):
+            connection.executescript(migration_path.read_text(encoding="utf-8"))
     return path
 
 
@@ -62,10 +63,11 @@ def database_is_ready(db_path: Path | None = None) -> bool:
     if not path.exists():
         return False
     with connect(path) as connection:
-        row = connection.execute(
-            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'quiz_items'"
-        ).fetchone()
-    return row is not None
+        rows = connection.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table'"
+        ).fetchall()
+    table_names = {row["name"] for row in rows}
+    return {"quiz_items", "consumers", "api_credentials", "deliveries"}.issubset(table_names)
 
 
 def read_jsonl(path: Path) -> list[dict[str, str]]:
@@ -170,6 +172,41 @@ def seed_consumer(
         )
 
 
+def seed_api_credential(
+    db_path: Path | None,
+    consumer_id: str,
+    raw_api_key: str,
+    credential_id: str | None = None,
+    status: str = "active",
+) -> str:
+    from .auth import api_key_prefix, hash_api_key
+
+    resolved_credential_id = credential_id or f"cred_{consumer_id}"
+    with connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO api_credentials (
+                credential_id, consumer_id, key_prefix, key_hash, status,
+                created_at, revoked_at
+            ) VALUES (?, ?, ?, ?, ?, ?, NULL)
+            ON CONFLICT(credential_id) DO UPDATE SET
+                key_prefix = excluded.key_prefix,
+                key_hash = excluded.key_hash,
+                status = excluded.status,
+                revoked_at = NULL
+            """,
+            (
+                resolved_credential_id,
+                consumer_id,
+                api_key_prefix(raw_api_key),
+                hash_api_key(raw_api_key),
+                status,
+                utc_now(),
+            ),
+        )
+    return resolved_credential_id
+
+
 def seed_entitlement(
     db_path: Path | None,
     consumer_id: str,
@@ -204,10 +241,13 @@ def seed_demo_state(db_path: Path | None, fixture_path: Path) -> None:
     reset_demo_delivery_state(db_path)
     seed_control_fixture(db_path, fixture_path, "approved")
     seed_consumer(db_path, "consumer_demo", 2, ["A2"], ["T10"])
+    seed_api_credential(db_path, "consumer_demo", "demo_consumer_api_key")
     seed_entitlement(db_path, "consumer_demo", ["A2"], ["T10"])
     seed_consumer(db_path, "consumer_quota_blocked", 0, ["A2"], ["T10"])
+    seed_api_credential(db_path, "consumer_quota_blocked", "quota_blocked_api_key")
     seed_entitlement(db_path, "consumer_quota_blocked", ["A2"], ["T10"])
     seed_consumer(db_path, "consumer_no_entitlement", 2, ["A2"], ["T10"])
+    seed_api_credential(db_path, "consumer_no_entitlement", "no_entitlement_api_key")
 
 
 def reset_demo_delivery_state(db_path: Path | None) -> None:

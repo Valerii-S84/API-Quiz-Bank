@@ -22,6 +22,10 @@ DEMO_REQUEST = {
     "cefr_level": "A2",
     "theme_ids": ["T10"],
 }
+DEMO_API_KEYS = {
+    "consumer_demo": "demo_consumer_api_key",
+    "consumer_quota_blocked": "quota_blocked_api_key",
+}
 
 
 def print_step(name: str, payload: object) -> None:
@@ -41,7 +45,7 @@ def post_next_item(client: TestClient, consumer_id: str, payload: dict[str, obje
     return client.post(
         "/v1/quiz-items/next",
         json={**payload, "consumer_id": consumer_id},
-        headers={"X-Consumer-Id": consumer_id},
+        headers={"X-Consumer-Id": consumer_id, "X-API-Key": DEMO_API_KEYS[consumer_id]},
     )
 
 
@@ -55,7 +59,10 @@ def run_demo_steps(client: TestClient) -> None:
     delivery_id = first.json()["delivery_id"]
     delivery = client.get(
         f"/v1/deliveries/{delivery_id}",
-        headers={"X-Consumer-Id": "consumer_demo"},
+        headers={
+            "X-Consumer-Id": "consumer_demo",
+            "X-API-Key": DEMO_API_KEYS["consumer_demo"],
+        },
     )
     print_step("delivery_log", delivery.json())
     print_step("repeat_denial", post_next_item(client, "consumer_demo", DEMO_REQUEST).json())

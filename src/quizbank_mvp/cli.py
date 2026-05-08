@@ -9,6 +9,7 @@ from pathlib import Path
 from .database import (
     connect,
     initialize_database,
+    seed_api_credential,
     seed_consumer,
     seed_control_fixture,
     seed_demo_state,
@@ -39,6 +40,7 @@ def parse_args() -> argparse.Namespace:
     seed_consumer_parser.add_argument("--cefr-level", action="append", default=[])
     seed_consumer_parser.add_argument("--theme-id", action="append", default=[])
     seed_consumer_parser.add_argument("--with-entitlement", action="store_true")
+    seed_consumer_parser.add_argument("--api-key", default=None)
 
     demo = subparsers.add_parser("seed-demo", help="Seed demo item, consumers and entitlement.")
     demo.add_argument("--fixture", type=Path, default=DEFAULT_FIXTURE)
@@ -86,6 +88,8 @@ def main() -> int:
         )
         if args.with_entitlement:
             seed_entitlement(args.db_path, args.consumer_id, args.cefr_level, args.theme_id)
+        if args.api_key:
+            seed_api_credential(args.db_path, args.consumer_id, args.api_key)
         print(f"seeded consumer: {args.consumer_id}")
         return 0
     if args.command == "seed-demo":

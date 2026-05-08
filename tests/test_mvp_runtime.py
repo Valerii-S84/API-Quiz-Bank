@@ -14,7 +14,9 @@ sys.path.insert(0, str(ROOT / "src"))
 from quizbank_mvp.app import create_app
 from quizbank_mvp.database import (
     connect,
+    database_is_ready,
     initialize_database,
+    seed_api_credential,
     seed_consumer,
     seed_control_fixture,
     seed_entitlement,
@@ -39,13 +41,20 @@ class MvpRuntimeCase(unittest.TestCase):
 
     def seed_access(self, consumer_id: str = "consumer_allowed", quota: int = 5) -> None:
         seed_consumer(self.db_path, consumer_id, quota, ["A2"], ["T10"])
+        seed_api_credential(self.db_path, consumer_id, self.api_key_for(consumer_id))
         seed_entitlement(self.db_path, consumer_id, ["A2"], ["T10"])
+
+    def api_key_for(self, consumer_id: str) -> str:
+        return f"test_api_key_for_{consumer_id}"
 
     def next_item(self, consumer_id: str = "consumer_allowed"):
         return self.client.post(
             "/v1/quiz-items/next",
             json={"consumer_id": consumer_id, "cefr_level": "A2", "theme_ids": ["T10"]},
-            headers={"X-Consumer-Id": consumer_id},
+            headers={
+                "X-Consumer-Id": consumer_id,
+                "X-API-Key": self.api_key_for(consumer_id),
+            },
         )
 
 
@@ -85,7 +94,10 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
 
         delivery = self.client.get(
             f"/v1/deliveries/{payload['delivery_id']}",
-            headers={"X-Consumer-Id": "consumer_allowed"},
+            headers={
+                "X-Consumer-Id": "consumer_allowed",
+                "X-API-Key": self.api_key_for("consumer_allowed"),
+            },
         )
         self.assertEqual(delivery.status_code, 200)
         self.assertEqual(delivery.json()["quiz_item_id"], "approved_traceable_001")
@@ -128,9 +140,23 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
 
+    def test_blocked_items_are_not_delivery_eligible(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "blocked")
+        self.seed_access()
+
+        response = self.next_item()
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
+
     def test_entitlement_and_quota_denials_happen_before_selection(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         seed_consumer(self.db_path, "consumer_no_entitlement", 5, ["A2"], ["T10"])
+        seed_api_credential(
+            self.db_path,
+            "consumer_no_entitlement",
+            self.api_key_for("consumer_no_entitlement"),
+        )
         self.seed_access("consumer_quota_denied", quota=0)
 
         entitlement = self.next_item("consumer_no_entitlement")
@@ -149,7 +175,10 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
 
         response = self.client.get(
             f"/v1/deliveries/{delivery_id}",
-            headers={"X-Consumer-Id": "consumer_two"},
+            headers={
+                "X-Consumer-Id": "consumer_two",
+                "X-API-Key": self.api_key_for("consumer_two"),
+            },
         )
 
         self.assertEqual(response.status_code, 404)
@@ -178,6 +207,62 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
         self.assertEqual(delivery_count["count"], 0)
         self.assertEqual(audit["action"], "consumer_status_transition")
 
+    def test_missing_api_key_is_denied_before_delivery(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        self.seed_access()
+
+        response = self.client.post(
+            "/v1/quiz-items/next",
+            json={"consumer_id": "consumer_allowed", "cefr_level": "A2"},
+            headers={"X-Consumer-Id": "consumer_allowed"},
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()["reason_code"], "AUTH_REQUIRED")
+
+    def test_invalid_api_key_is_denied_before_delivery(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        self.seed_access()
+
+        response = self.client.post(
+            "/v1/quiz-items/next",
+            json={"consumer_id": "consumer_allowed", "cefr_level": "A2"},
+            headers={"X-Consumer-Id": "consumer_allowed", "X-API-Key": "wrong_key"},
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()["reason_code"], "AUTH_INVALID_API_KEY")
+
+    def test_raw_api_key_is_not_stored(self) -> None:
+        self.seed_access()
+
+        with connect(self.db_path) as connection:
+            credential = connection.execute(
+                "SELECT key_prefix, key_hash FROM api_credentials WHERE consumer_id = ?",
+                ("consumer_allowed",),
+            ).fetchone()
+
+        self.assertEqual(credential["key_prefix"], self.api_key_for("consumer_allowed")[:12])
+        self.assertNotEqual(credential["key_hash"], self.api_key_for("consumer_allowed"))
+        self.assertNotIn("consumer_allowed", credential["key_hash"])
+
+    def test_api_key_cannot_be_used_for_another_consumer(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        self.seed_access("consumer_one")
+        self.seed_access("consumer_two")
+
+        response = self.client.post(
+            "/v1/quiz-items/next",
+            json={"consumer_id": "consumer_two", "cefr_level": "A2"},
+            headers={
+                "X-Consumer-Id": "consumer_one",
+                "X-API-Key": self.api_key_for("consumer_one"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["reason_code"], "AUTH_CONSUMER_MISMATCH")
+
 
 class MvpRuntimeDatabaseTests(MvpRuntimeCase):
     def test_database_can_be_created_from_empty_schema(self) -> None:
@@ -195,10 +280,20 @@ class MvpRuntimeDatabaseTests(MvpRuntimeCase):
                 "consumers",
                 "deliveries",
                 "entitlements",
+                "api_credentials",
                 "quota_usage",
                 "audit_log",
             }.issubset(table_names)
         )
+
+    def test_readiness_requires_api_credentials_table(self) -> None:
+        legacy_db_path = Path(self.temp_directory.name) / "legacy.sqlite3"
+        with sqlite3.connect(legacy_db_path) as connection:
+            connection.execute("CREATE TABLE quiz_items (item_id TEXT PRIMARY KEY)")
+            connection.execute("CREATE TABLE consumers (consumer_id TEXT PRIMARY KEY)")
+            connection.execute("CREATE TABLE deliveries (delivery_id TEXT PRIMARY KEY)")
+
+        self.assertFalse(database_is_ready(legacy_db_path))
 
     def test_status_transition_is_audited_and_controls_selection(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "draft")

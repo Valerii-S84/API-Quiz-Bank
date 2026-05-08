@@ -7,6 +7,13 @@ Status: MVP-local support path and future pilot/beta gate placeholder.
 Use private owner-approved channels for security, privacy, billing or sensitive learner data.
 Do not place secrets, raw tokens, private identifiers or full request dumps in public issues.
 
+Public beta intake must expose these user-visible paths before launch:
+
+- support/contact path for delivery, content and account issues;
+- abuse/security report path linked to `SECURITY.md`;
+- privacy request path linked to `runbooks/privacy_request_workflow.md`;
+- owner-reviewed internal triage register for every beta issue.
+
 ## Triage Fields
 
 - issue_id
@@ -52,3 +59,4 @@ Record the related audit log entry with the support issue.
 - Incident path linked from support records.
 - Privacy/security escalation route confirmed.
 - Quality issue reporting visible to pilot/beta consumers.
+- Public support/abuse/privacy paths published in the beta surface.

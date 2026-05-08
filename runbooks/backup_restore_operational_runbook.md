@@ -52,6 +52,35 @@ Required evidence:
 - operator and reviewer;
 - pass/fail decision.
 
+## PostgreSQL Production-Like Profile
+
+Use `database/postgresql/001_create_runtime.sql` for the isolated
+production-like schema profile. The target must be a non-production PostgreSQL
+database with credentials supplied outside the repository.
+
+Minimum init command:
+
+```bash
+psql "$QUIZBANK_DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -f database/postgresql/001_create_runtime.sql
+```
+
+Minimum backup command:
+
+```bash
+pg_dump --format=custom --file="$BACKUP_PATH" "$QUIZBANK_DATABASE_URL"
+```
+
+Minimum isolated restore command:
+
+```bash
+createdb "$QUIZBANK_RESTORE_DATABASE"
+pg_restore --dbname="$QUIZBANK_RESTORE_DATABASE" --clean --if-exists "$BACKUP_PATH"
+```
+
+The restore drill is not closed until readiness and a minimal delivery behavior
+check run against the restored database target.
+
 ## Failure Handling
 
 - If backup fails, pilot launch is no-go.

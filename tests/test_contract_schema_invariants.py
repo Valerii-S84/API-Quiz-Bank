@@ -33,6 +33,9 @@ REQUIRED_CONTRACT_PATHS = [
     "data/taxonomy/patterns.csv",
     "schemas/canonical_quiz_item.schema.json",
     "api/openapi.yaml",
+    "database/migrations/001_create_mvp_runtime.sql",
+    "database/migrations/002_add_api_credentials.sql",
+    "database/postgresql/001_create_runtime.sql",
     "docs/observability_contract.md",
     "data/parser_profiles/parser_profiles.yml",
     "data/manifests/import_manifest.yml",
@@ -48,13 +51,20 @@ REQUIRED_CONTRACT_PATHS = [
     "tools/quizbank_import_sample.py",
     "tools/quizbank_gap_map.py",
     "tools/quizbank_selection_smoke.py",
+    "tools/no_secrets_scan.py",
     "tools/run_pre_pilot_dry_run.py",
     "runbooks/backup_restore.md",
+    "runbooks/backup_restore_operational_runbook.md",
     "runbooks/incident_response.md",
+    "runbooks/monitoring_alerts_runbook.md",
     "runbooks/rollback.md",
     "runbooks/release_rollback.md",
     "runbooks/support_triage.md",
     "reports/pre_pilot/local_pre_pilot_dry_run_2026-05-08.md",
+    "reports/beta/local_beta_security_smoke_2026-05-08.md",
+    "reports/observability/beta_alert_review_2026-05-08.md",
+    "reports/publication/beta_launch_subset_2026-05-08.md",
+    "reports/release/local_beta_release_rollback_2026-05-08.md",
     "reports/rollback/local_rollback_tabletop_2026-05-08.md",
     "reports/restore/mvp_sqlite_restore_drill_2026-05-08.md",
     "reports/roadmap/external_evidence_blockers.md",
@@ -91,6 +101,7 @@ class ContractSchemaInvariantTests(unittest.TestCase):
         self.assertIn("NextQuizRequest:", openapi)
         self.assertIn("QuizItemPublicProjection:", openapi)
         self.assertIn("ProblemDetails:", openapi)
+        self.assertIn("X-API-Key", openapi)
         self.assertIn("options:", public_projection)
         self.assertNotIn("answer_key", public_projection)
         self.assertNotIn("explanation", public_projection)
