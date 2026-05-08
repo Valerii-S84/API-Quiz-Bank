@@ -57,11 +57,30 @@ Third approved target:
 }
 ```
 
+Retried first approved target after bot administrator evidence and
+channel-compatible anonymous poll setting:
+
+```json
+{
+  "event": "telegram_controlled_send",
+  "ok": true,
+  "target": "<redacted_approved_channel>",
+  "message_id": 270,
+  "date": 1778239318,
+  "poll_id_present": true,
+  "question_length": 72,
+  "option_count": 4,
+  "correct_option_id": "<redacted_adapter_only_index>",
+  "protect_content": true,
+  "is_anonymous": true
+}
+```
+
 ## Decision
 
-No Telegram message was created for any target. The controlled send gate
-remains blocked until the bot is added to the target channel, the channel id is
-confirmed for this bot, or a different approved test target is provided.
+Telegram controlled send succeeded for one approved target after the bot was
+added as channel administrator and the payload was adjusted to
+`is_anonymous=true`, which Telegram requires for channel polls.
 
 ## Boundary
 

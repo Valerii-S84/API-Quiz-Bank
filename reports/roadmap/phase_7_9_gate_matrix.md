@@ -23,7 +23,7 @@ Status values:
 | OPS-PILOT-004 backup process exists | closed-local | `runbooks/backup_restore.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Backup is manual/owner-reviewed for local-only pilot, not automated public beta backup. |
 | OPS-PILOT-005 restore procedure exists | closed-local | `runbooks/backup_restore.md`, `reports/restore/mvp_sqlite_restore_drill_2026-05-08.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Restore evidence is local-only VPS SQLite, not production-like managed DB. |
 | OPS-PILOT-006 incident playbook exists | closed-local | `runbooks/incident_response.md`, `runbooks/support_triage.md`, `runbooks/rollback.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md` | Incident drill not executed. |
-| OPS-PILOT-007 Telegram failures observable | partial | `docs/18_telegram_delivery_playbook.md`, delivery negative controls, `reports/pre_pilot/telegram_dry_run_readiness_2026-05-08.md`, `reports/pre_pilot/telegram_secret_wiring_2026-05-08.md`, `reports/pre_pilot/telegram_controlled_send_2026-05-08.md` | Controlled sends were attempted and failed with `chat not found`; no Telegram message was created and no worker delivery id exists. |
+| OPS-PILOT-007 Telegram failures observable | partial | `docs/18_telegram_delivery_playbook.md`, delivery negative controls, `reports/pre_pilot/telegram_dry_run_readiness_2026-05-08.md`, `reports/pre_pilot/telegram_secret_wiring_2026-05-08.md`, `reports/pre_pilot/telegram_controlled_send_2026-05-08.md` | Controlled direct Bot API send succeeded; worker delivery id still absent because Telegram worker path is not implemented. |
 | OPS-PILOT-008 consumer disable path exists | closed-local | `transition-consumer-status` CLI, `reports/pre_pilot/local_pre_pilot_dry_run_2026-05-08.md`, `reports/pre_pilot/vps_local_only_pilot_evidence_2026-05-08.md`, runtime tests | Covered for local-only VPS; public/beta/prod operator execution remains out of scope. |
 | OPS-PILOT-009 support/issue path exists | closed-local | `runbooks/support_triage.md`, `SECURITY.md` | No external pilot support channel is configured. |
 
@@ -34,8 +34,9 @@ Local pre-pilot result: active -> suspended -> blocked -> reactivated -> allowed
 consumer lifecycle is proven locally; delivery, repeat and quota behavior are
 proven locally; health, readiness, smoke, backup, restore drill, lifecycle,
 delivery, repeat guard, quota denial, Telegram dry-run, Telegram token secret
-wiring and protected public route smoke are proven on the VPS; Telegram real
-send remains blocked by target access (`chat not found`).
+wiring, protected public route smoke and one controlled Telegram real send are
+proven on the VPS; Telegram worker delivery remains blocked because worker path
+is not implemented.
 
 ## Phase 8 Public Beta Readiness
 
@@ -52,10 +53,11 @@ send remains blocked by target access (`chat not found`).
 
 Phase 8 result: still `NO-GO public beta`. Local auth/security, publication,
 release/rollback and alert-review evidence improved, and protected public route
-smoke exists in `reports/beta/public_route_smoke_2026-05-08.md`. Public beta
-readiness remains blocked by app-level beta credential deployment/smoke,
-external beta dashboard/alert source, controlled public/beta backup cadence,
-published support/abuse path, legal/privacy approval and Telegram target access.
+smoke exists in `reports/beta/public_route_smoke_2026-05-08.md`, and one
+controlled Telegram real send succeeded. Public beta readiness remains blocked
+by app-level beta credential deployment/smoke, external beta dashboard/alert
+source, controlled public/beta backup cadence, published support/abuse path and
+legal/privacy approval.
 
 ## Phase 9 Production Readiness
 
