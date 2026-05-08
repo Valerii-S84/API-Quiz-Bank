@@ -45,9 +45,21 @@ Second approved target:
 }
 ```
 
+Third approved target:
+
+```json
+{
+  "event": "telegram_controlled_send",
+  "ok": false,
+  "target": "<redacted_approved_channel>",
+  "error_code": 400,
+  "description": "Bad Request: chat not found"
+}
+```
+
 ## Decision
 
-No Telegram message was created for either target. The controlled send gate
+No Telegram message was created for any target. The controlled send gate
 remains blocked until the bot is added to the target channel, the channel id is
 confirmed for this bot, or a different approved test target is provided.
 
