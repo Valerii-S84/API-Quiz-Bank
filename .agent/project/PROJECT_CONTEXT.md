@@ -27,7 +27,7 @@
 | Purpose | Command | Notes |
 |---|---|---|
 | Test | `python3 -m unittest discover -s tests -p "test_*.py"` | Runs full local repository invariant tests; requires private `QuizBank/` when corpus-dependent tests are included |
-| Public CI tests | `python3 -m unittest tests.test_contract_schema_invariants tests.test_import_validation tests.test_mvp_runtime tests.test_pre_pilot_runtime_invariants tests.test_style_numeric_limits` | Runs committed public tests that do not require private `QuizBank/` files |
+| Public CI tests | `python3 -m pip install -e ".[dev]" && python3 -m unittest tests.test_contract_schema_invariants tests.test_import_validation tests.test_mvp_runtime tests.test_pre_pilot_runtime_invariants tests.test_style_numeric_limits` | Installs declared runtime test dependencies, then runs committed public tests that do not require private `QuizBank/` files |
 | Public CI corpus fixture validation | `python3 tools/quizbank_constitution_check.py --quizbank-dir tests/fixtures/quizbank_public_smoke` | Validates a committed public fixture bank without requiring private corpus files |
 | Public CI corpus fixture inventory | `python3 tools/quizbank_inventory.py --quizbank-dir tests/fixtures/quizbank_public_smoke` | Exercises inventory tooling in GitHub Actions without private corpus files |
 | Private corpus validation | `python3 tools/quizbank_constitution_check.py --quizbank-dir QuizBank` | Local-only validation of the private corpus baseline and constitutional invariants |

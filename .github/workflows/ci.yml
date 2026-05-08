@@ -26,6 +26,9 @@ jobs:
           echo "Full QuizBank corpus checks are local-only."
           python3 tools/quizbank_constitution_check.py --quizbank-dir tests/fixtures/quizbank_public_smoke
 
+      - name: Install runtime test dependencies
+        run: python3 -m pip install -e ".[dev]"
+
       - name: Run public invariant tests
         run: |
           echo "Private corpus-dependent tests are local-only."

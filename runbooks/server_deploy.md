@@ -68,6 +68,7 @@ Public CI tests are limited to committed public fixtures and runtime checks that
 do not need the private corpus:
 
 ```bash
+python3 -m pip install -e ".[dev]"
 python3 -m unittest \
   tests.test_contract_schema_invariants \
   tests.test_import_validation \
