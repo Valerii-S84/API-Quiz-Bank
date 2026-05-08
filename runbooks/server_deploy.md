@@ -119,7 +119,7 @@ token is stored outside Git and exposed to the container only as a file path:
 | Env references | `QUIZBANK_TELEGRAM_BOT_TOKEN_FILE`, `TELEGRAM_BOT_TOKEN_FILE` |
 | Compose override | `/opt/api-quiz-bank/docker-compose.api-quiz-bank.secrets.yml` |
 | Git policy | secret file and server override are not committed |
-| Current send status | token wired; direct controlled send succeeded; deployed worker real-send not executed/proven |
+| Current send status | token wired; direct controlled send succeeded; deployed worker real-send succeeded for Public MVP / Protected Beta |
 
 Expected permission check:
 
@@ -135,6 +135,30 @@ Expected mode:
 
 Secret wiring evidence is recorded in
 `reports/pre_pilot/telegram_secret_wiring_2026-05-08.md`.
+
+## Public MVP / Protected Beta Telegram Worker Evidence
+
+Date: 2026-05-08.
+
+Scope: one controlled deployed worker real-send through the runtime path.
+Secret values and Telegram target id were not printed or committed.
+
+Evidence:
+
+| Check | Result |
+|---|---|
+| Worker mode | `real` |
+| Selection path | `src/quizbank_mvp/telegram_delivery.py` -> core selection |
+| Delivery id | `deliv_b888a8c3b50c4c87` |
+| Quiz item id | `approved_traceable_001` |
+| Telegram target | `***8132` |
+| Telegram message id | `271` |
+| Telegram poll id | present, redacted |
+| Delivery status | `sent` |
+| Telegram result status | `sent` |
+
+Full evidence is recorded in
+`reports/beta/closed_external_pilot_smoke_2026-05-08.md`.
 
 ## Health Checks
 
