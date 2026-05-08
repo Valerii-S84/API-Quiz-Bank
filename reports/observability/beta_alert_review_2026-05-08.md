@@ -19,7 +19,13 @@ Scope: local owner-review style evidence from dry-run signals.
 | Backup status | `backup-ok` in `reports/beta/vps_live_ops_evidence_2026-05-08.md` |
 | Restore status | `restore-drill-ok` in `reports/beta/vps_live_ops_evidence_2026-05-08.md` |
 
+## Follow-Up Evidence
+
+Public MVP / Protected Beta owner-reviewed monitoring evidence is now recorded
+in `reports/observability/public_mvp_monitoring_review_2026-05-08.md`.
+
 ## Limitation
 
-No external dashboard or alerting service was configured. This keeps Phase 8
-alerting as owner-reviewed evidence, not automated beta monitoring closure.
+No production dashboard or alerting service was configured. This keeps
+production alerting open while closing only owner-reviewed Public MVP /
+Protected Beta monitoring.

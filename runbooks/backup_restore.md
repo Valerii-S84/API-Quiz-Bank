@@ -1,11 +1,12 @@
 # API Quiz Bank Backup and Restore Runbook
 
-Status: MVP-local runbook and future pilot/prod gate placeholder.
+Status: MVP-local and Public MVP / Protected Beta SQLite backup/restore
+runbook; not a production database backup plan.
 
 ## Scope
 
-This runbook covers local SQLite MVP backup/restore proof and defines what must be replaced
-or extended before pilot, beta or production claims.
+This runbook covers local and protected-beta SQLite MVP backup/restore proof and
+defines what must be replaced or extended before production claims.
 
 ## Local SQLite MVP Backup
 
@@ -61,7 +62,24 @@ PYTHONPATH=src python3 tools/run_mvp_demo.py
 
 4. Record restore result in `reports/restore/` before using this as pilot/prod evidence.
 
-## Pilot/Beta/Production Requirements
+## Public MVP / Protected Beta Evidence
+
+Protected beta backup/restore evidence is recorded in:
+
+- `reports/beta/backup_timer_evidence_2026-05-08.md`;
+- `reports/restore/public_mvp_backup_restore_2026-05-08.md`;
+- `reports/rollback/public_mvp_runtime_rollback_drill_2026-05-08.md`.
+
+Minimum protected beta closure:
+
+- systemd backup timer active and enabled;
+- latest backup command returns `backup-ok`;
+- latest restore drill writes to an isolated target and returns
+  `restore-drill-ok`;
+- restore target is never the active runtime DB;
+- backup path is under `/var/backups/api-quiz-bank`.
+
+## Production Requirements
 
 - Managed DB backup mechanism identified.
 - Backup metadata recorded.
@@ -70,4 +88,4 @@ PYTHONPATH=src python3 tools/run_mvp_demo.py
 - Access to backup artifacts restricted.
 - Rollback/restore owner named.
 
-No pilot, beta or production phase may be marked complete from this runbook alone.
+No production phase may be marked complete from this runbook alone.

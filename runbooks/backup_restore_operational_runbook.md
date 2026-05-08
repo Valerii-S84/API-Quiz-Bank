@@ -1,12 +1,13 @@
 # Backup and Restore Operational Runbook
 
-Status: future pilot operational protocol; not executed on a server.
+Status: protected beta SQLite protocol executed on the VPS; production managed
+database profile remains not executed.
 
 ## Scope
 
-This runbook defines the operational backup/restore protocol needed for future
-pilot execution. It extends local MVP notes but does not prove managed pilot
-backup readiness.
+This runbook defines the operational backup/restore protocol for protected beta
+execution. It extends local MVP notes but does not prove production managed
+database backup readiness.
 
 ## Backup Preconditions
 
@@ -91,5 +92,6 @@ check run against the restored database target.
 
 ## Non-Closure Rule
 
-Local SQLite restore evidence is useful pre-pilot evidence, but it does not
-close pilot backup/restore readiness for a managed environment.
+SQLite restore evidence closes only the Public MVP / Protected Beta SQLite
+gate. It does not close production backup/restore readiness for a managed
+database environment.

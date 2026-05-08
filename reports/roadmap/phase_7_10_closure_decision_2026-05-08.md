@@ -3,16 +3,16 @@
 Date: 2026-05-08
 
 Scope: roadmap Phase 7, 8, 9 and 10 gate closure decision after local-only VPS
-evidence and protected public-route smoke. This does not approve unauthenticated
-public API access, deployed Telegram worker real send, public beta or
-production.
+evidence, protected public-route smoke and Public MVP / Protected Beta
+sections 6-10 evidence. This does not approve unauthenticated public API
+access, deployed Telegram worker real send, production or paid launch.
 
 ## Decision Summary
 
 | Phase | Decision | Reason |
 |---|---|---|
 | Phase 7 Closed Pilot Hardening | `GO local-only/internal` | Local-only VPS environment is identified; checkout is at `a86d625`; health, readiness, smoke, backup, restore drill, lifecycle, delivery, repeat guard, quota denial, Telegram dry-run, Telegram token secret wiring and disable path evidence are recorded. |
-| Phase 8 Public Beta Readiness | `NO-GO public beta` | Protected public route smoke exists, but beta support path, beta legal/privacy approval, beta alerting/dashboard and public traffic evidence are not complete. |
+| Phase 8 Public Beta Readiness | `GO protected beta sections 6-10 / NO-GO full public MVP` | Support/security contact, protected-beta privacy/legal gate, owner-reviewed monitoring, backup/restore and rollback are closed; Telegram worker/runtime send and owner GO remain separate. |
 | Phase 9 Production Readiness | `NO-GO production` | No production deployment, production DB, monitored production backups, production restore drill, production dashboard, incident drill, production rollback execution or production approval exists. |
 | Phase 10 Pilot Execution Package | `Done local package` | Package docs, runbooks, checklist and go/no-go matrix exist; local-only VPS evidence is linked, but public/broader pilot remains out of scope. |
 
@@ -26,14 +26,15 @@ production.
 
 ## Phase 8 Closure Boundary
 
-Phase 8 is closed as an explicit `NO-GO public beta` decision, not as readiness.
+Phase 8 sections 6-10 are closed for Public MVP / Protected Beta only.
 
-Public beta remains blocked by:
+Full Public MVP remains blocked by:
 
-- no beta launch approval;
-- no beta legal/privacy approval;
-- no public support or abuse path evidence;
-- no beta dashboard, alert source or public-traffic evidence.
+- no final owner GO/NO-GO record;
+- no deployed Telegram worker real-send evidence through the runtime path.
+
+Production, paid launch, school deployment and unauthenticated access remain
+blocked separately.
 
 ## Phase 9 Closure Boundary
 

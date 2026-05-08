@@ -131,6 +131,23 @@ This baseline must be reviewed and upgraded before:
 - EU learner-facing production use
 - paid public launch with real customer billing
 
+## 10.1 Public MVP / Protected Beta Scope
+
+The Public MVP / Protected Beta scope approved on 2026-05-08 is limited to:
+
+- protected public access behind API-key controls;
+- owner-operated runtime and manual support/privacy/security handling;
+- approved or published quiz item delivery only;
+- delivery, entitlement, quota, audit and backup records needed to operate the
+  protected beta;
+- Telegram target references only for explicitly approved Telegram delivery;
+- no paid launch, school deployment, unauthenticated access or production
+  readiness claim.
+
+Sensitive support, security and privacy reports must use the private owner
+channel recorded outside the public repository. Public GitHub issues are only
+for non-sensitive reports.
+
 ---
 
 ## 11. Change Rule

@@ -65,18 +65,16 @@ Server evidence adds live protected-route delivery, delivery read, no-edge
 denial, missing app-credential denial, repeat denial, quota denial, entitlement
 denial, backup timer, backup execution, restore drill and disable-path evidence.
 
-Remaining launch-approval items:
+Remaining launch-approval items after Public MVP sections 6-10:
 
-- public beta legal/privacy approval is pending;
-- signed/private support or security contact remains unresolved;
-- public beta owner decision is not recorded;
-- dashboard or equivalent beta alert source is not recorded as an external
-  operational surface.
+- public MVP owner GO/NO-GO decision is not recorded;
+- deployed Telegram worker real-send through the runtime path is not recorded;
+- production dashboard or equivalent production alert source is not recorded.
 
 Closure decision:
 
 ```text
-GO protected beta smoke / NO-GO broader public beta launch
+GO protected beta smoke and sections 6-10 / NO-GO full public MVP launch
 ```
 
 ## Section 19 Closure
