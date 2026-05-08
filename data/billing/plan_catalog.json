@@ -1,0 +1,38 @@
+{
+  "catalog_id": "mvp_plan_catalog_2026_05_08",
+  "status": "seed",
+  "plans": [
+    {
+      "plan_id": "plan_manual_mvp_demo",
+      "plan_code": "manual_mvp_demo",
+      "name": "Manual MVP Demo",
+      "status": "active",
+      "billing_interval": "manual",
+      "price_reference": "not_public_pricing",
+      "features": [
+        {
+          "feature_code": "quiz_delivery",
+          "is_enabled": true,
+          "limit_value": 2,
+          "limit_period": "day"
+        }
+      ]
+    },
+    {
+      "plan_id": "plan_api_pilot",
+      "plan_code": "api_pilot",
+      "name": "API Pilot",
+      "status": "draft",
+      "billing_interval": "manual_contract",
+      "price_reference": "pilot_contract_only",
+      "features": [
+        {
+          "feature_code": "quiz_delivery",
+          "is_enabled": true,
+          "limit_value": 10,
+          "limit_period": "day"
+        }
+      ]
+    }
+  ]
+}

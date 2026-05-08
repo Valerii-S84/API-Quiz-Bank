@@ -212,6 +212,9 @@ def seed_entitlement(
     consumer_id: str,
     allowed_cefr_levels: Iterable[str],
     allowed_theme_ids: Iterable[str],
+    valid_until: str | None = None,
+    actor: str = "local_seed",
+    reason: str = "MVP entitlement grant",
 ) -> str:
     entitlement_id = f"ent_{consumer_id}"
     with connect(db_path) as connection:
@@ -220,19 +223,30 @@ def seed_entitlement(
             INSERT INTO entitlements (
                 entitlement_id, consumer_id, feature, status, allowed_cefr_levels_json,
                 allowed_theme_ids_json, valid_until, created_at
-            ) VALUES (?, ?, 'quiz_delivery', 'active', ?, ?, NULL, ?)
+            ) VALUES (?, ?, 'quiz_delivery', 'active', ?, ?, ?, ?)
             ON CONFLICT(entitlement_id) DO UPDATE SET
                 status = excluded.status,
                 allowed_cefr_levels_json = excluded.allowed_cefr_levels_json,
-                allowed_theme_ids_json = excluded.allowed_theme_ids_json
+                allowed_theme_ids_json = excluded.allowed_theme_ids_json,
+                valid_until = excluded.valid_until
             """,
             (
                 entitlement_id,
                 consumer_id,
                 json.dumps(list(allowed_cefr_levels)),
                 json.dumps(list(allowed_theme_ids)),
+                valid_until,
                 utc_now(),
             ),
+        )
+        connection.execute(
+            """
+            INSERT INTO audit_log (
+                audit_id, actor, action, entity_type, entity_id, from_status,
+                to_status, reason, created_at
+            ) VALUES (?, ?, 'entitlement_grant', 'entitlement', ?, '', 'active', ?, ?)
+            """,
+            (new_id("audit"), actor, entitlement_id, reason, utc_now()),
         )
     return entitlement_id
 

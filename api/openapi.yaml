@@ -71,6 +71,32 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+  /v1/levels:
+    get:
+      operationId: listLevels
+      summary: List canonical CEFR levels.
+      tags:
+        - taxonomy
+      responses:
+        '200':
+          description: Canonical CEFR levels.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LevelListResponse'
+  /v1/topics:
+    get:
+      operationId: listTopics
+      summary: List canonical quiz topics.
+      tags:
+        - taxonomy
+      responses:
+        '200':
+          description: Canonical quiz topics mapped to theme IDs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicListResponse'
   /v1/quiz-items/next:
     post:
       operationId: getNextQuizItem
@@ -209,6 +235,54 @@ components:
                 type: string
               status:
                 type: string
+    LevelListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LevelProjection'
+    LevelProjection:
+      type: object
+      additionalProperties: false
+      required: [cefr_level, order_index, status]
+      properties:
+        cefr_level:
+          type: string
+          enum: [A1, A2, B1, B2, C1, C2]
+        order_index:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          const: active
+    TopicListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicProjection'
+    TopicProjection:
+      type: object
+      additionalProperties: false
+      required: [topic_id, theme_id, title, status]
+      properties:
+        topic_id:
+          type: string
+          pattern: '^T(0[1-9]|1[0-8])$'
+        theme_id:
+          type: string
+          pattern: '^T(0[1-9]|1[0-8])$'
+        title:
+          type: string
+        status:
+          type: string
+          const: active
     NextQuizRequest:
       type: object
       additionalProperties: false

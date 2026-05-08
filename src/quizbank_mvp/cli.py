@@ -40,6 +40,9 @@ def parse_args() -> argparse.Namespace:
     seed_consumer_parser.add_argument("--cefr-level", action="append", default=[])
     seed_consumer_parser.add_argument("--theme-id", action="append", default=[])
     seed_consumer_parser.add_argument("--with-entitlement", action="store_true")
+    seed_consumer_parser.add_argument("--entitlement-valid-until", default=None)
+    seed_consumer_parser.add_argument("--actor", default="local_admin")
+    seed_consumer_parser.add_argument("--grant-reason", default="manual MVP entitlement grant")
     seed_consumer_parser.add_argument("--api-key", default=None)
 
     demo = subparsers.add_parser("seed-demo", help="Seed demo item, consumers and entitlement.")
@@ -87,7 +90,15 @@ def main() -> int:
             args.theme_id,
         )
         if args.with_entitlement:
-            seed_entitlement(args.db_path, args.consumer_id, args.cefr_level, args.theme_id)
+            seed_entitlement(
+                args.db_path,
+                args.consumer_id,
+                args.cefr_level,
+                args.theme_id,
+                valid_until=args.entitlement_valid_until,
+                actor=args.actor,
+                reason=args.grant_reason,
+            )
         if args.api_key:
             seed_api_credential(args.db_path, args.consumer_id, args.api_key)
         print(f"seeded consumer: {args.consumer_id}")

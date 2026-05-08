@@ -13,6 +13,7 @@ from . import __version__
 from .auth import authenticate_consumer
 from .database import configured_db_path, database_is_ready
 from .selection import QuizBankProblem, SelectionRequest, get_delivery, select_next_item
+from .taxonomy import level_catalog, topic_catalog
 
 
 CefrLevel = Literal["A1", "A2", "B1", "B2", "C1", "C2"]
@@ -79,6 +80,14 @@ def register_operations_routes(app: FastAPI, database_path: Path) -> None:
                 "https://api.quizbank.example/problems/database-not-ready",
             )
         )
+
+    @app.get("/v1/levels", tags=["taxonomy"])
+    def levels() -> dict[str, object]:
+        return {"data": level_catalog()}
+
+    @app.get("/v1/topics", tags=["taxonomy"])
+    def topics() -> dict[str, object]:
+        return {"data": topic_catalog()}
 
 
 def register_delivery_routes(app: FastAPI, database_path: Path) -> None:

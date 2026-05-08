@@ -41,6 +41,7 @@ REQUIRED_CONTRACT_PATHS = [
     "database/postgresql/README.md",
     "docs/observability_contract.md",
     "data/parser_profiles/parser_profiles.yml",
+    "data/billing/plan_catalog.json",
     "data/manifests/import_manifest.yml",
     "data/imports/control_sample_items.jsonl",
     "data/registry/source_registry.csv",
@@ -112,6 +113,8 @@ class ContractSchemaInvariantTests(unittest.TestCase):
         public_projection = openapi.split("QuizItemPublicProjection:", 1)[1].split(
             "ProblemDetails:", 1
         )[0]
+        self.assertIn("/v1/levels:", openapi)
+        self.assertIn("/v1/topics:", openapi)
         self.assertIn("/v1/quiz-items/next:", openapi)
         self.assertIn("NextQuizRequest:", openapi)
         self.assertIn("QuizItemPublicProjection:", openapi)
@@ -129,6 +132,17 @@ class ContractSchemaInvariantTests(unittest.TestCase):
             f"enum: [{', '.join(NORMAL_DELIVERY_STATUSES)}]",
             openapi,
         )
+
+    def test_mvp_plan_catalog_defines_manual_entitlement_seed(self) -> None:
+        catalog = json.loads((ROOT / "data/billing/plan_catalog.json").read_text())
+        plan_codes = {plan["plan_code"] for plan in catalog["plans"]}
+        self.assertEqual(catalog["status"], "seed")
+        self.assertIn("manual_mvp_demo", plan_codes)
+        self.assertIn("api_pilot", plan_codes)
+        for plan in catalog["plans"]:
+            self.assertTrue(plan["features"])
+            self.assertEqual(plan["features"][0]["feature_code"], "quiz_delivery")
+            self.assertIn(plan["features"][0]["limit_period"], {"day", "month", "manual"})
 
     def test_taxonomy_and_contract_artifacts_exist(self) -> None:
         for relative_path in REQUIRED_CONTRACT_PATHS:
