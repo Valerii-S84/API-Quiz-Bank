@@ -15,6 +15,7 @@ from .database import (
     today_usage_date,
     utc_now,
 )
+from .projections import learner_quiz_projection
 
 
 class QuizBankProblem(Exception):
@@ -66,7 +67,7 @@ def select_next_item(db_path: Path | None, request: SelectionRequest) -> dict[st
         if item is None:
             raise no_eligible_problem(request)
         delivery = create_delivery(connection, request.consumer_id, item, entitlement, quota_usage)
-    return {"delivery": delivery, "quiz_item": public_projection(item)}
+    return {"delivery": delivery, "quiz_item": learner_quiz_projection(item)}
 
 
 def get_delivery(db_path: Path | None, delivery_id: str, consumer_id: str) -> dict[str, Any]:
@@ -339,25 +340,6 @@ def create_delivery(
     return delivery_projection(row_to_dict(row))
 
 
-def public_projection(item: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "item_id": item["item_id"],
-        "language": item["language"],
-        "cefr_level": item["sublevel"],
-        "theme_id": item["theme_id"],
-        "objective_id": item["objective_id"],
-        "pattern_id": item["pattern_id"],
-        "prompt": item["prompt"],
-        "stem_text": item["stem_text"],
-        "options": json.loads(item["options_json"]),
-        "source_traceability": {
-            "source_id": item["source_id"],
-            "source_type": item["resolved_source_type"],
-            "provenance_note": item["resolved_provenance_note"],
-        },
-    }
-
-
 def delivery_projection(delivery: dict[str, Any]) -> dict[str, Any]:
     return {
         "delivery_id": delivery["delivery_id"],
@@ -366,11 +348,6 @@ def delivery_projection(delivery: dict[str, Any]) -> dict[str, Any]:
         "item_status": delivery["item_status"],
         "status": delivery["delivery_status"],
         "selected_at": delivery["selected_at"],
-        "source_traceability": {
-            "source_id": delivery["source_id"],
-            "source_type": delivery["source_type"],
-            "provenance_note": delivery["provenance_note"],
-        },
         "reason": delivery["selection_reason_summary"],
     }
 

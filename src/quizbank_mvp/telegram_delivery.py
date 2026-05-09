@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -11,6 +10,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from .database import connect, row_to_dict, utc_now
+from .projections import telegram_quiz_projection
 from .selection import SelectionRequest, select_next_item
 
 
@@ -20,7 +20,6 @@ TELEGRAM_OPTION_LIMIT = 100
 TELEGRAM_EXPLANATION_LIMIT = 200
 TELEGRAM_MIN_OPTIONS = 2
 TELEGRAM_MAX_OPTIONS = 12
-INTERNAL_PROMPT_PATTERN = re.compile(r"^[a-z0-9]+(?:_[a-z0-9]+)+$")
 
 
 class TelegramDeliveryError(Exception):
@@ -208,8 +207,9 @@ def load_delivery_item(
 
 
 def build_telegram_poll_payload(chat_id: str, item: dict[str, Any]) -> dict[str, Any]:
-    question = build_question(item)
-    options = json.loads(item["options_json"])
+    telegram_quiz = telegram_quiz_projection(item)
+    question = str(telegram_quiz["question"])
+    options = list(telegram_quiz["options"])
     correct_option_ids = parse_correct_option_ids(item["answer_key"], len(options))
     explanation = build_explanation(item)
     validate_telegram_poll(question, options, correct_option_ids, explanation)
@@ -225,24 +225,6 @@ def build_telegram_poll_payload(chat_id: str, item: dict[str, Any]) -> dict[str,
         "explanation": explanation,
         "is_anonymous": True,
     }
-
-
-def build_question(item: dict[str, Any]) -> str:
-    prompt = public_prompt(str(item["prompt"]))
-    stem = str(item["stem_text"]).strip()
-    question = f"{prompt}\n{stem}" if prompt else stem
-    if not question:
-        raise TelegramDeliveryError("telegram_question_empty")
-    return question
-
-
-def public_prompt(prompt: str) -> str:
-    clean_prompt = prompt.strip()
-    if not clean_prompt:
-        return ""
-    if "_" in clean_prompt or INTERNAL_PROMPT_PATTERN.fullmatch(clean_prompt.lower()):
-        return ""
-    return clean_prompt
 
 
 def build_explanation(item: dict[str, Any]) -> str:
@@ -268,6 +250,8 @@ def validate_telegram_poll(
     correct_option_ids: list[int],
     explanation: str,
 ) -> None:
+    if not question:
+        raise TelegramDeliveryError("telegram_question_empty")
     if len(question) > TELEGRAM_QUESTION_LIMIT:
         raise TelegramDeliveryError("telegram_question_too_long")
     if len(explanation) > TELEGRAM_EXPLANATION_LIMIT:
