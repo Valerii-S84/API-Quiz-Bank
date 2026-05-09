@@ -265,6 +265,7 @@ class MvpTelegramDeliveryTests(MvpRuntimeCase):
         cases = {
             "a1_klein_kommentar_nom_def_1": stem,
             "Welche Antwort passt zur Situation?": f"Welche Antwort passt zur Situation?\n{stem}",
+            "Setze _bitte_ passend ein.": f"Setze _bitte_ passend ein.\n{stem}",
         }
         for prompt, expected_question in cases.items():
             payload = build_telegram_poll_payload(
