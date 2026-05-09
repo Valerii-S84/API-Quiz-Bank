@@ -240,7 +240,7 @@ def public_prompt(prompt: str) -> str:
     clean_prompt = prompt.strip()
     if not clean_prompt:
         return ""
-    if "_" in clean_prompt or INTERNAL_PROMPT_PATTERN.fullmatch(clean_prompt.lower()):
+    if INTERNAL_PROMPT_PATTERN.fullmatch(clean_prompt.lower()):
         return ""
     return clean_prompt
 
