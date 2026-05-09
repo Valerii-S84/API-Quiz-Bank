@@ -112,10 +112,11 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertIn("delivery_id", payload)
-        self.assertEqual(payload["quiz_item"]["item_id"], "approved_traceable_001")
-        self.assertNotIn("answer_key", payload["quiz_item"])
-        self.assertNotIn("explanation", payload["quiz_item"])
+        quiz = payload["quiz_item"]
+        self.assertEqual(quiz["id"], "approved_traceable_001")
+        hidden_fields = {"source_traceability", "theme_id", "objective_id", "pattern_id", "answer_key", "explanation"}
+        self.assertFalse(hidden_fields & quiz.keys())
+        self.assertNotIn("source_traceability", payload["delivery"])
         self.assertFalse(payload["interaction"]["answer_key_included"])
 
         delivery = self.client.get(

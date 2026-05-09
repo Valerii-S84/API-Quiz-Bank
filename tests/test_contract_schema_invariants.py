@@ -121,8 +121,10 @@ class ContractSchemaInvariantTests(unittest.TestCase):
         self.assertIn("ProblemDetails:", openapi)
         self.assertIn("X-QuizBank-API-Key", openapi)
         self.assertIn("options:", public_projection)
+        self.assertIn("question:", public_projection)
         self.assertNotIn("answer_key", public_projection)
         self.assertNotIn("explanation", public_projection)
+        self.assertNotIn("source_traceability", public_projection)
 
     def test_openapi_uses_committed_status_and_error_contracts(self) -> None:
         openapi = (ROOT / "api" / "openapi.yaml").read_text(encoding="utf-8")

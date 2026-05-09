@@ -314,44 +314,55 @@ components:
       type: object
       additionalProperties: false
       required:
-        - item_id
+        - id
         - language
-        - cefr_level
-        - theme_id
-        - prompt
-        - stem_text
+        - question
         - options
-        - source_traceability
+        - cefr_level
+        - theme
       properties:
-        item_id:
+        id:
           type: string
         language:
           type: string
           const: de
-        cefr_level:
-          type: string
-          enum: [A1, A2, B1, B2, C1, C2]
-        theme_id:
-          type: string
-          pattern: '^T(0[1-9]|1[0-8])$'
-        objective_id:
-          type: string
-          pattern: '^O(0[1-9]|1[0-6])$'
-        pattern_id:
-          type: string
-          pattern: '^P(0[1-9]|1[0-2])$'
-        prompt:
-          type: string
-        stem_text:
-          type: string
+        question:
+          type: object
+          additionalProperties: false
+          required: [text, prompt, stem]
+          properties:
+            text:
+              type: string
+            prompt:
+              type: string
+            stem:
+              type: string
         options:
           type: array
           minItems: 2
           maxItems: 10
           items:
-            type: string
-        source_traceability:
-          $ref: '#/components/schemas/SourceTraceability'
+            type: object
+            additionalProperties: false
+            required: [id, position, text]
+            properties:
+              id:
+                type: string
+              position:
+                type: integer
+                minimum: 1
+              text:
+                type: string
+        cefr_level:
+          type: string
+          enum: [A1, A2, B1, B2, C1, C2]
+        theme:
+          type: object
+          additionalProperties: false
+          required: [title]
+          properties:
+            title:
+              type: string
     ProblemDetails:
       type: object
       additionalProperties: true
@@ -388,7 +399,6 @@ components:
         - item_status
         - status
         - selected_at
-        - source_traceability
         - reason
       properties:
         delivery_id:
@@ -405,8 +415,6 @@ components:
           enum: [created, reserved, delivered, sent, failed, skipped, expired, cancelled]
         selected_at:
           type: string
-        source_traceability:
-          $ref: '#/components/schemas/SourceTraceability'
         reason:
           type: string
     NextQuizResponse:
