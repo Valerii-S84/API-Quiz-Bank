@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from .database import connect, row_to_dict, utc_now
-from .projections import telegram_quiz_projection
-from .selection import SelectionRequest, select_next_item
+from .projections import build_telegram_quiz_projection
+from .selection import SelectionFilters, SelectionRequest, select_next_item
 
 
 TELEGRAM_API_BASE = "https://api.telegram.org"
@@ -139,11 +139,14 @@ def selection_request_from_telegram(
 ) -> SelectionRequest:
     return SelectionRequest(
         consumer_id=request.consumer_id,
-        cefr_level=request.cefr_level,
-        theme_ids=request.theme_ids,
-        objective_ids=request.objective_ids,
-        pattern_ids=request.pattern_ids,
-        excluded_item_ids=sent_item_ids_for_target(db_path, request.chat_id),
+        filters=SelectionFilters(
+            cefr_level=request.cefr_level,
+            theme_ids=request.theme_ids,
+            objective_ids=request.objective_ids,
+            pattern_ids=request.pattern_ids,
+            excluded_item_ids=sent_item_ids_for_target(db_path, request.chat_id),
+        ),
+        delivery_mode="telegram",
     )
 
 
@@ -207,7 +210,7 @@ def load_delivery_item(
 
 
 def build_telegram_poll_payload(chat_id: str, item: dict[str, Any]) -> dict[str, Any]:
-    telegram_quiz = telegram_quiz_projection(item)
+    telegram_quiz = build_telegram_quiz_projection(item)
     question = str(telegram_quiz["question"])
     options = list(telegram_quiz["options"])
     correct_option_ids = parse_correct_option_ids(item["answer_key"], len(options))

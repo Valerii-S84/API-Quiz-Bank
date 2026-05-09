@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import __version__
 from .auth import authenticate_consumer
 from .database import configured_db_path, database_is_ready
-from .selection import QuizBankProblem, SelectionRequest, get_delivery, select_next_item
+from .selection import QuizBankProblem, SelectionFilters, SelectionRequest, get_delivery, select_next_item
 from .taxonomy import level_catalog, topic_catalog
 
 
@@ -107,10 +107,13 @@ def register_delivery_routes(app: FastAPI, database_path: Path) -> None:
             database_path,
             SelectionRequest(
                 consumer_id=payload.consumer_id,
-                cefr_level=payload.cefr_level,
-                theme_ids=tuple(payload.theme_ids),
-                objective_ids=tuple(payload.objective_ids),
-                pattern_ids=tuple(payload.pattern_ids),
+                filters=SelectionFilters(
+                    cefr_level=payload.cefr_level,
+                    theme_ids=tuple(payload.theme_ids),
+                    objective_ids=tuple(payload.objective_ids),
+                    pattern_ids=tuple(payload.pattern_ids),
+                ),
+                delivery_mode="api",
             ),
         )
         return next_quiz_response(payload.consumer_id, result)
