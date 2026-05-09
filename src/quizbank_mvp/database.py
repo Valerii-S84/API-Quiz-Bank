@@ -67,7 +67,13 @@ def database_is_ready(db_path: Path | None = None) -> bool:
             "SELECT name FROM sqlite_master WHERE type = 'table'"
         ).fetchall()
     table_names = {row["name"] for row in rows}
-    return {"quiz_items", "consumers", "api_credentials", "deliveries"}.issubset(table_names)
+    return {
+        "quiz_items",
+        "consumers",
+        "api_credentials",
+        "deliveries",
+        "selection_decisions",
+    }.issubset(table_names)
 
 
 def read_jsonl(path: Path) -> list[dict[str, str]]:
