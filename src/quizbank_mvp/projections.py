@@ -6,16 +6,23 @@ import json
 import re
 from typing import Any
 
-from .taxonomy import TOPIC_TITLES
+from .taxonomy import objective_label, pattern_label, theme_label
 
 
 INTERNAL_PROMPT_PATTERN = re.compile(r"^[a-z0-9]+(?:_[a-z0-9]+)+$")
+INTERNAL_PROMPT_WRAPPER_CHARS = "`*_~\"'()[]{}<>:;,.!?¿¡"
 
 
-def learner_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
+def build_learner_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
     prompt = public_prompt(str(item["prompt"]))
     stem = str(item["stem_text"]).strip()
+    level = str(item["sublevel"])
     theme_id = str(item["theme_id"])
+    objective_id = str(item["objective_id"])
+    pattern_id = str(item["pattern_id"])
+    theme = theme_label(theme_id)
+    objective = objective_label(objective_id)
+    pattern = pattern_label(pattern_id)
     return {
         "id": str(item["item_id"]),
         "language": str(item["language"]),
@@ -25,12 +32,23 @@ def learner_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
             "stem": stem,
         },
         "options": public_options(json.loads(item["options_json"])),
-        "cefr_level": str(item["sublevel"]),
-        "theme": {"title": TOPIC_TITLES.get(theme_id, theme_id)},
+        "cefr_level": level,
+        "theme": theme,
+        "objective": objective,
+        "pattern": pattern,
+        "metadata": {
+            "display": {
+                "cefr_level": level,
+                "theme_title": theme["title"],
+                "theme_slug": theme["slug"],
+                "objective_title": objective["title"],
+                "pattern_title": pattern["title"],
+            }
+        },
     }
 
 
-def telegram_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
+def build_telegram_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
     prompt = public_prompt(str(item["prompt"]))
     stem = str(item["stem_text"]).strip()
     return {
@@ -40,7 +58,7 @@ def telegram_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def admin_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
+def build_admin_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
     return {
         "item_id": str(item["item_id"]),
         "language": str(item["language"]),
@@ -62,13 +80,30 @@ def admin_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def learner_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
+    return build_learner_quiz_projection(item)
+
+
+def telegram_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
+    return build_telegram_quiz_projection(item)
+
+
+def admin_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
+    return build_admin_quiz_projection(item)
+
+
 def public_prompt(prompt: str) -> str:
     clean_prompt = prompt.strip()
     if not clean_prompt:
         return ""
-    if INTERNAL_PROMPT_PATTERN.fullmatch(clean_prompt.lower()):
+    if is_internal_prompt_key(clean_prompt):
         return ""
     return clean_prompt
+
+
+def is_internal_prompt_key(prompt: str) -> bool:
+    candidate = prompt.lower().strip(INTERNAL_PROMPT_WRAPPER_CHARS)
+    return INTERNAL_PROMPT_PATTERN.fullmatch(candidate) is not None
 
 
 def question_text(prompt: str, stem: str) -> str:

@@ -263,7 +263,7 @@ class MvpTelegramDeliveryTests(MvpRuntimeCase):
     def test_telegram_question_omits_internal_prompt_keys_only(self) -> None:
         stem = "Im Portal ist der Antrag neu, und Lena will jetzt ___."
         cases = {
-            "a1_klein_kommentar_nom_def_1": stem,
+            "a1_klein_kommentar_nom_def_1?": stem,
             "Welche Antwort passt zur Situation?": f"Welche Antwort passt zur Situation?\n{stem}",
             "Setze _bitte_ passend ein.": f"Setze _bitte_ passend ein.\n{stem}",
         }
