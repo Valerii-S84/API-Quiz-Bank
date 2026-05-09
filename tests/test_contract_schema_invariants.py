@@ -36,6 +36,7 @@ REQUIRED_CONTRACT_PATHS = [
     "api/openapi.yaml",
     "database/migrations/001_create_mvp_runtime.sql",
     "database/migrations/002_add_api_credentials.sql",
+    "database/migrations/004_add_selection_decisions.sql",
     "database/postgresql/001_create_runtime.sql",
     "database/postgresql/002_add_import_contract.sql",
     "database/postgresql/README.md",

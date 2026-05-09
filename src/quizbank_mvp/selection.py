@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,14 @@ from .database import (
     utc_now,
 )
 from .projections import build_learner_quiz_projection
+from .selection_decision_log import (
+    insert_selection_decision,
+    no_candidate_decision,
+    success_decision,
+)
+from .selection_diagnostics import blocked_reason_counts, candidate_count
+from .selection_policy import SelectionPolicy
+from .weighted_selection import select_ranked_candidate
 
 
 class QuizBankProblem(Exception):
@@ -98,7 +107,8 @@ class SelectionRequest:
     filters: SelectionFilters | None = None
     delivery_mode: str = "api"
     deterministic: bool = False
-    selection_strategy: str = "first_eligible"
+    selection_strategy: str = "weighted_policy"
+    policy: SelectionPolicy = field(default_factory=SelectionPolicy)
     consumer_profile: ConsumerProfile | None = None
     target_mix: SelectionTargetMix = field(default_factory=SelectionTargetMix)
     cefr_level: str | None = None
@@ -152,17 +162,47 @@ class SelectionRequest:
 
 
 def select_next_item(db_path: Path | None, request: SelectionRequest) -> dict[str, Any]:
+    selection_request_id = new_id("selreq")
     with connect(db_path) as connection:
         consumer = load_active_consumer(connection, request.consumer_id)
         entitlement = load_active_entitlement(connection, request)
         enforce_consumer_scope(consumer, request)
         enforce_entitlement_scope(entitlement, request)
         quota_usage = reserve_quota(connection, consumer)
-        item = find_eligible_item(connection, request)
+        candidate_total = candidate_count(connection, request)
+        item, eligible_count = find_eligible_item(connection, request)
+        blocked_counts = blocked_reason_counts(connection, request)
         if item is None:
-            raise no_eligible_problem(request)
-        delivery = create_delivery(connection, request.consumer_id, item, entitlement, quota_usage)
-    return {"delivery": delivery, "quiz_item": build_learner_quiz_projection(item)}
+            decision = no_candidate_decision(
+                selection_request_id,
+                request,
+                candidate_total,
+                blocked_counts,
+            )
+            connection.rollback()
+            persist_no_candidate_decision(db_path, decision)
+            raise no_eligible_problem(request, decision.to_context())
+        delivery = create_delivery(connection, request, item, entitlement, quota_usage)
+        decision = success_decision(
+            selection_request_id,
+            request,
+            delivery,
+            item,
+            candidate_total,
+            eligible_count,
+            blocked_counts,
+        )
+        insert_selection_decision(connection, decision)
+    return {
+        "delivery": delivery,
+        "quiz_item": build_learner_quiz_projection(item),
+        "selection_decision": decision.to_context(),
+    }
+
+
+def persist_no_candidate_decision(db_path: Path | None, decision) -> None:
+    with connect(db_path) as connection:
+        insert_selection_decision(connection, decision)
 
 
 def get_delivery(db_path: Path | None, delivery_id: str, consumer_id: str) -> dict[str, Any]:
@@ -329,40 +369,50 @@ def upsert_quota_usage(
     )
 
 
-def find_eligible_item(connection, request: SelectionRequest) -> dict[str, Any] | None:
+def find_eligible_item(
+    connection,
+    request: SelectionRequest,
+) -> tuple[dict[str, Any] | None, int]:
     query = [
         """
         SELECT qi.*, s.source_type AS resolved_source_type,
-               s.provenance_note AS resolved_provenance_note
+               s.provenance_note AS resolved_provenance_note,
+               (
+                   SELECT COUNT(*)
+                   FROM deliveries d_all
+                   WHERE d_all.quiz_item_id = qi.item_id
+               ) AS delivery_count,
+               COALESCE((
+                   SELECT MAX(d_last.selected_at)
+                   FROM deliveries d_last
+                   WHERE d_last.quiz_item_id = qi.item_id
+               ), '') AS last_delivered_at,
+               (
+                   SELECT COUNT(*)
+                   FROM deliveries d_cell
+                   JOIN quiz_items qi_cell ON qi_cell.item_id = d_cell.quiz_item_id
+                   WHERE qi_cell.theme_id = qi.theme_id
+                     AND qi_cell.pattern_id = qi.pattern_id
+               ) AS cell_delivery_count
         FROM quiz_items qi
         JOIN sources s ON s.source_id = qi.source_id
         WHERE qi.status IN (?, ?)
           AND qi.source_id <> ''
           AND s.source_type <> ''
           AND s.provenance_note <> ''
-          AND NOT EXISTS (
-              SELECT 1 FROM deliveries d
-              WHERE d.consumer_id = ?
-                AND d.quiz_item_id = qi.item_id
-                AND d.delivery_status IN (
-                    'created',
-                    'delivered',
-                    'reserved',
-                    'sent',
-                    'failed'
-                )
-          )
         """
     ]
-    parameters: list[Any] = [*DELIVERABLE_STATUSES, request.consumer_id]
+    parameters: list[Any] = [*DELIVERABLE_STATUSES]
+    append_repeat_policy_filter(query, parameters, request)
     append_filter(query, parameters, "qi.sublevel = ?", request.cefr_level)
     append_in_filter(query, parameters, "qi.theme_id", request.theme_ids)
     append_in_filter(query, parameters, "qi.objective_id", request.objective_ids)
     append_in_filter(query, parameters, "qi.pattern_id", request.pattern_ids)
     append_not_in_filter(query, parameters, "qi.item_id", request.excluded_item_ids)
-    query.append("ORDER BY qi.item_id ASC LIMIT 1")
-    row = connection.execute(" ".join(query), parameters).fetchone()
-    return None if row is None else row_to_dict(row)
+    query.append("ORDER BY qi.item_id ASC")
+    rows = connection.execute(" ".join(query), parameters).fetchall()
+    candidates = [row_to_dict(row) for row in rows]
+    return select_ranked_candidate(candidates, request), len(candidates)
 
 
 def append_filter(query: list[str], parameters: list[Any], clause: str, value: Any) -> None:
@@ -398,9 +448,42 @@ def append_not_in_filter(
     parameters.extend(values)
 
 
+def append_repeat_policy_filter(
+    query: list[str],
+    parameters: list[Any],
+    request: SelectionRequest,
+) -> None:
+    policy = request.policy.repeat_policy
+    if not policy.enabled or not policy.blocked_delivery_statuses:
+        return
+    placeholders = ", ".join("?" for _ in policy.blocked_delivery_statuses)
+    query.append(
+        f"""
+        AND NOT EXISTS (
+            SELECT 1 FROM deliveries d
+            WHERE d.consumer_id = ?
+              AND d.quiz_item_id = qi.item_id
+              AND d.delivery_status IN ({placeholders})
+        """
+    )
+    parameters.extend([request.consumer_id, *policy.blocked_delivery_statuses])
+    cutoff = repeat_window_cutoff(policy.repeat_window_days)
+    if cutoff is not None:
+        query.append("AND d.selected_at >= ?")
+        parameters.append(cutoff)
+    query.append(")")
+
+
+def repeat_window_cutoff(repeat_window_days: int | None) -> str | None:
+    if repeat_window_days is None:
+        return None
+    cutoff = datetime.now(UTC).replace(microsecond=0) - timedelta(days=repeat_window_days)
+    return cutoff.isoformat().replace("+00:00", "Z")
+
+
 def create_delivery(
     connection,
-    consumer_id: str,
+    request: SelectionRequest,
     item: dict[str, Any],
     entitlement: dict[str, Any],
     quota_usage: dict[str, Any],
@@ -416,13 +499,13 @@ def create_delivery(
         """,
         (
             delivery_id,
-            consumer_id,
+            request.consumer_id,
             item["item_id"],
             item["status"],
             item["source_id"],
             item["resolved_source_type"],
             item["resolved_provenance_note"],
-            "eligible_by_status_level_theme_traceability_entitlement_quota",
+            request.policy.selection_reason_summary(),
             utc_now(),
             entitlement["entitlement_id"],
             quota_usage["quota_usage_id"],
@@ -447,35 +530,33 @@ def delivery_projection(delivery: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def no_eligible_problem(request: SelectionRequest) -> QuizBankProblem:
+def no_eligible_problem(
+    request: SelectionRequest,
+    decision_context: dict[str, object] | None = None,
+) -> QuizBankProblem:
+    selection_context: dict[str, object] = {
+        "consumer_id": request.consumer_id,
+        "delivery_mode": request.delivery_mode,
+        "deterministic": request.deterministic,
+        "selection_strategy": request.selection_strategy,
+        "policy": request.policy.to_context(),
+        "fallback_reason_codes": request.policy.fallback_reason_codes(),
+        "consumer_profile": request.consumer_profile.to_context(),
+        "target_mix": request.target_mix.to_context(),
+        "filters": request.filters.to_context(),
+        "cefr_level": request.cefr_level,
+        "theme_ids": list(request.theme_ids),
+        "objective_ids": list(request.objective_ids),
+        "pattern_ids": list(request.pattern_ids),
+        "filters_applied": list(request.policy.hard_filters),
+    }
+    if decision_context is not None:
+        selection_context["decision"] = decision_context
     return QuizBankProblem(
         404,
         "SELECTION_NO_ELIGIBLE_ITEM",
         "No eligible quiz item",
         "No item satisfies the selection constraints.",
         "https://api.quizbank.example/problems/no-eligible-item",
-        {
-            "selection_context": {
-                "consumer_id": request.consumer_id,
-                "delivery_mode": request.delivery_mode,
-                "deterministic": request.deterministic,
-                "selection_strategy": request.selection_strategy,
-                "consumer_profile": request.consumer_profile.to_context(),
-                "target_mix": request.target_mix.to_context(),
-                "filters": request.filters.to_context(),
-                "cefr_level": request.cefr_level,
-                "theme_ids": list(request.theme_ids),
-                "objective_ids": list(request.objective_ids),
-                "pattern_ids": list(request.pattern_ids),
-                "filters_applied": [
-                    "status",
-                    "cefr_level",
-                    "theme_id",
-                    "source_traceability",
-                    "repeat_policy",
-                    "entitlement",
-                    "quota",
-                ],
-            }
-        },
+        {"selection_context": selection_context},
     )

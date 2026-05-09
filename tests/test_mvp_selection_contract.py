@@ -14,6 +14,7 @@ from quizbank_mvp.selection import (  # noqa: E402
     SelectionTargetMix,
     no_eligible_problem,
 )
+from quizbank_mvp.selection_policy import RepeatPolicy, SelectionPolicy  # noqa: E402
 
 
 class MvpSelectionContractTests(unittest.TestCase):
@@ -64,12 +65,14 @@ class MvpSelectionContractTests(unittest.TestCase):
             )
 
     def test_no_eligible_context_exposes_selection_contract_metadata(self) -> None:
+        policy = SelectionPolicy(repeat_policy=RepeatPolicy(repeat_window_days=14))
         request = SelectionRequest(
             consumer_id="consumer_allowed",
             filters=SelectionFilters(cefr_level="A2", theme_ids=("T10",)),
             delivery_mode="telegram",
             deterministic=True,
             selection_strategy="weighted_policy",
+            policy=policy,
             target_mix=SelectionTargetMix(theme_weights={"T10": 1.0}),
         )
 
@@ -78,6 +81,8 @@ class MvpSelectionContractTests(unittest.TestCase):
         self.assertEqual(context["delivery_mode"], "telegram")
         self.assertTrue(context["deterministic"])
         self.assertEqual(context["selection_strategy"], "weighted_policy")
+        self.assertEqual(context["policy"]["repeat_policy"]["repeat_window_days"], 14)
+        self.assertIn("SELECTION_CHANNEL_CYCLE_EXHAUSTED", context["fallback_reason_codes"])
         self.assertEqual(context["consumer_profile"]["delivery_channel"], "telegram")
         self.assertEqual(context["target_mix"]["theme_weights"], {"T10": 1.0})
         self.assertEqual(
@@ -90,6 +95,10 @@ class MvpSelectionContractTests(unittest.TestCase):
                 "excluded_item_ids": [],
             },
         )
+
+    def test_repeat_policy_rejects_negative_window(self) -> None:
+        with self.assertRaisesRegex(ValueError, "non-negative"):
+            RepeatPolicy(repeat_window_days=-1)
 
 
 if __name__ == "__main__":

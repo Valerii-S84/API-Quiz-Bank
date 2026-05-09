@@ -540,7 +540,7 @@ class MvpRuntimeDatabaseTests(MvpRuntimeCase):
                 "api_credentials",
                 "quota_usage",
                 "audit_log",
-                "telegram_delivery_results",
+                "telegram_delivery_results", "selection_decisions",
             }.issubset(table_names)
         )
 
