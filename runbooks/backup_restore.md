@@ -1,12 +1,14 @@
 # API Quiz Bank Backup and Restore Runbook
 
-Status: MVP-local and Public MVP / Protected Beta SQLite backup/restore
-runbook; not a production database backup plan.
+Status: MVP-local, Public MVP / Protected Beta SQLite and owner-operated
+protected production PostgreSQL backup/restore runbook.
 
 ## Scope
 
-This runbook covers local and protected-beta SQLite MVP backup/restore proof and
-defines what must be replaced or extended before production claims.
+This runbook covers local and protected-beta SQLite MVP backup/restore proof
+plus the owner-operated protected production PostgreSQL runtime. The production
+scope is limited to the protected API runtime and does not approve broad public,
+school or paid launch.
 
 ## Local SQLite MVP Backup
 
@@ -79,6 +81,68 @@ Minimum protected beta closure:
 - restore target is never the active runtime DB;
 - backup path is under `/var/backups/api-quiz-bank`.
 
+## Protected Production PostgreSQL Operations
+
+The protected production PostgreSQL backup command is
+`scripts/api_quiz_bank_postgres_backup.sh`.
+
+Required controls:
+
+- daily systemd timer or equivalent scheduled execution;
+- backup metadata sidecar for each artifact;
+- backup retention cleanup using `API_QUIZ_BANK_BACKUP_RETENTION_DAYS`;
+- off-server copy or managed backup target using
+  `API_QUIZ_BANK_BACKUP_OFFSITE_DIR` or provider equivalent;
+- optional encrypted artifact using
+  `API_QUIZ_BANK_BACKUP_ENCRYPTION_KEY_FILE`;
+- restore drill against an isolated database using
+  `scripts/api_quiz_bank_postgres_restore_drill.sh`;
+- restore drill report under `API_QUIZ_BANK_RESTORE_DRILL_REPORT_DIR`;
+- backup failure and restore failure visible through the production monitor or
+  provider timer alerting.
+
+Minimum metadata fields:
+
+```text
+backup_id
+environment
+database_name
+created_at_utc
+backup_type
+backup_format
+size_bytes
+checksum_sha256
+retention_days
+created_by
+storage_location
+offsite_status
+restore_tested_status
+```
+
+## Protected Production RPO/RTO
+
+For the owner-operated protected production API runtime:
+
+| Target | Value | Evidence requirement |
+|---|---:|---|
+| RPO | 24 hours | daily PostgreSQL backup timer or managed backup status |
+| RTO | same business day | isolated restore drill report and operator runbook |
+| Restore drill cadence | at least every 30 days | restore drill report or provider drill evidence |
+| Local retention | 30 days by default | `API_QUIZ_BANK_BACKUP_RETENTION_DAYS` |
+| Off-server copy | required for production claim | offsite copy status or managed provider backup evidence |
+
+## Encryption Policy
+
+Production backup artifacts must either:
+
+- be encrypted by the storage provider with access restricted to the owner; or
+- be encrypted by `scripts/api_quiz_bank_postgres_backup.sh` using
+  `API_QUIZ_BANK_BACKUP_ENCRYPTION_KEY_FILE`.
+
+The encryption key file is a secret. It must not be committed, printed in logs
+or copied into reports. If the script-level encryption key file is configured,
+the plaintext dump is removed after the encrypted artifact is created.
+
 ## Production Requirements
 
 - Managed DB backup mechanism identified.
@@ -88,4 +152,5 @@ Minimum protected beta closure:
 - Access to backup artifacts restricted.
 - Rollback/restore owner named.
 
-No production phase may be marked complete from this runbook alone.
+No broad public, school or paid launch may be marked complete from this runbook
+alone.

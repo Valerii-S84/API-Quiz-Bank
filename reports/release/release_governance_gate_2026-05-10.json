@@ -1,0 +1,22 @@
+{
+  "checks": {
+    "branch_protection_config_present": true,
+    "changelog_exists": true,
+    "ci_runs_no_secrets_scan": true,
+    "ci_runs_on_pull_request": true,
+    "direct_push_blocked_in_desired_config": true,
+    "migration_approval_checklist_exists": true,
+    "pr_template_has_release_notes_prompt": true,
+    "required_status_check_configured": true
+  },
+  "decision": "REPO-GO release governance controls; VERIFY remote branch protection",
+  "generated_at": "2026-05-10T00:00:00+00:00",
+  "protected_branch": "main",
+  "release_governance_blockers": [
+    "actual GitHub branch protection enforcement must be verified on remote",
+    "release tag must be created only at release time"
+  ],
+  "release_tag_policy": "annotated tag after release approval",
+  "report_type": "release_governance_gate",
+  "required_ci_check": "repository-invariants"
+}

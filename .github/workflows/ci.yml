@@ -44,5 +44,10 @@ jobs:
             tests.test_mvp_runtime \
             tests.test_mvp_rate_limit \
             tests.test_pre_pilot_runtime_invariants \
+            tests.test_database_operations_backup \
+            tests.test_legal_privacy_gate \
+            tests.test_production_monitor_snapshot \
             tests.test_production_security_hardening \
+            tests.test_release_governance_gate \
+            tests.test_scale_load_gate \
             tests.test_style_numeric_limits

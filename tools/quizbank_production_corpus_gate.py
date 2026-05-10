@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""Build the production corpus readiness gate report."""
+
+from __future__ import annotations
+
+import json
+from collections import Counter
+from pathlib import Path
+
+from quizbank_common import (
+    CANONICAL_LEVELS,
+    ITEM_STATUSES,
+    NORMAL_DELIVERY_STATUSES,
+    PATTERN_IDS,
+    THEME_TITLES,
+    build_arg_parser,
+    counter_for,
+    load_inventory,
+    print_json,
+)
+
+
+DEFAULT_REPORT_PATH = Path("reports/publication/production_corpus_gate_2026-05-10.json")
+DEFAULT_GENERATED_AT = "2026-05-10T00:00:00+00:00"
+NON_DELIVERABLE_STATUS_CONTROLS = ("draft", "blocked", "retired")
+
+
+def zero_filled_counts(keys: tuple[str, ...], counts: Counter[str]) -> dict[str, int]:
+    return {key: counts.get(key, 0) for key in keys}
+
+
+def deliverable_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    return [row for row in rows if row.get("status", "").strip() in NORMAL_DELIVERY_STATUSES]
+
+
+def coverage_cell_key(row: dict[str, str]) -> tuple[str, str, str]:
+    return (
+        row.get("sublevel", "").strip(),
+        row.get("theme_id", "").strip(),
+        row.get("pattern_id", "").strip(),
+    )
+
+
+def deliverable_coverage_cells(rows: list[dict[str, str]]) -> list[dict[str, object]]:
+    counts: Counter[tuple[str, str, str]] = Counter(
+        coverage_cell_key(row)
+        for row in rows
+        if (
+            row.get("sublevel", "").strip() in CANONICAL_LEVELS
+            and row.get("theme_id", "").strip() in THEME_TITLES
+            and row.get("pattern_id", "").strip() in PATTERN_IDS
+        )
+    )
+    return [
+        {
+            "cefr_level": level,
+            "theme_id": theme_id,
+            "pattern_id": pattern_id,
+            "deliverable_item_count": count,
+        }
+        for (level, theme_id, pattern_id), count in sorted(counts.items())
+    ]
+
+
+def build_deliverable_snapshot(rows: list[dict[str, str]]) -> dict[str, object]:
+    deliverables = deliverable_rows(rows)
+    return {
+        "statuses": list(NORMAL_DELIVERY_STATUSES),
+        "item_count": len(deliverables),
+        "level_counts": zero_filled_counts(CANONICAL_LEVELS, counter_for(deliverables, "sublevel")),
+        "theme_counts": zero_filled_counts(tuple(THEME_TITLES), counter_for(deliverables, "theme_id")),
+        "pattern_counts": zero_filled_counts(PATTERN_IDS, counter_for(deliverables, "pattern_id")),
+        "coverage_cells": deliverable_coverage_cells(deliverables),
+        "sample_item_ids": [row["item_id"] for row in deliverables[:10]],
+    }
+
+
+def negative_controls(status_counts: dict[str, int]) -> dict[str, object]:
+    return {
+        "non_deliverable_statuses": list(NON_DELIVERABLE_STATUS_CONTROLS),
+        "current_corpus_counts": {
+            status: status_counts.get(status, 0)
+            for status in NON_DELIVERABLE_STATUS_CONTROLS
+        },
+        "runtime_test_refs": [
+            "tests/test_mvp_runtime.py::test_retired_items_are_not_delivery_eligible",
+            "tests/test_mvp_runtime.py::test_blocked_items_are_not_delivery_eligible",
+            "tests/test_reports_selection_invariants.py::test_selection_smoke_report_is_current",
+        ],
+        "required_after_real_import": [
+            "draft items are not selected",
+            "blocked items are not selected",
+            "retired items are not selected",
+            "approved/published items retain source traceability",
+        ],
+    }
+
+
+def production_blockers(deliverable_count: int) -> list[str]:
+    blockers = []
+    if deliverable_count == 0:
+        blockers.append("approved/published production corpus snapshot is empty")
+    blockers.append("real production import negative controls must be rerun after import")
+    blockers.append("owner approval is required before corpus status promotion")
+    return blockers
+
+
+def build_report(inventory, generated_at: str) -> dict[str, object]:
+    status_counts = zero_filled_counts(ITEM_STATUSES, counter_for(inventory.rows, "status"))
+    snapshot = build_deliverable_snapshot(inventory.rows)
+    deliverable_count = int(snapshot["item_count"])
+    blockers = production_blockers(deliverable_count)
+    return {
+        "report_type": "production_corpus_gate",
+        "generated_at": generated_at,
+        "decision": "NO-GO production corpus volume" if blockers else "GO production corpus volume",
+        "source": {
+            "quizbank_dir": "QuizBank",
+            "active_bank_files": len(inventory.active_sources),
+            "active_rows": inventory.active_row_count,
+        },
+        "status_counts": status_counts,
+        "approved_published_snapshot": snapshot,
+        "negative_controls": negative_controls(status_counts),
+        "production_content_blockers": blockers,
+    }
+
+
+def write_report(path: Path, report: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def main() -> int:
+    parser = build_arg_parser("Build production corpus readiness gate report.")
+    parser.add_argument("--write-artifacts", action="store_true")
+    parser.add_argument("--report-out", default=DEFAULT_REPORT_PATH, type=Path)
+    parser.add_argument("--generated-at", default=DEFAULT_GENERATED_AT)
+    args = parser.parse_args()
+    report = build_report(load_inventory(args.quizbank_dir), args.generated_at)
+
+    if args.write_artifacts:
+        write_report(args.report_out, report)
+    if args.format == "json":
+        print_json(report)
+    else:
+        print(f"decision={report['decision']}")
+        print(f"deliverable_items={report['approved_published_snapshot']['item_count']}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

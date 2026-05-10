@@ -26,4 +26,5 @@ Commands run:
 - API/schema/import/publication behavior changed: yes / no
 - Security/privacy-sensitive behavior changed: yes / no
 - Corpus content or generated inventory changed: yes / no
-
+- Changelog / release note updated or explicitly not required: yes / no
+- Migration approval checklist completed if schema/data migration changed: yes / no
