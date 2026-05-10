@@ -11,7 +11,7 @@ docker exec "$POSTGRES_CONTAINER" dropdb -U "$POSTGRES_USER" --if-exists "$DRILL
 docker exec "$POSTGRES_CONTAINER" createdb -U "$POSTGRES_USER" "$DRILL_DB"
 docker exec -i "$POSTGRES_CONTAINER" pg_restore -U "$POSTGRES_USER" -d "$DRILL_DB" < "$BACKUP_PATH"
 
-docker exec "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$DRILL_DB" -v ON_ERROR_STOP=1 -t -A <<'SQL' >/tmp/api_quiz_bank_pg_restore_check.txt
+docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$DRILL_DB" -v ON_ERROR_STOP=1 -t -A <<'SQL' >/tmp/api_quiz_bank_pg_restore_check.txt
 SELECT COUNT(*) >= 5
 FROM information_schema.tables
 WHERE table_schema = 'public'
