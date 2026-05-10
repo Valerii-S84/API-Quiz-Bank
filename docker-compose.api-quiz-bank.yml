@@ -10,8 +10,16 @@ services:
       - .env.api-quiz-bank.example
     ports:
       - "127.0.0.1:8010:8000"
-    volumes:
-      - ./var/api-quiz-bank:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /data:uid=65532,gid=65532,mode=700
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    cpus: 1.0
     networks:
       - default
       - quiz-arena-public

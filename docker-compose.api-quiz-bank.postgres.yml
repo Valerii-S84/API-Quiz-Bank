@@ -16,6 +16,10 @@ services:
       POSTGRES_PASSWORD: ${API_QUIZ_BANK_POSTGRES_PASSWORD:?set API_QUIZ_BANK_POSTGRES_PASSWORD}
     volumes:
       - api-quiz-bank-postgres-data:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1.0
     healthcheck:
       test:
         [

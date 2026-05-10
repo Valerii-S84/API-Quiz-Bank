@@ -42,5 +42,7 @@ jobs:
             tests.test_contract_schema_invariants \
             tests.test_import_validation \
             tests.test_mvp_runtime \
+            tests.test_mvp_rate_limit \
             tests.test_pre_pilot_runtime_invariants \
+            tests.test_production_security_hardening \
             tests.test_style_numeric_limits

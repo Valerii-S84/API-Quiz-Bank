@@ -148,7 +148,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
         '429':
-          description: Consumer quota exceeded.
+          description: Consumer quota or endpoint rate limit exceeded.
           content:
             application/problem+json:
               schema:
