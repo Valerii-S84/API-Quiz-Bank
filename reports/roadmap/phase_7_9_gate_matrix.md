@@ -1,6 +1,6 @@
 # Phase 7-9 Gate Matrix
 
-Updated: 2026-05-08
+Updated: 2026-05-10
 
 This matrix records local evidence for `docs/14_roadmap.md` Phase 7-9 and
 separates locally proven gates from external environment gates.
@@ -12,6 +12,8 @@ Status values:
 - `partial`: local artifact exists, but the gate needs execution evidence.
 - `closed-protected-beta`: supported by protected VPS/runtime evidence for
   Public MVP / Protected Beta, not production.
+- `closed-protected-production`: supported by owner-operated protected
+  production runtime evidence, not broader public/school/paid launch.
 - `blocked-external`: cannot close without pilot/beta/production environment,
   approved real send, owner assignment, legal review or deployment evidence.
 
@@ -64,19 +66,20 @@ recorded as `GO` in
 
 | Gate | Status | Evidence | Remaining blocker |
 |---|---|---|---|
-| OPS-PROD-001 controlled deployment exists | partial | `.github/workflows/ci.yml`, branch/PR governance docs | No production deployment target or release owner. |
-| OPS-PROD-002 monitored backups exist | blocked-external | `runbooks/backup_restore.md`, `runbooks/backup_restore_operational_runbook.md`, `reports/restore/public_mvp_backup_restore_2026-05-08.md` | No production DB or production backup monitor. |
-| OPS-PROD-003 restore drill completed | blocked-external | local restore drill report, PostgreSQL profile in `database/postgresql/001_create_runtime.sql` | No production-like restore drill execution. |
-| OPS-PROD-004 monitoring dashboard exists | blocked-external | none | No dashboard. |
-| OPS-PROD-005 critical alerts or owner review exists | blocked-external | `docs/observability_contract.md`, `runbooks/incident_response.md`, `reports/observability/public_mvp_monitoring_review_2026-05-08.md` | No production alert source or dashboard. |
-| OPS-PROD-006 incident playbook owner assigned | partial | `runbooks/incident_response.md`, `runbooks/support_triage.md`, `reports/compliance/public_mvp_support_security_contact_2026-05-08.md` | No production owner assignment or drill. |
-| OPS-PROD-007 rollback/disable paths verified | partial | `runbooks/rollback.md`, `reports/rollback/local_rollback_tabletop_2026-05-08.md`, `reports/rollback/public_mvp_runtime_rollback_drill_2026-05-08.md`, consumer lifecycle dry run | No production rollback execution. |
-| OPS-PROD-008 migrations versioned/tested | partial | SQLite migrations, PostgreSQL schema profile, tests | PostgreSQL profile not executed against a database target. |
+| OPS-PROD-001 controlled deployment exists | closed-protected-production | `reports/roadmap/production_postgresql_runtime_closure_2026-05-10.md`, `main` at `4f9ce996910f56aa37ede0007157011fa24fbf43`, `/opt/api-quiz-bank`, Docker Compose PostgreSQL override | Closed for owner-operated protected production API runtime only. |
+| OPS-PROD-002 monitored backups exist | closed-protected-production | `reports/roadmap/production_postgresql_runtime_closure_2026-05-10.md`, `api-quiz-bank-postgres-backup.timer enabled active`, backup service `success/0` | Closed for PostgreSQL runtime backups; broader managed-provider backup policy remains a future scale concern. |
+| OPS-PROD-003 restore drill completed | closed-protected-production | `reports/roadmap/production_postgresql_runtime_closure_2026-05-10.md`, `postgres-restore-drill-ok api_quiz_bank_restore_drill` | Closed for current PostgreSQL production runtime. |
+| OPS-PROD-004 monitoring dashboard exists | closed-protected-production | `scripts/api_quiz_bank_production_monitor_snapshot.sh`, `api-quiz-bank-production-monitor.timer`, snapshots under `/var/log/api-quiz-bank/monitoring/` | Snapshot/report surface, not a third-party SaaS dashboard. |
+| OPS-PROD-005 critical alerts or owner review exists | closed-protected-production | `api-quiz-bank-production-monitor.timer`, `runbooks/incident_response.md`, `reports/roadmap/production_postgresql_runtime_closure_2026-05-10.md` | Owner-reviewed timer snapshot; no external paging vendor. |
+| OPS-PROD-006 incident playbook owner assigned | closed-protected-production | `runbooks/incident_response.md`, `runbooks/support_triage.md`, `reports/compliance/public_mvp_support_security_contact_2026-05-08.md`, `reports/roadmap/production_postgresql_runtime_closure_2026-05-10.md` | Closed for owner-operated protected runtime. |
+| OPS-PROD-007 rollback/disable paths verified | closed-protected-production | `reports/roadmap/production_postgresql_runtime_closure_2026-05-10.md`, rollback to `1a3ae1a0937d3c0acaff2b3f338be3286f7e6313`, roll-forward to `4f9ce996910f56aa37ede0007157011fa24fbf43` | Closed for PostgreSQL-capable app rollback/roll-forward. |
+| OPS-PROD-008 migrations versioned/tested | closed-protected-production | `database/postgresql/001_create_runtime.sql`, `database/postgresql/002_add_import_contract.sql`, `database/postgresql/003_add_runtime_delivery_evidence.sql`, PostgreSQL runtime deploy, `schema_migrations=3` | Closed for current PostgreSQL runtime schema. |
 | OPS-PROD-009 security baseline implemented | partial | `SECURITY.md`, threat model, consumer-bound API credentials, no-secrets CI scan, tests | No production hardening or security review. |
 | OPS-PROD-010 support/contact path exists | partial | `runbooks/support_triage.md`, `SECURITY.md`, `.github/ISSUE_TEMPLATE/support_abuse.md` | Public issue path exists; no signed/security private contact. |
 | OPS-PROD-011 launch risks documented | closed-local | `reports/roadmap/roadmap_evidence_register.md`, `reports/roadmap/external_evidence_blockers.md`, this matrix | External launch risks still unresolved. |
-| OPS-PROD-012 launch approval recorded | blocked-external | `reports/compliance/legal_review_record.md` | No production approval. |
+| OPS-PROD-012 launch approval recorded | closed-protected-production | `reports/compliance/legal_review_record.md`, section 4.3 | Approved only for owner-operated protected production API runtime. |
 
-Phase 9 result: closed as `NO-GO production`. Production cannot be marked ready
-from local documentation, MVP SQLite evidence, local-only VPS evidence or CI
-checks alone.
+Phase 9 result: `GO` for owner-operated protected production API runtime on
+PostgreSQL. It remains `NO-GO` for unauthenticated broad public launch, school
+deployment, paid launch or external legal-advice claims without separate
+scope-specific approval.

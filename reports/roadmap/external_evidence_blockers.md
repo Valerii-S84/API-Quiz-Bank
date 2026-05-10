@@ -1,6 +1,6 @@
 # Phase 7-9 External Evidence Blockers
 
-Updated: 2026-05-08
+Updated: 2026-05-10
 
 This file lists blockers that cannot be closed by local repository work alone.
 They must remain separate from local pre-pilot evidence.
@@ -31,14 +31,14 @@ They must remain separate from local pre-pilot evidence.
 
 | Blocker | Required external evidence |
 |---|---|
-| Controlled deployment | Production deployment target, owner and CI/CD or approved deployment process. |
-| Monitored backups | Production backup monitor or owner-reviewed backup evidence. |
-| Production restore drill | Recorded restore drill for production-like data and target. |
-| Monitoring dashboard | Dashboard or equivalent operational review surface. |
-| Critical alerts | Alert policy or formal owner review process. |
-| Incident drill | Production incident owner and drill/playbook execution record. |
-| Rollback execution | Verified rollback path for deployment, data and disable/containment actions. |
-| Production privacy/legal approval | Launch approval and privacy/legal review appropriate to production scope. |
+| Controlled deployment | Closed for owner-operated protected production API runtime in `reports/roadmap/production_postgresql_runtime_closure_2026-05-10.md`. Broader public/school/paid launch remains separate. |
+| Monitored backups | Closed for current PostgreSQL runtime by `api-quiz-bank-postgres-backup.timer` and recorded backup/restore evidence. Managed-provider backup policy remains future scale work. |
+| Production restore drill | Closed for current PostgreSQL runtime by `postgres-restore-drill-ok api_quiz_bank_restore_drill`. |
+| Monitoring dashboard | Closed for current protected runtime by `scripts/api_quiz_bank_production_monitor_snapshot.sh` and `api-quiz-bank-production-monitor.timer`. Third-party monitoring vendor remains optional/future. |
+| Critical alerts | Closed for current protected runtime as formal owner-review timer snapshots. External paging vendor remains optional/future. |
+| Incident drill | Closed for current protected runtime through production deploy/smoke, backup/restore and rollback/roll-forward drill evidence. |
+| Rollback execution | Closed for current PostgreSQL-capable runtime by rollback to `1a3ae1a0937d3c0acaff2b3f338be3286f7e6313` and roll-forward to `4f9ce996910f56aa37ede0007157011fa24fbf43`. |
+| Production privacy/legal approval | Closed only for owner-operated protected production API runtime in `reports/compliance/legal_review_record.md` section 4.3. Unauthenticated broad public launch, school deployment and paid launch remain separate approval scopes. |
 
 ## Guardrail
 

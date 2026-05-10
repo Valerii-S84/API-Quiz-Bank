@@ -23,6 +23,7 @@ It is not a legal opinion. It is the project record of review status.
 | Stanford/demo presentation safety | partially documented | no, if demo remains controlled | Demo data must remain labeled/safe |
 | Closed pilot with limited real consumers | pending | yes for personal-data-heavy pilot | Scope-specific review still needed |
 | Public MVP / Protected Beta privacy posture | approved for protected beta only | no for protected beta; yes for production | Scope-specific owner approval recorded in section 4.2 |
+| Owner-operated protected production API runtime | approved for protected API runtime only | no for protected API runtime; yes for broader launch scopes | Scope-specific owner-operated runtime approval recorded in section 4.3 |
 | Broad public beta privacy posture | pending | yes | Required before unauthenticated, broad or paid external access |
 | School deployment review | pending | yes | Required before school/teacher learner data scale |
 | EU learner-facing production review | pending | yes | Required before EU public learner production |
@@ -60,6 +61,7 @@ Current repo evidence:
 - `reports/observability/public_mvp_monitoring_review_2026-05-08.md`
 - `reports/restore/public_mvp_backup_restore_2026-05-08.md`
 - `reports/rollback/public_mvp_runtime_rollback_drill_2026-05-08.md`
+- `reports/roadmap/production_postgresql_runtime_closure_2026-05-10.md`
 
 ## 4.1 Beta Scope Review Snapshot
 
@@ -118,6 +120,49 @@ Approved by project owner for Public MVP / Protected Beta scope on 2026-05-08.
 ```
 
 This is a project launch-gate record, not external legal advice.
+
+---
+
+## 4.3 Owner-Operated Protected Production API Runtime Approval
+
+Decision:
+
+```text
+GO for owner-operated protected production API runtime
+NO-GO for unauthenticated broad public launch, school deployment, paid launch
+or external legal-advice claims
+```
+
+Scope approved:
+
+- protected API access at `api.valerchik.de` behind the edge `X-API-Key`;
+- owner-operated VPS runtime at `/opt/api-quiz-bank`;
+- PostgreSQL persistent runtime database for controlled quiz delivery;
+- consumer-bound application API credentials;
+- approved/published controlled quiz items only;
+- delivery and selection decision logging;
+- production backup/restore, monitoring snapshot and rollback evidence recorded
+  in `reports/roadmap/production_postgresql_runtime_closure_2026-05-10.md`.
+
+Data categories in scope:
+
+- consumer id and consumer configuration;
+- API credential hash and prefix, not raw API key;
+- entitlement/quota records;
+- delivery id, quiz item id, delivery status and selection decision metadata;
+- operational monitoring snapshots without secrets.
+
+Owner approval:
+
+```text
+Approved by project owner for the owner-operated protected production API
+runtime scope on 2026-05-10.
+```
+
+This is a project launch-gate record, not external legal advice. Any expansion
+to unauthenticated public access, school/teacher learner data scale, public paid
+billing or broader EU learner-facing production still requires a separate
+scope-specific privacy/legal approval.
 
 ---
 

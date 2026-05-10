@@ -11,6 +11,12 @@ the repository's production-readiness NO-GO boundaries remain in force for
 persistent production DB, external monitoring, legal/privacy launch approval and
 full production rollback governance.
 
+Update: the production runtime blockers named above were later closed for the
+owner-operated protected production API runtime in
+`reports/roadmap/production_postgresql_runtime_closure_2026-05-10.md`.
+Unauthenticated broad public launch, school deployment and paid launch remain
+separate approval scopes.
+
 ## Source
 
 | Check | Result |
