@@ -45,6 +45,32 @@ class MvpWeightedSelectionTests(unittest.TestCase):
             candidate_score(overused, request).total,
         )
 
+    def test_weighted_scorer_balances_pattern_within_same_theme(self) -> None:
+        overused = self.candidate("aaa_overused_pattern", "T10", "P01", cell_delivery_count=5)
+        balanced = self.candidate("zzz_balanced_pattern", "T10", "P02", cell_delivery_count=0)
+        request = SelectionRequest("consumer_allowed", deterministic=True)
+
+        selected = select_ranked_candidate([overused, balanced], request)
+
+        self.assertEqual(selected["item_id"], "zzz_balanced_pattern")
+        self.assertGreater(
+            candidate_score(balanced, request).coverage,
+            candidate_score(overused, request).coverage,
+        )
+
+    def test_deterministic_mode_returns_stable_ranked_candidate(self) -> None:
+        candidates = [
+            self.candidate("aaa_candidate", "T10", "P01"),
+            self.candidate("zzz_candidate", "T10", "P02"),
+        ]
+        request = SelectionRequest("consumer_allowed", deterministic=True)
+
+        first = select_ranked_candidate(candidates, request)
+        second = select_ranked_candidate(list(reversed(candidates)), request)
+
+        self.assertEqual(first["item_id"], second["item_id"])
+        self.assertEqual(first["_selection_score"], second["_selection_score"])
+
     def test_first_eligible_strategy_remains_explicit_compatibility_path(self) -> None:
         request = SelectionRequest("consumer_allowed", selection_strategy="first_eligible")
 

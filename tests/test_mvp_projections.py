@@ -38,6 +38,7 @@ class MvpProjectionTests(unittest.TestCase):
         projection = build_learner_quiz_projection(TRACEABLE_ITEM)
 
         self.assertEqual(projection["id"], "approved_traceable_001")
+        self.assertEqual(projection["public_id"], "approved_traceable_001")
         self.assertEqual(
             projection["question"]["text"],
             "Welche Ergänzung passt hier am besten?\nIch muss morgen einen Termin ___.",

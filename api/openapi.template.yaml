@@ -315,13 +315,19 @@ components:
       additionalProperties: false
       required:
         - id
+        - public_id
         - language
         - question
         - options
         - cefr_level
         - theme
+        - objective
+        - pattern
+        - metadata
       properties:
         id:
+          type: string
+        public_id:
           type: string
         language:
           type: string
@@ -359,10 +365,51 @@ components:
         theme:
           type: object
           additionalProperties: false
+          required: [title, slug]
+          properties:
+            title:
+              type: string
+            slug:
+              type: string
+        objective:
+          type: object
+          additionalProperties: false
           required: [title]
           properties:
             title:
               type: string
+        pattern:
+          type: object
+          additionalProperties: false
+          required: [title]
+          properties:
+            title:
+              type: string
+        metadata:
+          type: object
+          additionalProperties: false
+          required: [display]
+          properties:
+            display:
+              type: object
+              additionalProperties: false
+              required:
+                - cefr_level
+                - theme_title
+                - theme_slug
+                - objective_title
+                - pattern_title
+              properties:
+                cefr_level:
+                  type: string
+                theme_title:
+                  type: string
+                theme_slug:
+                  type: string
+                objective_title:
+                  type: string
+                pattern_title:
+                  type: string
     ProblemDetails:
       type: object
       additionalProperties: true
@@ -449,7 +496,7 @@ components:
         selection:
           type: object
           additionalProperties: false
-          required: [entitlement_checked, quota_checked, repeat_policy_applied]
+          required: [entitlement_checked, quota_checked, repeat_policy_applied, decision]
           properties:
             entitlement_checked:
               type: boolean
@@ -457,3 +504,40 @@ components:
               type: boolean
             repeat_policy_applied:
               type: boolean
+            decision:
+              $ref: '#/components/schemas/SelectionDecisionMetadata'
+    SelectionDecisionMetadata:
+      type: object
+      additionalProperties: false
+      required:
+        - selection_request_id
+        - candidate_count
+        - eligible_count
+        - selected_reason
+        - selected_score
+        - blocked_reason_counts
+        - fallback_reason_code
+      properties:
+        selection_request_id:
+          type: string
+        candidate_count:
+          type: integer
+          minimum: 0
+        eligible_count:
+          type: integer
+          minimum: 0
+        selected_reason:
+          type: string
+        selected_score:
+          type: object
+          additionalProperties:
+            type: number
+        blocked_reason_counts:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+        fallback_reason_code:
+          type:
+            - string
+            - 'null'

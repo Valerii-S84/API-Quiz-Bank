@@ -16,9 +16,14 @@ class DemoPackageTests(unittest.TestCase):
             "analytics_snapshot",
             "billing_plan_catalog",
             "next_item",
+            "learner_safe_projection",
+            "selection_decision_metadata",
             "delivery_log",
+            "telegram_payload",
+            "runtime_analytics_snapshot",
             "repeat_denial",
             "quota_denial",
+            "negative_controls",
             "billing_usage_audit",
         ]:
             self.assertIn(step_name, result.stdout)

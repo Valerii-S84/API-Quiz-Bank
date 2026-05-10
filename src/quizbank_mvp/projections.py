@@ -25,6 +25,7 @@ def build_learner_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
     pattern = pattern_label(pattern_id)
     return {
         "id": str(item["item_id"]),
+        "public_id": str(item["item_id"]),
         "language": str(item["language"]),
         "question": {
             "text": question_text(prompt, stem),

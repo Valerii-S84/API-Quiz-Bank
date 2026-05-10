@@ -15,7 +15,21 @@ sys.path.insert(0, str(ROOT / "src"))
 from fastapi.testclient import TestClient
 
 from quizbank_mvp.app import create_app
-from quizbank_mvp.database import connect, initialize_database, seed_demo_state
+from quizbank_mvp.database import (
+    connect,
+    initialize_database,
+    seed_api_credential,
+    seed_consumer,
+    seed_control_fixture,
+    seed_demo_state,
+    seed_entitlement,
+)
+from quizbank_mvp.selection_analytics import selection_analytics_snapshot
+from quizbank_mvp.telegram_delivery import (
+    build_telegram_poll_payload,
+    load_delivery_item,
+    telegram_api_payload,
+)
 
 
 DEMO_REQUEST = {
@@ -104,11 +118,19 @@ def prepare_context(directory: str) -> tuple[TestClient, Path]:
     return TestClient(create_app(db_path)), db_path
 
 
-def post_next_item(client: TestClient, consumer_id: str, payload: dict[str, object]):
+def post_next_item(
+    client: TestClient,
+    consumer_id: str,
+    payload: dict[str, object],
+    api_key: str | None = None,
+):
     return client.post(
         "/v1/quiz-items/next",
         json={**payload, "consumer_id": consumer_id},
-        headers={"X-Consumer-Id": consumer_id, "X-QuizBank-API-Key": DEMO_API_KEYS[consumer_id]},
+        headers={
+            "X-Consumer-Id": consumer_id,
+            "X-QuizBank-API-Key": api_key or DEMO_API_KEYS[consumer_id],
+        },
     )
 
 
@@ -119,6 +141,8 @@ def run_demo_steps(client: TestClient, db_path: Path) -> None:
 
     first = post_next_item(client, "consumer_demo", DEMO_REQUEST)
     print_step("next_item", first.json())
+    print_step("learner_safe_projection", first.json()["quiz_item"])
+    print_step("selection_decision_metadata", first.json()["selection"]["decision"])
 
     delivery_id = first.json()["delivery_id"]
     delivery = client.get(
@@ -129,12 +153,65 @@ def run_demo_steps(client: TestClient, db_path: Path) -> None:
         },
     )
     print_step("delivery_log", delivery.json())
-    print_step("repeat_denial", post_next_item(client, "consumer_demo", DEMO_REQUEST).json())
-    print_step(
-        "quota_denial",
-        post_next_item(client, "consumer_quota_blocked", DEMO_REQUEST).json(),
-    )
+    print_step("telegram_payload", telegram_payload_for_delivery(db_path, delivery_id))
+    print_step("runtime_analytics_snapshot", runtime_analytics_summary(db_path))
+    repeat_denial = post_next_item(client, "consumer_demo", DEMO_REQUEST).json()
+    quota_denial = post_next_item(client, "consumer_quota_blocked", DEMO_REQUEST).json()
+    print_step("repeat_denial", repeat_denial)
+    print_step("quota_denial", quota_denial)
+    print_step("negative_controls", negative_controls(db_path.parent, repeat_denial, quota_denial))
     print_step("billing_usage_audit", billing_usage_audit(db_path))
+
+
+def telegram_payload_for_delivery(db_path: Path, delivery_id: str) -> dict[str, object]:
+    item = load_delivery_item(db_path, delivery_id, "consumer_demo")
+    payload = build_telegram_poll_payload("@controlled_demo_channel", item)
+    return telegram_api_payload(payload)
+
+
+def runtime_analytics_summary(db_path: Path) -> dict[str, object]:
+    snapshot = selection_analytics_snapshot(db_path)
+    return {
+        "inventory": snapshot["inventory"],
+        "deliveries": snapshot["deliveries"],
+        "repeat_blocks": snapshot["repeat_blocks"],
+        "no_candidate_reasons": snapshot["no_candidate_reasons"],
+    }
+
+
+def negative_controls(
+    directory: Path,
+    repeat_denial: dict[str, object],
+    quota_denial: dict[str, object],
+) -> dict[str, object]:
+    return {
+        "draft": status_negative_control(directory, "draft"),
+        "blocked": status_negative_control(directory, "blocked"),
+        "repeat": problem_summary(repeat_denial),
+        "quota": problem_summary(quota_denial),
+    }
+
+
+def status_negative_control(directory: Path, item_status: str) -> dict[str, object]:
+    consumer_id = f"consumer_{item_status}_control"
+    api_key = f"{item_status}_control_api_key"
+    db_path = directory / f"{item_status}_control.sqlite3"
+    fixture = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
+    initialize_database(db_path)
+    seed_control_fixture(db_path, fixture, item_status)
+    seed_consumer(db_path, consumer_id, 2, ["A2"], ["T10"])
+    seed_api_credential(db_path, consumer_id, api_key)
+    seed_entitlement(db_path, consumer_id, ["A2"], ["T10"])
+    response = post_next_item(TestClient(create_app(db_path)), consumer_id, DEMO_REQUEST, api_key)
+    return problem_summary(response.json())
+
+
+def problem_summary(payload: dict[str, object]) -> dict[str, object]:
+    return {
+        "status": payload.get("status"),
+        "reason_code": payload.get("reason_code"),
+        "detail": payload.get("detail"),
+    }
 
 
 def billing_usage_audit(db_path: Path) -> dict[str, object]:
