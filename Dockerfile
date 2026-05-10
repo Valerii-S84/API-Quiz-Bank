@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM cgr.dev/chainguard/python:latest-dev
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -9,13 +9,18 @@ ENV QUIZBANK_PORT=8000
 
 WORKDIR /app
 
-COPY pyproject.toml README.md ./
-COPY src ./src
-COPY database ./database
-COPY tests/fixtures/selection ./tests/fixtures/selection
+COPY --chown=nonroot:nonroot pyproject.toml README.md ./
+COPY --chown=nonroot:nonroot src ./src
+COPY --chown=nonroot:nonroot database ./database
+COPY --chown=nonroot:nonroot tests/fixtures/selection ./tests/fixtures/selection
 
-RUN python -m pip install --no-cache-dir --upgrade pip \
-    && python -m pip install --no-cache-dir -e .
+USER root
+
+RUN python -m pip install --no-cache-dir -e . \
+    && mkdir -p /data \
+    && chown -R nonroot:nonroot /app /data
+
+USER nonroot
 
 EXPOSE 8000
 

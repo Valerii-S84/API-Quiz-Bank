@@ -38,6 +38,7 @@ They must remain separate from local pre-pilot evidence.
 | Critical alerts | Closed for current protected runtime as formal owner-review timer snapshots. External paging vendor remains optional/future. |
 | Incident drill | Closed for current protected runtime through production deploy/smoke, backup/restore and rollback/roll-forward drill evidence. |
 | Rollback execution | Closed for current PostgreSQL-capable runtime by rollback to `1a3ae1a0937d3c0acaff2b3f338be3286f7e6313` and roll-forward to `4f9ce996910f56aa37ede0007157011fa24fbf43`. |
+| Production security hardening | Repository-side hardening package is closed by `reports/security/production_hardening_review_2026-05-10.md`: nonroot/read-only container runtime, API rate-limit control, secret rotation policy, no-secrets scan, pip audit and Grype high/critical container scan gate. VPS redeploy, image digest capture and host SSH/firewall re-check remain operational verification. |
 | Production privacy/legal approval | Closed only for owner-operated protected production API runtime in `reports/compliance/legal_review_record.md` section 4.3. Unauthenticated broad public launch, school deployment and paid launch remain separate approval scopes. |
 
 ## Guardrail

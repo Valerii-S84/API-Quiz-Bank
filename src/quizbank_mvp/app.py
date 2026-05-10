@@ -5,13 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import FastAPI, Header
+from fastapi import FastAPI, Header, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import __version__
 from .auth import authenticate_consumer
 from .database import configured_database_url, configured_db_path, database_is_ready
+from .rate_limit import FixedWindowRateLimiter, delivery_rate_limit_key
 from .selection import QuizBankProblem, SelectionFilters, SelectionRequest, get_delivery, select_next_item
 from .taxonomy import level_catalog, topic_catalog
 
@@ -48,9 +49,10 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         version=__version__,
         summary="MVP runtime for governed quiz delivery.",
     )
+    rate_limiter = FixedWindowRateLimiter.from_environment()
     register_error_handlers(app)
     register_operations_routes(app, database_path)
-    register_delivery_routes(app, database_path)
+    register_delivery_routes(app, database_path, rate_limiter)
     return app
 
 
@@ -90,13 +92,25 @@ def register_operations_routes(app: FastAPI, database_path: Path) -> None:
         return {"data": topic_catalog()}
 
 
-def register_delivery_routes(app: FastAPI, database_path: Path) -> None:
+def register_delivery_routes(
+    app: FastAPI,
+    database_path: Path,
+    rate_limiter: FixedWindowRateLimiter,
+) -> None:
     @app.post("/v1/quiz-items/next", tags=["quiz-delivery"])
     def next_quiz_item(
+        request: Request,
         payload: NextQuizRequest,
         x_consumer_id: Annotated[str | None, Header()] = None,
         x_quizbank_api_key: Annotated[str | None, Header(alias="X-QuizBank-API-Key")] = None,
     ) -> dict[str, object]:
+        rate_limiter.check_delivery(
+            delivery_rate_limit_key(
+                request.client.host if request.client else None,
+                x_consumer_id or payload.consumer_id,
+                x_quizbank_api_key,
+            )
+        )
         authenticated = authenticate_consumer(
             database_path,
             x_consumer_id,

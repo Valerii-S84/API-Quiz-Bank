@@ -3,9 +3,8 @@
 ## Supported Scope
 
 This repository currently contains documentation, source CSV assets, governance
-data, seed contracts, local validation tooling and a protected public
-MVP/beta runtime path. It does not contain or claim a production runtime
-service.
+data, seed contracts, local validation tooling, a protected public MVP/beta
+runtime path and an owner-operated protected production API runtime path.
 
 Security-sensitive areas include:
 
@@ -47,7 +46,7 @@ For Public MVP / Protected Beta, the repository-visible contact posture is:
 
 ## Current Limitations
 
-No formal vulnerability disclosure program, SLA-backed support process or
-production incident process is configured. This closes only the protected
-Public MVP / Protected Beta contact gate; production security disclosure remains
-separate.
+No broad public, school, paid-customer or external legal/privacy production
+claim is covered by this policy. The supported production security scope is
+limited to the owner-operated protected API runtime behind the required edge
+and application API-key gates.
