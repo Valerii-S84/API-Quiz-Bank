@@ -39,6 +39,7 @@ class PostgreSQLSmokeReportTests(unittest.TestCase):
             [
                 "database/postgresql/001_create_runtime.sql",
                 "database/postgresql/002_add_import_contract.sql",
+                "database/postgresql/003_add_runtime_delivery_evidence.sql",
             ],
         )
         self.assertEqual(

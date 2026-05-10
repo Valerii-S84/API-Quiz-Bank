@@ -11,6 +11,9 @@ POSTGRESQL_RUNTIME_SQL = (
 POSTGRESQL_IMPORT_SQL = (
     ROOT / "database" / "postgresql" / "002_add_import_contract.sql"
 ).read_text(encoding="utf-8")
+POSTGRESQL_RUNTIME_EVIDENCE_SQL = (
+    ROOT / "database" / "postgresql" / "003_add_runtime_delivery_evidence.sql"
+).read_text(encoding="utf-8")
 
 
 class PostgreSQLContractTests(unittest.TestCase):
@@ -50,6 +53,17 @@ class PostgreSQLContractTests(unittest.TestCase):
             "accepted_candidate_count + rejected_candidate_count <= row_count_detected",
         ]:
             self.assertIn(required_fragment, POSTGRESQL_IMPORT_SQL)
+
+    def test_runtime_evidence_tables_support_selection_and_telegram_logs(self) -> None:
+        for required_fragment in [
+            "CREATE TABLE telegram_delivery_results",
+            "CREATE TABLE selection_decisions",
+            "filters_json JSONB NOT NULL",
+            "selected_score_json JSONB NOT NULL",
+            "blocked_reason_counts_json JSONB NOT NULL",
+            "idx_selection_decisions_consumer_created",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_RUNTIME_EVIDENCE_SQL)
 
     def test_import_batch_items_link_batches_to_quiz_items(self) -> None:
         for required_fragment in [

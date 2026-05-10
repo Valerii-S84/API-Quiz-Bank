@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .database import connect, utc_now
+from .database import connect, decode_json_field, utc_now
 
 
 def selection_analytics_snapshot(db_path: Path | None) -> dict[str, object]:
@@ -78,7 +78,7 @@ def no_candidate_reasons(connection) -> dict[str, int]:
 
 def reason_count(row: Any, key: str) -> int:
     try:
-        counts = json.loads(str(row["blocked_reason_counts_json"]))
-    except json.JSONDecodeError:
+        counts = decode_json_field(row["blocked_reason_counts_json"])
+    except (json.JSONDecodeError, TypeError):
         return 0
     return int(counts.get(key, 0))

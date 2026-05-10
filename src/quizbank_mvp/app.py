@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import __version__
 from .auth import authenticate_consumer
-from .database import configured_db_path, database_is_ready
+from .database import configured_database_url, configured_db_path, database_is_ready
 from .selection import QuizBankProblem, SelectionFilters, SelectionRequest, get_delivery, select_next_item
 from .taxonomy import level_catalog, topic_catalog
 
@@ -42,7 +42,7 @@ class NextQuizRequest(BaseModel):
 
 
 def create_app(db_path: Path | None = None) -> FastAPI:
-    database_path = db_path or configured_db_path()
+    database_path = db_path if db_path is not None or configured_database_url() else configured_db_path()
     app = FastAPI(
         title="API Quiz Bank",
         version=__version__,

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import re
 from typing import Any
 
+from .database import decode_json_field
 from .taxonomy import objective_label, pattern_label, theme_label
 
 
@@ -32,7 +32,7 @@ def build_learner_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
             "prompt": prompt,
             "stem": stem,
         },
-        "options": public_options(json.loads(item["options_json"])),
+        "options": public_options(decode_json_field(item["options_json"])),
         "cefr_level": level,
         "theme": theme,
         "objective": objective,
@@ -54,7 +54,7 @@ def build_telegram_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
     stem = str(item["stem_text"]).strip()
     return {
         "question": question_text(prompt, stem),
-        "options": [str(option) for option in json.loads(item["options_json"])],
+        "options": [str(option) for option in decode_json_field(item["options_json"])],
         "explanation": str(item["explanation"]).strip(),
     }
 
@@ -70,7 +70,7 @@ def build_admin_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
         "status": str(item["status"]),
         "prompt": str(item["prompt"]),
         "stem_text": str(item["stem_text"]),
-        "options": json.loads(item["options_json"]),
+        "options": decode_json_field(item["options_json"]),
         "source_traceability": {
             "source_id": str(item["source_id"]),
             "source_type": str(item.get("resolved_source_type", item.get("source_type", ""))),

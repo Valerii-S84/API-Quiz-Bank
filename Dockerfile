@@ -19,4 +19,4 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python -m quizbank_mvp.cli --db-path \"$QUIZBANK_DB_PATH\" init-db && python -m quizbank_mvp.cli --db-path \"$QUIZBANK_DB_PATH\" seed-demo && uvicorn quizbank_mvp.app:app --host \"${QUIZBANK_HOST:-0.0.0.0}\" --port \"${QUIZBANK_PORT:-8000}\""]
+CMD ["sh", "-c", "python -m quizbank_mvp.cli init-db && python -m quizbank_mvp.cli seed-demo && uvicorn quizbank_mvp.app:app --host \"${QUIZBANK_HOST:-0.0.0.0}\" --port \"${QUIZBANK_PORT:-8000}\""]

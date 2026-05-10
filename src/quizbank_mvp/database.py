@@ -1,10 +1,11 @@
-"""SQLite persistence for the MVP runtime."""
+"""Database persistence for the MVP runtime."""
 
 from __future__ import annotations
 
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import uuid
 from collections.abc import Iterable
@@ -15,6 +16,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS_DIRECTORY = ROOT / "database" / "migrations"
+POSTGRESQL_MIGRATIONS_DIRECTORY = ROOT / "database" / "postgresql"
 DEFAULT_DB_PATH = ROOT / "var" / "quizbank_mvp.sqlite3"
 DELIVERABLE_STATUSES = ("approved", "published")
 ALLOWED_TRANSITIONS = {
@@ -33,6 +35,10 @@ def configured_db_path() -> Path:
     return Path(os.environ.get("QUIZBANK_DB_PATH", DEFAULT_DB_PATH)).resolve()
 
 
+def configured_database_url() -> str | None:
+    return os.environ.get("QUIZBANK_DATABASE_URL") or os.environ.get("DATABASE_URL")
+
+
 def utc_now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -41,7 +47,9 @@ def new_id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:16]}"
 
 
-def connect(db_path: Path | None = None) -> sqlite3.Connection:
+def connect(db_path: Path | None = None):
+    if db_path is None and configured_database_url():
+        return connect_postgresql(configured_database_url() or "")
     path = (db_path or configured_db_path()).resolve()
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
@@ -49,7 +57,51 @@ def connect(db_path: Path | None = None) -> sqlite3.Connection:
     return connection
 
 
-def initialize_database(db_path: Path | None = None) -> Path:
+def connect_postgresql(database_url: str):
+    try:
+        import psycopg
+        from psycopg.rows import dict_row
+    except ImportError as error:  # pragma: no cover - exercised in deployment image
+        raise RuntimeError("PostgreSQL runtime requires psycopg") from error
+    connection = psycopg.connect(database_url, row_factory=dict_row)
+    return PostgreSQLConnection(connection)
+
+
+class PostgreSQLConnection:
+    def __init__(self, connection) -> None:
+        self.connection = connection
+
+    def __enter__(self) -> "PostgreSQLConnection":
+        self.connection.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.connection.__exit__(exc_type, exc_value, traceback)
+        self.connection.close()
+
+    def execute(self, sql: str, parameters: Any = None):
+        translated_sql = translate_sqlite_placeholders(sql, parameters)
+        return self.connection.execute(translated_sql, parameters)
+
+    def executescript(self, script: str) -> None:
+        self.connection.execute(script)
+
+    def rollback(self) -> None:
+        self.connection.rollback()
+
+
+def translate_sqlite_placeholders(sql: str, parameters: Any = None) -> str:
+    if isinstance(parameters, dict):
+        return re.sub(r":([A-Za-z_][A-Za-z0-9_]*)", r"%(\1)s", sql)
+    if parameters is not None:
+        return sql.replace("?", "%s")
+    return sql
+
+
+def initialize_database(db_path: Path | None = None):
+    if db_path is None and configured_database_url():
+        initialize_postgresql_database()
+        return "postgresql"
     path = (db_path or configured_db_path()).resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     with connect(path) as connection:
@@ -59,6 +111,8 @@ def initialize_database(db_path: Path | None = None) -> Path:
 
 
 def database_is_ready(db_path: Path | None = None) -> bool:
+    if db_path is None and configured_database_url():
+        return postgresql_is_ready()
     path = (db_path or configured_db_path()).resolve()
     if not path.exists():
         return False
@@ -66,6 +120,53 @@ def database_is_ready(db_path: Path | None = None) -> bool:
         rows = connection.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table'"
         ).fetchall()
+    table_names = {row["name"] for row in rows}
+    return {
+        "quiz_items",
+        "consumers",
+        "api_credentials",
+        "deliveries",
+        "selection_decisions",
+    }.issubset(table_names)
+
+
+def initialize_postgresql_database() -> None:
+    with connect(None) as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                migration_id TEXT PRIMARY KEY,
+                applied_at TIMESTAMPTZ NOT NULL
+            )
+            """
+        )
+        for migration_path in sorted(POSTGRESQL_MIGRATIONS_DIRECTORY.glob("*.sql")):
+            migration_id = migration_path.name
+            row = connection.execute(
+                "SELECT migration_id FROM schema_migrations WHERE migration_id = ?",
+                (migration_id,),
+            ).fetchone()
+            if row is not None:
+                continue
+            connection.executescript(migration_path.read_text(encoding="utf-8"))
+            connection.execute(
+                "INSERT INTO schema_migrations (migration_id, applied_at) VALUES (?, ?)",
+                (migration_id, utc_now()),
+            )
+
+
+def postgresql_is_ready() -> bool:
+    try:
+        with connect(None) as connection:
+            rows = connection.execute(
+                """
+                SELECT table_name AS name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                """
+            ).fetchall()
+    except Exception:
+        return False
     table_names = {row["name"] for row in rows}
     return {
         "quiz_items",
@@ -357,3 +458,9 @@ def today_usage_date() -> str:
 
 def row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
     return {key: row[key] for key in row.keys()}
+
+
+def decode_json_field(value: Any) -> Any:
+    if isinstance(value, (dict, list)):
+        return value
+    return json.loads(str(value))

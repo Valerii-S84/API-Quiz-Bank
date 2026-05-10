@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -11,6 +10,7 @@ from typing import Any
 from .database import (
     DELIVERABLE_STATUSES,
     connect,
+    decode_json_field,
     new_id,
     row_to_dict,
     today_usage_date,
@@ -267,12 +267,12 @@ def load_active_entitlement(connection, request: SelectionRequest) -> dict[str, 
 
 def enforce_consumer_scope(consumer: dict[str, Any], request: SelectionRequest) -> None:
     enforce_scope_list(
-        json.loads(consumer["allowed_cefr_levels_json"]),
+        decode_json_field(consumer["allowed_cefr_levels_json"]),
         [request.cefr_level] if request.cefr_level else [],
         "CONSUMER_LEVEL_NOT_ALLOWED",
     )
     enforce_scope_list(
-        json.loads(consumer["allowed_theme_ids_json"]),
+        decode_json_field(consumer["allowed_theme_ids_json"]),
         list(request.theme_ids),
         "CONSUMER_THEME_NOT_ALLOWED",
     )
@@ -280,12 +280,12 @@ def enforce_consumer_scope(consumer: dict[str, Any], request: SelectionRequest) 
 
 def enforce_entitlement_scope(entitlement: dict[str, Any], request: SelectionRequest) -> None:
     enforce_scope_list(
-        json.loads(entitlement["allowed_cefr_levels_json"]),
+        decode_json_field(entitlement["allowed_cefr_levels_json"]),
         [request.cefr_level] if request.cefr_level else [],
         "ENTITLEMENT_LEVEL_NOT_ALLOWED",
     )
     enforce_scope_list(
-        json.loads(entitlement["allowed_theme_ids_json"]),
+        decode_json_field(entitlement["allowed_theme_ids_json"]),
         list(request.theme_ids),
         "ENTITLEMENT_THEME_NOT_ALLOWED",
     )
@@ -383,7 +383,7 @@ def find_eligible_item(
                    WHERE d_all.quiz_item_id = qi.item_id
                ) AS delivery_count,
                COALESCE((
-                   SELECT MAX(d_last.selected_at)
+                   SELECT CAST(MAX(d_last.selected_at) AS TEXT)
                    FROM deliveries d_last
                    WHERE d_last.quiz_item_id = qi.item_id
                ), '') AS last_delivered_at,
