@@ -1,13 +1,13 @@
 # Backup and Restore Operational Runbook
 
-Status: protected beta SQLite protocol executed on the VPS; production managed
-database profile remains not executed.
+Status: protected beta SQLite protocol executed on the VPS plus
+owner-operated protected production PostgreSQL backup/restore protocol.
 
 ## Scope
 
 This runbook defines the operational backup/restore protocol for protected beta
-execution. It extends local MVP notes but does not prove production managed
-database backup readiness.
+execution and the owner-operated protected production PostgreSQL runtime. It
+does not approve broad public, school or paid launch backup claims.
 
 ## Backup Preconditions
 
@@ -55,9 +55,8 @@ Required evidence:
 
 ## PostgreSQL Production-Like Profile
 
-Use `database/postgresql/001_create_runtime.sql` for the isolated
-production-like schema profile. The target must be a non-production PostgreSQL
-database with credentials supplied outside the repository.
+Use `database/postgresql/001_create_runtime.sql` for the isolated schema
+profile. Production credentials must be supplied outside the repository.
 
 Minimum init command:
 
@@ -82,6 +81,56 @@ pg_restore --dbname="$QUIZBANK_RESTORE_DATABASE" --clean --if-exists "$BACKUP_PA
 The restore drill is not closed until readiness and a minimal delivery behavior
 check run against the restored database target.
 
+## Protected Production PostgreSQL Backup Command
+
+Use `scripts/api_quiz_bank_postgres_backup.sh` for the owner-operated protected
+runtime.
+
+Required environment controls:
+
+| Variable | Purpose |
+|---|---|
+| `API_QUIZ_BANK_BACKUP_RETENTION_DAYS` | local/offsite cleanup window, default `30` |
+| `API_QUIZ_BANK_BACKUP_OFFSITE_DIR` | off-server mounted path or managed-backup export target |
+| `API_QUIZ_BANK_BACKUP_ENCRYPTION_KEY_FILE` | optional secret key file for encrypted artifacts |
+| `API_QUIZ_BANK_BACKUP_CREATED_BY` | job/operator label in metadata |
+
+The backup command writes:
+
+- PostgreSQL custom dump or encrypted dump;
+- `.meta` sidecar with size, checksum, retention, storage and restore status;
+- offsite copy when `API_QUIZ_BANK_BACKUP_OFFSITE_DIR` is configured;
+- retention cleanup for matching backup artifacts.
+
+## Protected Production Restore Drill Cadence
+
+Use `scripts/api_quiz_bank_postgres_restore_drill.sh` at least every 30 days for
+the owner-operated protected production runtime.
+
+Required environment controls:
+
+| Variable | Purpose |
+|---|---|
+| `API_QUIZ_BANK_POSTGRES_BACKUP_PATH` | selected backup artifact |
+| `API_QUIZ_BANK_RESTORE_DRILL_REPORT_DIR` | restore drill report directory |
+| `API_QUIZ_BANK_RESTORE_DRILL_INTERVAL_DAYS` | required cadence, default `30` |
+| `API_QUIZ_BANK_RESTORE_DRILL_OWNER` | accountable operator |
+
+Each drill must restore into an isolated database, verify required runtime
+tables and write a report with owner, source backup, target database, status and
+next due interval.
+
+## Protected Production RPO/RTO
+
+| Scope | Target |
+|---|---|
+| RPO | 24 hours for owner-operated protected production runtime |
+| RTO | same business day for owner-operated protected production runtime |
+| Restore drill cadence | at least every 30 days |
+| Retention | 30 days local/offsite default unless legal/privacy policy narrows it |
+| Off-server backup | required by offsite copy or managed provider evidence |
+| Encryption | provider encryption or script-level encrypted artifact |
+
 ## Failure Handling
 
 - If backup fails, pilot launch is no-go.
@@ -92,6 +141,8 @@ check run against the restored database target.
 
 ## Non-Closure Rule
 
-SQLite restore evidence closes only the Public MVP / Protected Beta SQLite
-gate. It does not close production backup/restore readiness for a managed
-database environment.
+This runbook closes database operations only for the owner-operated protected
+production API runtime when the timer, offsite/managed backup evidence,
+retention cleanup, encryption policy and periodic restore drill evidence are
+recorded. Broader public, school, paid or scale launch still requires separate
+managed-provider and legal/privacy review.

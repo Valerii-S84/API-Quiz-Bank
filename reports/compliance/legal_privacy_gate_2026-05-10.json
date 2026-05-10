@@ -1,0 +1,41 @@
+{
+  "approved_scope": "owner-operated protected production API runtime",
+  "blocked_scopes": [
+    "unauthenticated broad public launch",
+    "school deployment",
+    "EU learner-facing public production",
+    "paid public launch",
+    "external legal/privacy production claim"
+  ],
+  "checks": {
+    "deletion_export_workflow_exists": true,
+    "owner_protected_runtime_approval_recorded": true,
+    "privacy_notice_exists": true,
+    "request_register_exists": true,
+    "retention_schedule_exists": true
+  },
+  "decision": "GO protected runtime only; NO-GO broad legal/privacy launch",
+  "evidence": {
+    "legal_review_record": "reports/compliance/legal_review_record.md",
+    "pending_vendor_ids": [
+      "vendor_hosting",
+      "vendor_observability",
+      "vendor_backup",
+      "vendor_payment"
+    ],
+    "privacy_notice": "policies/privacy_notice_baseline.md",
+    "privacy_request_register_rows": 0,
+    "privacy_request_workflow": "runbooks/privacy_request_workflow.md",
+    "production_retention_rows": 10,
+    "retention_data_families": 10,
+    "retention_schedule": "data/governance/privacy_retention_schedule.csv",
+    "vendor_rows": 5
+  },
+  "generated_at": "2026-05-10T00:00:00+00:00",
+  "production_legal_privacy_blockers": [
+    "exact public customer legal entity and jurisdiction are not finalized",
+    "broad public, school, EU learner-facing and paid launch reviews remain pending",
+    "hosting, observability, backup or payment vendors remain pending"
+  ],
+  "report_type": "legal_privacy_gate"
+}

@@ -1,0 +1,34 @@
+{
+  "auth_no_key_status": 401,
+  "concurrent_consumers": 8,
+  "concurrent_delivery_statuses": [
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200
+  ],
+  "decision": "GO local protected-runtime load smoke; NO-GO real scale claim",
+  "generated_at": "2026-05-10T00:00:00+00:00",
+  "quota_denial_status": 429,
+  "ready_status": 200,
+  "repeat_selection_status": 404,
+  "report_type": "protected_runtime_load_smoke",
+  "resource_limits": {
+    "api_cpu_limit": true,
+    "api_mem_limit": true,
+    "postgres_cpu_limit": true,
+    "postgres_mem_limit": true
+  },
+  "scale_blockers": [
+    "local TestClient smoke is not production traffic",
+    "external concurrent traffic test is not executed",
+    "large corpus approved/published production volume remains NO-GO"
+  ],
+  "status_counts": {
+    "200": 8
+  }
+}

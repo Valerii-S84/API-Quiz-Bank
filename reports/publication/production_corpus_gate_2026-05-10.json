@@ -1,0 +1,100 @@
+{
+  "approved_published_snapshot": {
+    "coverage_cells": [],
+    "item_count": 0,
+    "level_counts": {
+      "A1": 0,
+      "A2": 0,
+      "B1": 0,
+      "B2": 0,
+      "C1": 0,
+      "C2": 0
+    },
+    "pattern_counts": {
+      "P01": 0,
+      "P02": 0,
+      "P03": 0,
+      "P04": 0,
+      "P05": 0,
+      "P06": 0,
+      "P07": 0,
+      "P08": 0,
+      "P09": 0,
+      "P10": 0,
+      "P11": 0,
+      "P12": 0
+    },
+    "sample_item_ids": [],
+    "statuses": [
+      "approved",
+      "published"
+    ],
+    "theme_counts": {
+      "T01": 0,
+      "T02": 0,
+      "T03": 0,
+      "T04": 0,
+      "T05": 0,
+      "T06": 0,
+      "T07": 0,
+      "T08": 0,
+      "T09": 0,
+      "T10": 0,
+      "T11": 0,
+      "T12": 0,
+      "T13": 0,
+      "T14": 0,
+      "T15": 0,
+      "T16": 0,
+      "T17": 0,
+      "T18": 0
+    }
+  },
+  "decision": "NO-GO production corpus volume",
+  "generated_at": "2026-05-10T00:00:00+00:00",
+  "negative_controls": {
+    "current_corpus_counts": {
+      "blocked": 0,
+      "draft": 30974,
+      "retired": 0
+    },
+    "non_deliverable_statuses": [
+      "draft",
+      "blocked",
+      "retired"
+    ],
+    "required_after_real_import": [
+      "draft items are not selected",
+      "blocked items are not selected",
+      "retired items are not selected",
+      "approved/published items retain source traceability"
+    ],
+    "runtime_test_refs": [
+      "tests/test_mvp_runtime.py::test_retired_items_are_not_delivery_eligible",
+      "tests/test_mvp_runtime.py::test_blocked_items_are_not_delivery_eligible",
+      "tests/test_reports_selection_invariants.py::test_selection_smoke_report_is_current"
+    ]
+  },
+  "production_content_blockers": [
+    "approved/published production corpus snapshot is empty",
+    "real production import negative controls must be rerun after import",
+    "owner approval is required before corpus status promotion"
+  ],
+  "report_type": "production_corpus_gate",
+  "source": {
+    "active_bank_files": 115,
+    "active_rows": 30974,
+    "quizbank_dir": "QuizBank"
+  },
+  "status_counts": {
+    "approved": 0,
+    "blocked": 0,
+    "draft": 30974,
+    "imported": 0,
+    "monitored": 0,
+    "needs_review": 0,
+    "normalized": 0,
+    "published": 0,
+    "retired": 0
+  }
+}

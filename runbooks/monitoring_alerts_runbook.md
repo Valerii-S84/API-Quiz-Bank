@@ -1,13 +1,14 @@
 # Monitoring and Alerts Runbook
 
-Status: Public MVP / Protected Beta owner-review monitoring protocol; not a
-production monitoring system.
+Status: Public MVP / Protected Beta owner-review monitoring protocol plus
+owner-operated protected production runtime monitor/alert contract.
 
 ## Scope
 
-This runbook defines monitoring and alert expectations for controlled pilot and
-Public MVP / Protected Beta operation. It records an owner-reviewed monitoring
-surface, not an external dashboard or production alerting system.
+This runbook defines monitoring and alert expectations for controlled pilot,
+Public MVP / Protected Beta and the owner-operated protected production API
+runtime. The production path is limited to `X-API-Key` protected operation and
+does not approve broad public, school or paid launch.
 
 ## Minimum Pilot Signals
 
@@ -69,8 +70,54 @@ This surface covers health, readiness, smoke result, delivery/credential
 failure signals, auth failures, quota denial, backup timer status, backup
 result, restore drill result and rollback/disable evidence.
 
+## Protected Production Monitor Contract
+
+The protected production runtime monitor is
+`scripts/api_quiz_bank_production_monitor_snapshot.sh`.
+
+It records a timestamped Markdown snapshot under
+`API_QUIZ_BANK_MONITOR_REPORT_DIR` and fails the timer run when any required
+production signal is outside the expected boundary.
+
+Required protected production signals:
+
+- public `/health` without `X-API-Key` returns `401`;
+- protected `/health` with `X-API-Key` returns `200`;
+- protected `/ready` with `X-API-Key` returns `200`;
+- public delivery request without `X-API-Key` returns `401`;
+- API container is `running/healthy`;
+- PostgreSQL container is `running/healthy`;
+- PostgreSQL backup timer is `active`;
+- latest PostgreSQL backup service result is `success/0`;
+- disk usage is at or below `API_QUIZ_BANK_DISK_USED_MAX_PERCENT`;
+- available memory is at or above `API_QUIZ_BANK_MEM_AVAILABLE_MIN_MB`;
+- API and PostgreSQL container restart counts are at or below
+  `API_QUIZ_BANK_CONTAINER_RESTART_MAX`.
+
+Failure notification:
+
+- set `API_QUIZ_BANK_ALERT_WEBHOOK_URL` to an owner-controlled webhook endpoint;
+- the monitor sends a text/plain failure notification with timestamp, report
+  path and failed checks;
+- the webhook URL and API key are not written to monitor reports or alert
+  payloads;
+- if the webhook is not configured, the monitor still records failure and exits
+  non-zero for systemd/provider timer alerting.
+
+Covered alert classes:
+
+- `/ready` failure;
+- backup timer or latest backup service failure;
+- disk pressure;
+- low memory;
+- API/PostgreSQL container health failure;
+- API/PostgreSQL container restart anomaly;
+- protected-route auth boundary failure.
+
 ## Non-Closure Rule
 
-This runbook does not close production monitoring readiness. Production
-monitoring readiness requires an external log source, dashboard, alert rule,
-incident owner and production drill evidence.
+This runbook closes monitoring/alerting only for the owner-operated protected
+production API runtime when the monitor timer is active and either the webhook
+is configured or the timer provider surfaces non-zero exits to the named owner.
+External SaaS dashboarding, paging vendor integration and broader launch
+monitoring remain separate scale decisions.
