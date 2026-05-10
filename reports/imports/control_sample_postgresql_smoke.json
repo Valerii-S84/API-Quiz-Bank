@@ -18,7 +18,8 @@
   "report_type": "postgresql_contract_smoke",
   "schema_files": [
     "database/postgresql/001_create_runtime.sql",
-    "database/postgresql/002_add_import_contract.sql"
+    "database/postgresql/002_add_import_contract.sql",
+    "database/postgresql/003_add_runtime_delivery_evidence.sql"
   ],
   "source_artifacts": {
     "canonical_input_path": "data/imports/control_sample_items.jsonl",

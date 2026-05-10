@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import __version__
 from .auth import authenticate_consumer
-from .database import configured_db_path, database_is_ready
+from .database import configured_database_url, configured_db_path, database_is_ready
 from .selection import QuizBankProblem, SelectionFilters, SelectionRequest, get_delivery, select_next_item
 from .taxonomy import level_catalog, topic_catalog
 
@@ -42,7 +42,7 @@ class NextQuizRequest(BaseModel):
 
 
 def create_app(db_path: Path | None = None) -> FastAPI:
-    database_path = db_path or configured_db_path()
+    database_path = db_path if db_path is not None or configured_database_url() else configured_db_path()
     app = FastAPI(
         title="API Quiz Bank",
         version=__version__,
@@ -136,6 +136,9 @@ def next_quiz_response(consumer_id: str, result: dict[str, object]) -> dict[str,
     delivery = result["delivery"]
     if not isinstance(delivery, dict):
         raise TypeError("delivery result must be a dictionary")
+    selection_decision = result.get("selection_decision", {})
+    if not isinstance(selection_decision, dict):
+        raise TypeError("selection decision result must be a dictionary")
     return {
         "delivery_id": delivery["delivery_id"],
         "consumer_id": consumer_id,
@@ -149,7 +152,20 @@ def next_quiz_response(consumer_id: str, result: dict[str, object]) -> dict[str,
             "entitlement_checked": True,
             "quota_checked": True,
             "repeat_policy_applied": True,
+            "decision": public_selection_decision(selection_decision),
         },
+    }
+
+
+def public_selection_decision(decision: dict[str, object]) -> dict[str, object]:
+    return {
+        "selection_request_id": decision.get("selection_request_id"),
+        "candidate_count": decision.get("candidate_count"),
+        "eligible_count": decision.get("eligible_count"),
+        "selected_reason": decision.get("selected_reason"),
+        "selected_score": decision.get("selected_score", {}),
+        "blocked_reason_counts": decision.get("blocked_reason_counts", {}),
+        "fallback_reason_code": decision.get("fallback_reason_code"),
     }
 
 

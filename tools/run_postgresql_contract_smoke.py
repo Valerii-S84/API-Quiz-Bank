@@ -232,6 +232,7 @@ def psql(container_name: str, args: list[str], stdin: str | None = None) -> str:
 def apply_schema(container_name: str) -> None:
     psql(container_name, ["-f", "/schema/001_create_runtime.sql"])
     psql(container_name, ["-f", "/schema/002_add_import_contract.sql"])
+    psql(container_name, ["-f", "/schema/003_add_runtime_delivery_evidence.sql"])
 
 
 def query_scalar(container_name: str, sql: str) -> str:
@@ -287,6 +288,7 @@ def build_report(
         "schema_files": [
             "database/postgresql/001_create_runtime.sql",
             "database/postgresql/002_add_import_contract.sql",
+            "database/postgresql/003_add_runtime_delivery_evidence.sql",
         ],
         "source_artifacts": {
             "load_plan_path": load_plan_path.as_posix(),
