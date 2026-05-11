@@ -8,7 +8,7 @@ The project is not a raw CSV delivery layer. Raw CSV files under `QuizBank/` are
 
 - Active source bank files: `115`
 - Active rows/items: `30,974`
-- Active item status in the current corpus: `draft`
+- Active item status in the current corpus: `published`
 - Generated corpus report: `QuizBank/README.md`
 - Project law: `CONSTITUTION.md`
 - Agent rules: `.agent/AGENTS.md`

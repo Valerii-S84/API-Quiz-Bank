@@ -59,7 +59,7 @@ class CorpusInventoryInvariantTests(unittest.TestCase):
             self.assertEqual(source["path"], inventory_row["path"])
             self.assertEqual(source["parser_profile_id"], PARSER_PROFILE_ID)
             self.assertEqual(source["source_state"], "active")
-            self.assertEqual(source["default_status"], "draft")
+            self.assertEqual(source["default_status"], "published")
             self.assertEqual(source["checksum_sha256"], checksum_row["checksum"])
             self.assertEqual(source["checksum_sha256"], inventory_row["checksum_sha256"])
             self.assertEqual(source["row_count_detected"], inventory_row["row_count_detected"])

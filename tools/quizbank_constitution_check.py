@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import json
 from collections import Counter
+from pathlib import Path
 
 from quizbank_common import (
     CANONICAL_LEVELS,
@@ -16,12 +18,26 @@ from quizbank_common import (
 )
 
 
-def check_inventory(inventory) -> dict[str, list[str]]:
+DEFAULT_OWNER_APPROVAL_PATH = Path("reports/publication/owner_corpus_approval_2026-05-11.json")
+
+
+def owner_approval_allows_production_statuses(path: Path, inventory) -> bool:
+    if not path.exists():
+        return False
+    report = json.loads(path.read_text(encoding="utf-8"))
+    return (
+        report.get("conclusion") == "corpus is eligible for production promotion"
+        and report.get("active_bank_files") == len(inventory.active_sources)
+        and report.get("active_rows") == inventory.active_row_count
+    )
+
+
+def check_inventory(inventory, allow_production_statuses: bool = False) -> dict[str, list[str]]:
     violations: dict[str, list[str]] = {
         "header_mismatch": [],
         "invalid_level": [],
         "invalid_status": [],
-        "non_draft_active_item": [],
+        "non_draft_active_item_without_owner_approval": [],
         "missing_item_id": [],
         "duplicate_item_id": [],
     }
@@ -44,8 +60,10 @@ def check_inventory(inventory) -> dict[str, list[str]]:
                 violations["invalid_level"].append(f"{filename}:{line_number}:{level}")
             if status not in ITEM_STATUSES:
                 violations["invalid_status"].append(f"{filename}:{line_number}:{status}")
-            if status != "draft":
-                violations["non_draft_active_item"].append(f"{filename}:{line_number}:{status}")
+            if status != "draft" and not allow_production_statuses:
+                violations["non_draft_active_item_without_owner_approval"].append(
+                    f"{filename}:{line_number}:{status}"
+                )
 
     for item_id, count in item_ids.items():
         if count > 1:
@@ -56,11 +74,15 @@ def check_inventory(inventory) -> dict[str, list[str]]:
 
 def main() -> int:
     parser = build_arg_parser("Run QuizBank constitution checks.")
+    parser.add_argument("--owner-approval", default=DEFAULT_OWNER_APPROVAL_PATH, type=Path)
     args = parser.parse_args()
 
     inventory = load_inventory(args.quizbank_dir)
     summary = inventory_summary(inventory)
-    violations = check_inventory(inventory)
+    violations = check_inventory(
+        inventory,
+        owner_approval_allows_production_statuses(args.owner_approval, inventory),
+    )
     payload = {
         "active_bank_files": summary["active_bank_files"],
         "active_rows": summary["active_rows"],
@@ -83,4 +105,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

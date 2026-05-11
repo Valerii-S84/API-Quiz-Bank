@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+from collections import Counter
 from pathlib import Path
 
 from quizbank_common import (
@@ -19,7 +20,7 @@ from quizbank_common import (
 def write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer = csv.DictWriter(file, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -77,6 +78,7 @@ def manifest_text(inventory) -> str:
         "sources:",
     ]
     for source in inventory.active_sources:
+        default_status = source_default_status(inventory.rows_by_file[source.filename])
         lines.extend(
             [
                 f"  - source_id: {source.source_id}",
@@ -84,12 +86,19 @@ def manifest_text(inventory) -> str:
                 f"    parser_profile_id: {PARSER_PROFILE_ID}",
                 "    import_mode: dry_run",
                 "    source_state: active",
-                "    default_status: draft",
+                f"    default_status: {default_status}",
                 f"    checksum_sha256: {source.checksum_sha256}",
                 f"    row_count_detected: {source.row_count}",
             ]
         )
     return "\n".join(lines) + "\n"
+
+
+def source_default_status(rows: list[dict[str, str]]) -> str:
+    counts = Counter(row.get("status", "").strip() for row in rows)
+    if len(counts) == 1:
+        return next(iter(counts))
+    return "mixed"
 
 
 def parser_profiles_text() -> str:
@@ -172,4 +181,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

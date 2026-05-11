@@ -48,8 +48,8 @@ class ReportsSelectionInvariantTests(unittest.TestCase):
         self.assertEqual(report["report_type"], "coverage")
         self.assertEqual(report["source"]["active_bank_files"], 115)
         self.assertEqual(report["source"]["active_rows"], 30974)
-        self.assertEqual(report["status_counts"]["draft"], 30974)
-        self.assertEqual(report["status_counts"]["published"], 0)
+        self.assertEqual(report["status_counts"]["draft"], 0)
+        self.assertEqual(report["status_counts"]["published"], 30974)
         self.assertEqual(
             report["gap_summary"]["level_theme_total_cells"],
             len(CANONICAL_LEVELS) * len(THEME_TITLES),
