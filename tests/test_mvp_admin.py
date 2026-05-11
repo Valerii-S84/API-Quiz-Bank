@@ -1,0 +1,237 @@
+from __future__ import annotations
+
+import sys
+import tempfile
+import unittest
+from unittest import mock
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from quizbank_mvp.app import create_app  # noqa: E402
+from quizbank_mvp.cli import seed_admin as seed_owner_password  # noqa: E402
+from quizbank_mvp.database import (  # noqa: E402
+    connect,
+    initialize_database,
+    seed_admin_credential,
+    seed_control_fixture,
+)
+
+
+APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
+
+
+class MvpAdminCase(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_directory = tempfile.TemporaryDirectory()
+        self.db_path = Path(self.temp_directory.name) / "quizbank.sqlite3"
+        initialize_database(self.db_path)
+        self.client = TestClient(create_app(self.db_path))
+
+    def tearDown(self) -> None:
+        self.temp_directory.cleanup()
+
+    def seed_admin(self, actor: str = "admin_owner", role: str = "owner") -> str:
+        key = f"{actor}_admin_key"
+        seed_admin_credential(self.db_path, actor, role, key)
+        return key
+
+    def admin_headers(self, key: str) -> dict[str, str]:
+        return {"X-QuizBank-Admin-Key": key}
+
+
+class MvpAdminEndpointTests(MvpAdminCase):
+    def test_admin_routes_are_reflected_in_committed_openapi_seed(self) -> None:
+        committed_openapi = (ROOT / "api" / "openapi.yaml").read_text(encoding="utf-8")
+        app_paths = set(create_app(self.db_path).openapi()["paths"])
+
+        for path in [
+            "/admin",
+            "/v1/admin/dashboard",
+            "/v1/admin/quiz-items",
+            "/v1/admin/quiz-items/{item_id}",
+            "/v1/admin/quiz-items/{item_id}/approve",
+            "/v1/admin/quiz-items/{item_id}/publish",
+            "/v1/admin/quiz-items/{item_id}/retire",
+            "/v1/admin/quiz-items/{item_id}/block",
+            "/v1/admin/audit-log",
+            "/v1/admin/consumers",
+            "/v1/admin/consumers/{consumer_id}/suspend",
+            "/v1/admin/consumers/{consumer_id}/activate",
+            "/v1/admin/consumers/{consumer_id}/block",
+        ]:
+            self.assertIn(path, app_paths)
+            self.assertIn(f"  {path}:", committed_openapi)
+
+    def test_admin_panel_shell_is_available_without_data_access(self) -> None:
+        response = self.client.get("/admin")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("API Quiz Bank Admin", response.text)
+        self.assertIn("Admin password", response.text)
+
+    def test_admin_reads_require_admin_key(self) -> None:
+        response = self.client.get("/v1/admin/dashboard")
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()["reason_code"], "ADMIN_AUTH_REQUIRED")
+
+    def test_admin_key_is_hashed_and_can_read_dashboard(self) -> None:
+        key = self.seed_admin()
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+
+        response = self.client.get("/v1/admin/dashboard", headers=self.admin_headers(key))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["approved_published_count"], 1)
+        with connect(self.db_path) as connection:
+            credential = connection.execute("SELECT key_prefix, key_hash FROM admin_credentials").fetchone()
+        self.assertEqual(credential["key_prefix"], key[:12])
+        self.assertNotEqual(credential["key_hash"], key)
+
+    def test_read_only_reviewer_can_list_items_but_cannot_write(self) -> None:
+        key = self.seed_admin("reviewer", "read_only_reviewer")
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "draft")
+
+        list_response = self.client.get("/v1/admin/quiz-items", headers=self.admin_headers(key))
+        write_response = self.client.post(
+            "/v1/admin/quiz-items/approved_traceable_001/approve",
+            json={"reason": "reviewer cannot approve"},
+            headers=self.admin_headers(key),
+        )
+
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(list_response.json()["data"][0]["status"], "draft")
+        self.assertEqual(write_response.status_code, 403)
+        self.assertEqual(write_response.json()["reason_code"], "ADMIN_WRITE_DENIED")
+
+    def test_content_admin_can_approve_publish_and_create_audit_evidence(self) -> None:
+        key = self.seed_admin("content_admin", "content_admin")
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "draft")
+
+        approve = self.client.post(
+            "/v1/admin/quiz-items/approved_traceable_001/approve",
+            json={"reason": "metadata checked"},
+            headers=self.admin_headers(key),
+        )
+        publish = self.client.post(
+            "/v1/admin/quiz-items/approved_traceable_001/publish",
+            json={"reason": "ready for delivery"},
+            headers=self.admin_headers(key),
+        )
+
+        self.assertEqual(approve.status_code, 200)
+        self.assertEqual(publish.status_code, 200)
+        self.assertEqual(publish.json()["item"]["status"], "published")
+        self.assertEqual(publish.json()["audit"]["actor"], "content_admin")
+        self.assertEqual(self.audit_count(), 2)
+
+    def test_invalid_admin_transition_uses_problem_details(self) -> None:
+        key = self.seed_admin("content_admin", "content_admin")
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "draft")
+
+        response = self.client.post(
+            "/v1/admin/quiz-items/approved_traceable_001/publish",
+            json={"reason": "cannot publish draft directly"},
+            headers=self.admin_headers(key),
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.headers["content-type"], "application/problem+json")
+        self.assertEqual(response.json()["reason_code"], "ADMIN_INVALID_STATUS_TRANSITION")
+
+    def test_cli_owner_password_setup_allows_only_one_configured_admin(self) -> None:
+        first_args = AdminSeedArgs(self.db_path, reset=False)
+        with mock.patch("quizbank_mvp.cli.prompt_admin_password", return_value="owner_password"):
+            seed_owner_password(first_args)
+
+        response = self.client.get(
+            "/v1/admin/dashboard",
+            headers=self.admin_headers("owner_password"),
+        )
+        self.assertEqual(response.status_code, 200)
+        with self.assertRaises(SystemExit):
+            with mock.patch("quizbank_mvp.cli.prompt_admin_password", return_value="second_password"):
+                seed_owner_password(AdminSeedArgs(self.db_path, reset=False))
+
+    def test_cli_owner_password_reset_replaces_existing_admin_credentials(self) -> None:
+        seed_admin_credential(self.db_path, "old_admin", "owner", "old_password")
+
+        with mock.patch("quizbank_mvp.cli.prompt_admin_password", return_value="new_password"):
+            seed_owner_password(AdminSeedArgs(self.db_path, reset=True))
+
+        old_response = self.client.get("/v1/admin/dashboard", headers=self.admin_headers("old_password"))
+        new_response = self.client.get("/v1/admin/dashboard", headers=self.admin_headers("new_password"))
+        self.assertEqual(old_response.status_code, 401)
+        self.assertEqual(new_response.status_code, 200)
+
+    def test_owner_can_create_list_and_suspend_consumer_access(self) -> None:
+        key = self.seed_admin("owner", "owner")
+
+        create_response = self.client.post(
+            "/v1/admin/consumers",
+            json={
+                "consumer_id": "telegram_channel_a2",
+                "display_name": "A2 Telegram Channel",
+                "consumer_kind": "telegram_channel",
+                "daily_quota_limit": 3,
+                "allowed_cefr_levels": ["A2"],
+                "allowed_theme_ids": ["T10"],
+                "api_key": "channel_access_password",
+                "reason": "owner created Telegram channel access",
+            },
+            headers=self.admin_headers(key),
+        )
+        list_response = self.client.get("/v1/admin/consumers", headers=self.admin_headers(key))
+        suspend_response = self.client.post(
+            "/v1/admin/consumers/telegram_channel_a2/suspend",
+            json={"reason": "pause channel delivery"},
+            headers=self.admin_headers(key),
+        )
+
+        self.assertEqual(create_response.status_code, 200)
+        self.assertEqual(create_response.json()["consumer_kind"], "telegram_channel")
+        self.assertEqual(list_response.json()["data"][0]["display_name"], "A2 Telegram Channel")
+        self.assertEqual(suspend_response.status_code, 200)
+        self.assertEqual(suspend_response.json()["status"], "suspended")
+
+    def test_non_owner_admin_cannot_create_consumer_access(self) -> None:
+        key = self.seed_admin("content_admin", "content_admin")
+
+        response = self.client.post(
+            "/v1/admin/consumers",
+            json={
+                "consumer_id": "api_client_test",
+                "display_name": "API Client",
+                "consumer_kind": "api_client",
+                "daily_quota_limit": 1,
+                "allowed_cefr_levels": ["A2"],
+                "allowed_theme_ids": ["T10"],
+                "api_key": "api_client_password",
+                "reason": "should be owner-only",
+            },
+            headers=self.admin_headers(key),
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["reason_code"], "ADMIN_OWNER_REQUIRED")
+
+    def audit_count(self) -> int:
+        with connect(self.db_path) as connection:
+            row = connection.execute(
+                "SELECT COUNT(*) AS count FROM audit_log WHERE entity_type = 'quiz_item'"
+            ).fetchone()
+        return int(row["count"])
+
+
+class AdminSeedArgs:
+    def __init__(self, db_path: Path, reset: bool) -> None:
+        self.db_path = db_path
+        self.reset = reset
+
+
+if __name__ == "__main__":
+    unittest.main()

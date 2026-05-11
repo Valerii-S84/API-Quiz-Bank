@@ -125,6 +125,8 @@ def database_is_ready(db_path: Path | None = None) -> bool:
         "quiz_items",
         "consumers",
         "api_credentials",
+        "admin_credentials",
+        "consumer_admin_profiles",
         "deliveries",
         "selection_decisions",
     }.issubset(table_names)
@@ -172,6 +174,8 @@ def postgresql_is_ready() -> bool:
         "quiz_items",
         "consumers",
         "api_credentials",
+        "admin_credentials",
+        "consumer_admin_profiles",
         "deliveries",
         "selection_decisions",
     }.issubset(table_names)
@@ -307,6 +311,45 @@ def seed_api_credential(
                 consumer_id,
                 api_key_prefix(raw_api_key),
                 hash_api_key(raw_api_key),
+                status,
+                utc_now(),
+            ),
+        )
+    return resolved_credential_id
+
+
+def seed_admin_credential(
+    db_path: Path | None,
+    actor: str,
+    role: str,
+    raw_admin_key: str,
+    credential_id: str | None = None,
+    status: str = "active",
+) -> str:
+    from .admin_auth import admin_key_prefix
+    from .auth import hash_api_key
+
+    resolved_credential_id = credential_id or f"admin_cred_{actor}"
+    with connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO admin_credentials (
+                credential_id, actor, role, key_prefix, key_hash, status,
+                created_at, revoked_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
+            ON CONFLICT(credential_id) DO UPDATE SET
+                role = excluded.role,
+                key_prefix = excluded.key_prefix,
+                key_hash = excluded.key_hash,
+                status = excluded.status,
+                revoked_at = NULL
+            """,
+            (
+                resolved_credential_id,
+                actor,
+                role,
+                admin_key_prefix(raw_admin_key),
+                hash_api_key(raw_admin_key),
                 status,
                 utc_now(),
             ),
