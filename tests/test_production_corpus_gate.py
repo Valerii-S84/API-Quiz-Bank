@@ -15,7 +15,7 @@ from tests.repository_test_support import (
 )
 
 
-REPORT_PATH = "reports/publication/production_corpus_gate_2026-05-10.json"
+REPORT_PATH = "reports/publication/production_corpus_gate_2026-05-11.json"
 
 
 class ProductionCorpusGateTests(unittest.TestCase):
@@ -38,20 +38,20 @@ class ProductionCorpusGateTests(unittest.TestCase):
         snapshot = report["approved_published_snapshot"]
 
         self.assertEqual(report["report_type"], "production_corpus_gate")
-        self.assertEqual(report["decision"], "NO-GO production corpus volume")
+        self.assertEqual(report["decision"], "GO production corpus volume")
         self.assertEqual(report["source"]["active_bank_files"], 115)
         self.assertEqual(report["source"]["active_rows"], 30974)
-        self.assertEqual(report["status_counts"]["draft"], 30974)
+        self.assertEqual(report["status_counts"]["draft"], 0)
+        self.assertEqual(report["status_counts"]["published"], 30974)
         self.assertEqual(set(report["status_counts"]), set(ITEM_STATUSES))
         self.assertEqual(snapshot["statuses"], list(NORMAL_DELIVERY_STATUSES))
-        self.assertEqual(snapshot["item_count"], 0)
+        self.assertEqual(snapshot["item_count"], 30974)
         self.assertEqual(set(snapshot["level_counts"]), set(CANONICAL_LEVELS))
         self.assertEqual(set(snapshot["theme_counts"]), set(THEME_TITLES))
-        self.assertEqual(snapshot["coverage_cells"], [])
-        self.assertIn(
-            "approved/published production corpus snapshot is empty",
-            report["production_content_blockers"],
-        )
+        self.assertGreater(len(snapshot["coverage_cells"]), 0)
+        self.assertEqual(report["production_content_blockers"], [])
+        self.assertTrue(report["owner_approval"]["valid_for_current_row_count"])
+        self.assertTrue(report["postgresql_content_proof"]["valid_for_deliverable_count"])
         self.assertEqual(
             report["negative_controls"]["non_deliverable_statuses"],
             ["draft", "blocked", "retired"],

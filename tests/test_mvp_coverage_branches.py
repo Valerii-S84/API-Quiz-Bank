@@ -120,6 +120,10 @@ class MvpCoverageBranchTests(unittest.TestCase):
                 "coverage",
             ),
         )
+        self.assertIn(
+            "seeded protected beta consumers: telegram_channel_deutsch_ist_einfach_quiz",
+            self.run_cli("seed-protected-beta"),
+        )
         self.assertIn('"action": "entitlement_grant"', self.run_cli("show-audit-log"))
 
     def test_cli_seed_demo_covers_demo_reset_path(self) -> None:

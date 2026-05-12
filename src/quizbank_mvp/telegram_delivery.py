@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import random
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -40,6 +42,7 @@ class TelegramDeliveryRequest:
     theme_ids: tuple[str, ...] = ()
     objective_ids: tuple[str, ...] = ()
     pattern_ids: tuple[str, ...] = ()
+    excluded_item_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -144,7 +147,7 @@ def selection_request_from_telegram(
             theme_ids=request.theme_ids,
             objective_ids=request.objective_ids,
             pattern_ids=request.pattern_ids,
-            excluded_item_ids=sent_item_ids_for_target(db_path, request.chat_id),
+            excluded_item_ids=telegram_excluded_item_ids(db_path, request),
         ),
         delivery_mode="telegram",
     )
@@ -212,8 +215,11 @@ def load_delivery_item(
 def build_telegram_poll_payload(chat_id: str, item: dict[str, Any]) -> dict[str, Any]:
     telegram_quiz = build_telegram_quiz_projection(item)
     question = str(telegram_quiz["question"])
-    options = list(telegram_quiz["options"])
-    correct_option_ids = parse_correct_option_ids(item["answer_key"], len(options))
+    options, correct_option_ids = shuffled_telegram_options(
+        list(telegram_quiz["options"]),
+        str(item["answer_key"]),
+        str(item["delivery_id"]),
+    )
     explanation = build_explanation(item)
     validate_telegram_poll(question, options, correct_option_ids, explanation)
     return {
@@ -245,6 +251,33 @@ def parse_correct_option_ids(answer_key: str, option_count: int) -> list[int]:
     if correct_option_id < 0 or correct_option_id >= option_count:
         raise TelegramDeliveryError("telegram_answer_key_out_of_range")
     return [correct_option_id]
+
+
+def shuffled_telegram_options(
+    options: list[str],
+    answer_key: str,
+    salt: str,
+) -> tuple[list[str], list[int]]:
+    correct_option_id = parse_correct_option_ids(answer_key, len(options))[0]
+    indexed_options = list(enumerate(options))
+    rng = random.Random(stable_shuffle_seed(options, answer_key, salt))
+    rng.shuffle(indexed_options)
+    shuffled_options = [option for _, option in indexed_options]
+    shuffled_correct_id = next(
+        index for index, (source_index, _) in enumerate(indexed_options)
+        if source_index == correct_option_id
+    )
+    return shuffled_options, [shuffled_correct_id]
+
+
+def stable_shuffle_seed(options: list[str], answer_key: str, salt: str) -> int:
+    serialized = json.dumps(
+        {"answer_key": answer_key, "options": options, "salt": salt},
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    digest = hashlib.sha256(serialized.encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "big")
 
 
 def validate_telegram_poll(
@@ -290,6 +323,14 @@ def telegram_api_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "explanation": payload["explanation"],
         "is_anonymous": payload["is_anonymous"],
     }
+
+
+def telegram_excluded_item_ids(
+    db_path: Path | None,
+    request: TelegramDeliveryRequest,
+) -> tuple[str, ...]:
+    excluded = [*sent_item_ids_for_target(db_path, request.chat_id), *request.excluded_item_ids]
+    return tuple(dict.fromkeys(excluded))
 
 
 def sent_item_ids_for_target(db_path: Path | None, chat_id: str) -> tuple[str, ...]:

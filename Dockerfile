@@ -1,4 +1,4 @@
-FROM cgr.dev/chainguard/python:latest-dev
+FROM cgr.dev/chainguard/python:latest-dev@sha256:d1dd83447d5113f8b3eeb67c4863db2c8198952ec78fd643c1b3844f0d7cb36c
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -12,6 +12,7 @@ WORKDIR /app
 COPY --chown=nonroot:nonroot pyproject.toml README.md ./
 COPY --chown=nonroot:nonroot src ./src
 COPY --chown=nonroot:nonroot database ./database
+COPY --chown=nonroot:nonroot tools/quizbank_common.py tools/import_production_corpus_to_runtime.py ./tools/
 COPY --chown=nonroot:nonroot tests/fixtures/selection ./tests/fixtures/selection
 
 USER root
@@ -24,4 +25,5 @@ USER nonroot
 
 EXPOSE 8000
 
+ENTRYPOINT []
 CMD ["sh", "-c", "python -m quizbank_mvp.cli init-db && python -m quizbank_mvp.cli seed-demo && uvicorn quizbank_mvp.app:app --host \"${QUIZBANK_HOST:-0.0.0.0}\" --port \"${QUIZBANK_PORT:-8000}\""]

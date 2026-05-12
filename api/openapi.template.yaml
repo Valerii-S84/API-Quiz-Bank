@@ -202,7 +202,364 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+  /admin:
+    get:
+      operationId: getAdminPanel
+      summary: Return the minimal browser shell for governed admin operations.
+      tags:
+        - admin
+      responses:
+        '200':
+          description: Admin panel HTML shell.
+          content:
+            text/html:
+              schema:
+                type: string
+  /v1/admin/dashboard:
+    get:
+      operationId: getAdminDashboard
+      summary: Return MVP admin dashboard counts.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+      responses:
+        '200':
+          description: Admin dashboard counts.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDashboardResponse'
+        '401':
+          description: Missing or invalid admin credentials.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /v1/admin/quiz-items:
+    get:
+      operationId: listAdminQuizItems
+      summary: List admin quiz item projections with controlled filters.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, imported, normalized, needs_review, approved, published, monitored, retired, blocked]
+        - name: cefr_level
+          in: query
+          schema:
+            type: string
+            enum: [A1, A2, B1, B2, C1, C2]
+        - name: theme_id
+          in: query
+          schema:
+            type: string
+            pattern: '^T(0[1-9]|1[0-8])$'
+        - name: source_id
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Admin quiz item list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminQuizItemListResponse'
+        '401':
+          description: Missing or invalid admin credentials.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /v1/admin/quiz-items/{item_id}:
+    get:
+      operationId: getAdminQuizItem
+      summary: Read one admin quiz item projection.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - name: item_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Admin quiz item projection.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminQuizItemProjection'
+        '404':
+          description: Quiz item not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /v1/admin/quiz-items/{item_id}/approve:
+    post:
+      operationId: approveAdminQuizItem
+      summary: Approve a quiz item through the audited admin workflow.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminItemId'
+      requestBody:
+        $ref: '#/components/requestBodies/AdminStatusChange'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminStatusChangeOk'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+        '409':
+          $ref: '#/components/responses/AdminInvalidTransition'
+  /v1/admin/quiz-items/{item_id}/publish:
+    post:
+      operationId: publishAdminQuizItem
+      summary: Publish a quiz item through the audited admin workflow.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminItemId'
+      requestBody:
+        $ref: '#/components/requestBodies/AdminStatusChange'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminStatusChangeOk'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+        '409':
+          $ref: '#/components/responses/AdminInvalidTransition'
+  /v1/admin/quiz-items/{item_id}/retire:
+    post:
+      operationId: retireAdminQuizItem
+      summary: Retire a quiz item through the audited admin workflow.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminItemId'
+      requestBody:
+        $ref: '#/components/requestBodies/AdminStatusChange'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminStatusChangeOk'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+        '409':
+          $ref: '#/components/responses/AdminInvalidTransition'
+  /v1/admin/quiz-items/{item_id}/block:
+    post:
+      operationId: blockAdminQuizItem
+      summary: Block a quiz item through the audited admin workflow.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminItemId'
+      requestBody:
+        $ref: '#/components/requestBodies/AdminStatusChange'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminStatusChangeOk'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+        '409':
+          $ref: '#/components/responses/AdminInvalidTransition'
+  /v1/admin/audit-log:
+    get:
+      operationId: listAdminAuditLog
+      summary: List recent audit events for admin review.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Recent audit events.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogListResponse'
+        '401':
+          description: Missing or invalid admin credentials.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /v1/admin/consumers:
+    get:
+      operationId: listAdminConsumers
+      summary: List consumers, channels and bots with usage counts.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Admin consumer list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminConsumerListResponse'
+    post:
+      operationId: createAdminConsumer
+      summary: Create consumer, channel or bot access as owner.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminConsumerCreateRequest'
+      responses:
+        '200':
+          description: Created consumer access.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminConsumerProjection'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+  /v1/admin/consumers/{consumer_id}/suspend:
+    post:
+      operationId: suspendAdminConsumer
+      summary: Suspend consumer, channel or bot access as owner.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminConsumerId'
+      requestBody:
+        $ref: '#/components/requestBodies/AdminStatusChange'
+      responses:
+        '200':
+          description: Updated consumer status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminConsumerProjection'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+  /v1/admin/consumers/{consumer_id}/activate:
+    post:
+      operationId: activateAdminConsumer
+      summary: Reactivate consumer, channel or bot access as owner.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminConsumerId'
+      requestBody:
+        $ref: '#/components/requestBodies/AdminStatusChange'
+      responses:
+        '200':
+          description: Updated consumer status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminConsumerProjection'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+  /v1/admin/consumers/{consumer_id}/block:
+    post:
+      operationId: blockAdminConsumer
+      summary: Block consumer, channel or bot access as owner.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminConsumerId'
+      requestBody:
+        $ref: '#/components/requestBodies/AdminStatusChange'
+      responses:
+        '200':
+          description: Updated consumer status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminConsumerProjection'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
 components:
+  parameters:
+    AdminKeyHeader:
+      name: X-QuizBank-Admin-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    AdminItemId:
+      name: item_id
+      in: path
+      required: true
+      schema:
+        type: string
+    AdminConsumerId:
+      name: consumer_id
+      in: path
+      required: true
+      schema:
+        type: string
+  requestBodies:
+    AdminStatusChange:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdminStatusChangeRequest'
+  responses:
+    AdminStatusChangeOk:
+      description: Audited admin status change result.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdminStatusChangeResponse'
+    AdminForbidden:
+      description: Admin role cannot perform this action.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    AdminInvalidTransition:
+      description: Requested status transition is invalid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
   schemas:
     HealthResponse:
       type: object
@@ -436,6 +793,225 @@ components:
           type: string
         provenance_note:
           type: string
+    AdminStatusChangeRequest:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 3
+          maxLength: 500
+    AdminQuizItemProjection:
+      type: object
+      additionalProperties: false
+      required:
+        - item_id
+        - language
+        - cefr_level
+        - theme_id
+        - objective_id
+        - pattern_id
+        - status
+        - prompt
+        - stem_text
+        - options
+        - source_traceability
+      properties:
+        item_id:
+          type: string
+        language:
+          type: string
+        cefr_level:
+          type: string
+        theme_id:
+          type: string
+        objective_id:
+          type: string
+        pattern_id:
+          type: string
+        status:
+          type: string
+        prompt:
+          type: string
+        stem_text:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        source_traceability:
+          $ref: '#/components/schemas/SourceTraceability'
+    AdminQuizItemListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminQuizItemProjection'
+    AuditLogEntry:
+      type: object
+      additionalProperties: false
+      required: [audit_id, actor, action, entity_type, entity_id, from_status, to_status, reason, created_at]
+      properties:
+        audit_id:
+          type: string
+        actor:
+          type: string
+        action:
+          type: string
+        entity_type:
+          type: string
+        entity_id:
+          type: string
+        from_status:
+          type: string
+        to_status:
+          type: string
+        reason:
+          type: string
+        created_at:
+          type: string
+    AuditLogListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLogEntry'
+    AdminDashboardResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - corpus_status_counts
+        - items_by_cefr_level
+        - items_by_theme
+        - approved_published_count
+        - delivery_log_count
+        - audit_log_count
+      properties:
+        corpus_status_counts:
+          type: object
+          additionalProperties:
+            type: integer
+        items_by_cefr_level:
+          type: object
+          additionalProperties:
+            type: integer
+        items_by_theme:
+          type: object
+          additionalProperties:
+            type: integer
+        approved_published_count:
+          type: integer
+        delivery_log_count:
+          type: integer
+        audit_log_count:
+          type: integer
+    AdminStatusChangeResponse:
+      type: object
+      additionalProperties: false
+      required: [item, audit]
+      properties:
+        item:
+          $ref: '#/components/schemas/AdminQuizItemProjection'
+        audit:
+          anyOf:
+            - $ref: '#/components/schemas/AuditLogEntry'
+            - type: 'null'
+    AdminConsumerCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - consumer_id
+        - display_name
+        - consumer_kind
+        - daily_quota_limit
+        - allowed_cefr_levels
+        - allowed_theme_ids
+        - api_key
+        - reason
+      properties:
+        consumer_id:
+          type: string
+        display_name:
+          type: string
+        consumer_kind:
+          type: string
+          enum: [api_client, telegram_channel, telegram_bot, teacher, school]
+        daily_quota_limit:
+          type: integer
+          minimum: 0
+        allowed_cefr_levels:
+          type: array
+          items:
+            type: string
+            enum: [A1, A2, B1, B2, C1, C2]
+        allowed_theme_ids:
+          type: array
+          items:
+            type: string
+            pattern: '^T(0[1-9]|1[0-8])$'
+        api_key:
+          type: string
+          minLength: 8
+        reason:
+          type: string
+          minLength: 3
+    AdminConsumerProjection:
+      type: object
+      additionalProperties: false
+      required:
+        - consumer_id
+        - display_name
+        - consumer_kind
+        - status
+        - daily_quota_limit
+        - allowed_cefr_levels
+        - allowed_theme_ids
+        - delivery_count
+        - today_quota_used
+        - last_delivery_at
+      properties:
+        consumer_id:
+          type: string
+        display_name:
+          type: string
+        consumer_kind:
+          type: string
+        status:
+          type: string
+        daily_quota_limit:
+          type: integer
+        allowed_cefr_levels:
+          type: array
+          items:
+            type: string
+        allowed_theme_ids:
+          type: array
+          items:
+            type: string
+        delivery_count:
+          type: integer
+        today_quota_used:
+          type: integer
+        last_delivery_at:
+          type:
+            - string
+            - 'null'
+    AdminConsumerListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminConsumerProjection'
     DeliveryProjection:
       type: object
       additionalProperties: false

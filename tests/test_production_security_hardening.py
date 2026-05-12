@@ -32,7 +32,8 @@ class ProductionSecurityHardeningTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn("cgr.dev/chainguard/python:latest-dev", dockerfile)
+        self.assertIn("cgr.dev/chainguard/python:latest-dev@sha256:", dockerfile)
+        self.assertIn("ENTRYPOINT []", dockerfile)
         self.assertIn("USER nonroot", dockerfile)
         self.assertIn('"127.0.0.1:8010:8000"', compose)
         self.assertIn("/data:uid=65532,gid=65532,mode=700", compose)

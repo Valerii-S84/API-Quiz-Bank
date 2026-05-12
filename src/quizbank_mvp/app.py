@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import __version__
+from .admin_api import register_admin_routes
 from .auth import authenticate_consumer
 from .database import configured_database_url, configured_db_path, database_is_ready
 from .rate_limit import FixedWindowRateLimiter, delivery_rate_limit_key
@@ -53,6 +54,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     register_error_handlers(app)
     register_operations_routes(app, database_path)
     register_delivery_routes(app, database_path, rate_limiter)
+    register_admin_routes(app, database_path)
     return app
 
 

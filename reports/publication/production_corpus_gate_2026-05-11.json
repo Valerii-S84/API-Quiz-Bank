@@ -1,0 +1,2121 @@
+{
+  "approved_published_snapshot": {
+    "coverage_cells": [
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 172,
+        "pattern_id": "P01",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 606,
+        "pattern_id": "P02",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 5,
+        "pattern_id": "P04",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 6,
+        "pattern_id": "P05",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 6,
+        "pattern_id": "P06",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 5,
+        "pattern_id": "P07",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 8,
+        "pattern_id": "P09",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 7,
+        "pattern_id": "P10",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 1127,
+        "pattern_id": "P01",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 244,
+        "pattern_id": "P02",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 104,
+        "pattern_id": "P01",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 236,
+        "pattern_id": "P02",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 27,
+        "pattern_id": "P01",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P05",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P06",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P07",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P09",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P10",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 136,
+        "pattern_id": "P01",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 229,
+        "pattern_id": "P01",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 43,
+        "pattern_id": "P02",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 193,
+        "pattern_id": "P01",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 6,
+        "pattern_id": "P02",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 113,
+        "pattern_id": "P01",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 5,
+        "pattern_id": "P02",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 550,
+        "pattern_id": "P01",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 11,
+        "pattern_id": "P02",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 36,
+        "pattern_id": "P01",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 12,
+        "pattern_id": "P02",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P05",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P06",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P07",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P09",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P10",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 29,
+        "pattern_id": "P01",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 18,
+        "pattern_id": "P02",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 3,
+        "pattern_id": "P04",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P05",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P06",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P07",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P09",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "A1",
+        "deliverable_item_count": 60,
+        "pattern_id": "P10",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 264,
+        "pattern_id": "P01",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 116,
+        "pattern_id": "P02",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 550,
+        "pattern_id": "P01",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 100,
+        "pattern_id": "P02",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 329,
+        "pattern_id": "P01",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 322,
+        "pattern_id": "P01",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 313,
+        "pattern_id": "P01",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 301,
+        "pattern_id": "P01",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 7,
+        "pattern_id": "P02",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 376,
+        "pattern_id": "P01",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 149,
+        "pattern_id": "P01",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 201,
+        "pattern_id": "P04",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 315,
+        "pattern_id": "P01",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 3,
+        "pattern_id": "P02",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 534,
+        "pattern_id": "P01",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 1,
+        "pattern_id": "P02",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "A2",
+        "deliverable_item_count": 336,
+        "pattern_id": "P01",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 661,
+        "pattern_id": "P01",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 139,
+        "pattern_id": "P02",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 348,
+        "pattern_id": "P01",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 69,
+        "pattern_id": "P02",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 9,
+        "pattern_id": "P01",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 8,
+        "pattern_id": "P02",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 38,
+        "pattern_id": "P04",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 38,
+        "pattern_id": "P05",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 38,
+        "pattern_id": "P06",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 38,
+        "pattern_id": "P07",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 37,
+        "pattern_id": "P08",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 37,
+        "pattern_id": "P09",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 37,
+        "pattern_id": "P10",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 37,
+        "pattern_id": "P11",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 2,
+        "pattern_id": "P01",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P04",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P07",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P08",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P09",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P10",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P11",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 2,
+        "pattern_id": "P01",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 43,
+        "pattern_id": "P05",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 43,
+        "pattern_id": "P06",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 43,
+        "pattern_id": "P07",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 43,
+        "pattern_id": "P08",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 43,
+        "pattern_id": "P09",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 43,
+        "pattern_id": "P10",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 42,
+        "pattern_id": "P11",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 62,
+        "pattern_id": "P01",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 6,
+        "pattern_id": "P02",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P05",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P06",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P07",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P08",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P09",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P10",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P11",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 21,
+        "pattern_id": "P01",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P05",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P06",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P07",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P08",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P09",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P10",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P11",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 19,
+        "pattern_id": "P01",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P05",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P06",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P07",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P08",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P09",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P10",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P11",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 89,
+        "pattern_id": "P01",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 2,
+        "pattern_id": "P02",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P05",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P06",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P07",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P08",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P09",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P10",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P11",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 56,
+        "pattern_id": "P01",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 40,
+        "pattern_id": "P02",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P05",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P06",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P07",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P08",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P09",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P10",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P11",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 9,
+        "pattern_id": "P01",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 6,
+        "pattern_id": "P02",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 7,
+        "pattern_id": "P04",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P05",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P06",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P07",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P08",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P09",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P10",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P11",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 9,
+        "pattern_id": "P01",
+        "theme_id": "T12"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T12"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 27,
+        "pattern_id": "P01",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P05",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P06",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P07",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P08",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P09",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P10",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P11",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 1,
+        "pattern_id": "P01",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P05",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 25,
+        "pattern_id": "P06",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P07",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P08",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P09",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P10",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P11",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 49,
+        "pattern_id": "P01",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 3,
+        "pattern_id": "P02",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P05",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P06",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P07",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P08",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P09",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "B1",
+        "deliverable_item_count": 50,
+        "pattern_id": "P10",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 2,
+        "pattern_id": "P01",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 303,
+        "pattern_id": "P02",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 61,
+        "pattern_id": "P01",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 301,
+        "pattern_id": "P02",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 301,
+        "pattern_id": "P02",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 1,
+        "pattern_id": "P01",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 4,
+        "pattern_id": "P01",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 5,
+        "pattern_id": "P01",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 1,
+        "pattern_id": "P01",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 54,
+        "pattern_id": "P01",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 12,
+        "pattern_id": "P01",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 2,
+        "pattern_id": "P01",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T12"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 5,
+        "pattern_id": "P01",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 3,
+        "pattern_id": "P01",
+        "theme_id": "T16"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T16"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 10,
+        "pattern_id": "P01",
+        "theme_id": "T17"
+      },
+      {
+        "cefr_level": "B2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P02",
+        "theme_id": "T17"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 1,
+        "pattern_id": "P01",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 6,
+        "pattern_id": "P02",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T12"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 1,
+        "pattern_id": "P01",
+        "theme_id": "T16"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T16"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T17"
+      },
+      {
+        "cefr_level": "C1",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T18"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P04",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P05",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P06",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P07",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P08",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P09",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P10",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P11",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P12",
+        "theme_id": "T01"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P04",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P05",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P06",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P07",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P08",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P09",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P10",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P11",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P12",
+        "theme_id": "T02"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 3,
+        "pattern_id": "P02",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P04",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P05",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P06",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P07",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P08",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P09",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P10",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P11",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P12",
+        "theme_id": "T03"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P04",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P05",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P06",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P07",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P08",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P09",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P10",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P11",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P12",
+        "theme_id": "T04"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 60,
+        "pattern_id": "P04",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 60,
+        "pattern_id": "P07",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 120,
+        "pattern_id": "P10",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 60,
+        "pattern_id": "P11",
+        "theme_id": "T05"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P04",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P05",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P06",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P07",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P08",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P09",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P10",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P11",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P12",
+        "theme_id": "T06"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 30,
+        "pattern_id": "P04",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 30,
+        "pattern_id": "P05",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 30,
+        "pattern_id": "P06",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 60,
+        "pattern_id": "P07",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 30,
+        "pattern_id": "P08",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 30,
+        "pattern_id": "P09",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 30,
+        "pattern_id": "P10",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 30,
+        "pattern_id": "P11",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 30,
+        "pattern_id": "P12",
+        "theme_id": "T07"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P07",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P10",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P11",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P12",
+        "theme_id": "T08"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P04",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P07",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P10",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P11",
+        "theme_id": "T09"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P07",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 150,
+        "pattern_id": "P10",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P11",
+        "theme_id": "T10"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P07",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P10",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P11",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P12",
+        "theme_id": "T11"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 150,
+        "pattern_id": "P07",
+        "theme_id": "T12"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 150,
+        "pattern_id": "P10",
+        "theme_id": "T12"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P04",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P05",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P06",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P07",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P08",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P09",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P10",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P11",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P12",
+        "theme_id": "T13"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P04",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P05",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P06",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P07",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P08",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P09",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P10",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P11",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P12",
+        "theme_id": "T14"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P04",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P05",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 34,
+        "pattern_id": "P06",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P07",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P08",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P09",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P10",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P11",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 33,
+        "pattern_id": "P12",
+        "theme_id": "T15"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 100,
+        "pattern_id": "P07",
+        "theme_id": "T16"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 100,
+        "pattern_id": "P10",
+        "theme_id": "T16"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 100,
+        "pattern_id": "P11",
+        "theme_id": "T16"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P07",
+        "theme_id": "T17"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P10",
+        "theme_id": "T17"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P11",
+        "theme_id": "T17"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P12",
+        "theme_id": "T17"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 300,
+        "pattern_id": "P04",
+        "theme_id": "T18"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P07",
+        "theme_id": "T18"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P10",
+        "theme_id": "T18"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P11",
+        "theme_id": "T18"
+      },
+      {
+        "cefr_level": "C2",
+        "deliverable_item_count": 75,
+        "pattern_id": "P12",
+        "theme_id": "T18"
+      }
+    ],
+    "item_count": 30974,
+    "level_counts": {
+      "A1": 4837,
+      "A2": 4217,
+      "B1": 5544,
+      "B2": 5265,
+      "C1": 5408,
+      "C2": 5703
+    },
+    "pattern_counts": {
+      "P01": 8031,
+      "P02": 7095,
+      "P03": 0,
+      "P04": 6441,
+      "P05": 894,
+      "P06": 894,
+      "P07": 1850,
+      "P08": 874,
+      "P09": 1062,
+      "P10": 1881,
+      "P11": 1358,
+      "P12": 594
+    },
+    "sample_item_ids": [
+      "gmb_adjektivendungen_beginner_bank_a1_a2_210_adj_001",
+      "gmb_adjektivendungen_beginner_bank_a1_a2_210_adj_002",
+      "gmb_adjektivendungen_beginner_bank_a1_a2_210_adj_003",
+      "gmb_adjektivendungen_beginner_bank_a1_a2_210_adj_004",
+      "gmb_adjektivendungen_beginner_bank_a1_a2_210_adj_005",
+      "gmb_adjektivendungen_beginner_bank_a1_a2_210_adj_006",
+      "gmb_adjektivendungen_beginner_bank_a1_a2_210_adj_007",
+      "gmb_adjektivendungen_beginner_bank_a1_a2_210_adj_008",
+      "gmb_adjektivendungen_beginner_bank_a1_a2_210_adj_009",
+      "gmb_adjektivendungen_beginner_bank_a1_a2_210_adj_010"
+    ],
+    "statuses": [
+      "approved",
+      "published"
+    ],
+    "theme_counts": {
+      "T01": 2900,
+      "T02": 3401,
+      "T03": 1896,
+      "T04": 1851,
+      "T05": 1652,
+      "T06": 1852,
+      "T07": 1801,
+      "T08": 1688,
+      "T09": 2224,
+      "T10": 2191,
+      "T11": 1910,
+      "T12": 1209,
+      "T13": 1227,
+      "T14": 1201,
+      "T15": 1257,
+      "T16": 904,
+      "T17": 910,
+      "T18": 900
+    }
+  },
+  "decision": "GO production corpus volume",
+  "generated_at": "2026-05-11T00:00:00+00:00",
+  "negative_controls": {
+    "current_corpus_counts": {
+      "blocked": 0,
+      "draft": 0,
+      "retired": 0
+    },
+    "non_deliverable_statuses": [
+      "draft",
+      "blocked",
+      "retired"
+    ],
+    "required_after_real_import": [
+      "draft items are not selected",
+      "blocked items are not selected",
+      "retired items are not selected",
+      "approved/published items retain source traceability"
+    ],
+    "runtime_test_refs": [
+      "tests/test_mvp_runtime.py::test_retired_items_are_not_delivery_eligible",
+      "tests/test_mvp_runtime.py::test_blocked_items_are_not_delivery_eligible",
+      "tests/test_reports_selection_invariants.py::test_selection_smoke_report_is_current"
+    ]
+  },
+  "owner_approval": {
+    "active_bank_files": 115,
+    "active_rows": 30974,
+    "conclusion": "corpus is eligible for production promotion",
+    "decision": "owner approved all current active quiz rows for production",
+    "path": "reports/publication/owner_corpus_approval_2026-05-11.json",
+    "present": true,
+    "snapshot_sha256": "3503fcdd2ea425c4e1cb828528b4c0116abee98e6abb55a33c16cc8371965855",
+    "valid_for_current_row_count": true
+  },
+  "postgresql_content_proof": {
+    "api_next_item_status": 200,
+    "api_selected_item_status": "published",
+    "decision": "GO PostgreSQL production corpus smoke",
+    "path": "reports/imports/production_corpus_postgresql_smoke_2026-05-11.json",
+    "postgresql_published_items": 30974,
+    "postgresql_quiz_items": 30974,
+    "present": true,
+    "report_type": "production_corpus_postgresql_smoke",
+    "valid_for_deliverable_count": true
+  },
+  "production_content_blockers": [],
+  "report_type": "production_corpus_gate",
+  "source": {
+    "active_bank_files": 115,
+    "active_rows": 30974,
+    "quizbank_dir": "QuizBank"
+  },
+  "status_counts": {
+    "approved": 0,
+    "blocked": 0,
+    "draft": 0,
+    "imported": 0,
+    "monitored": 0,
+    "needs_review": 0,
+    "normalized": 0,
+    "published": 30974,
+    "retired": 0
+  }
+}
