@@ -24,6 +24,8 @@ ThemeId = Literal[
     "T10", "T11", "T12", "T13", "T14", "T15", "T16", "T17", "T18",
 ]
 ANSWER_FEEDBACK_CONSUMERS = {"website_quiz_teaser"}
+SCOPED_QUOTA_CONSUMERS = {"website_quiz_teaser"}
+MAX_QUOTA_SCOPE_KEY_LENGTH = 128
 ObjectiveId = Literal[
     "O01", "O02", "O03", "O04", "O05", "O06", "O07", "O08",
     "O09", "O10", "O11", "O12", "O13", "O14", "O15", "O16",
@@ -106,6 +108,7 @@ def register_delivery_routes(
         payload: NextQuizRequest,
         x_consumer_id: Annotated[str | None, Header()] = None,
         x_quizbank_api_key: Annotated[str | None, Header(alias="X-QuizBank-API-Key")] = None,
+        x_quizbank_quota_key: Annotated[str | None, Header(alias="X-QuizBank-Quota-Key")] = None,
     ) -> dict[str, object]:
         rate_limiter.check_delivery(
             delivery_rate_limit_key(
@@ -124,6 +127,10 @@ def register_delivery_routes(
             database_path,
             SelectionRequest(
                 consumer_id=payload.consumer_id,
+                quota_scope_key=quota_scope_key_for_consumer(
+                    payload.consumer_id,
+                    x_quizbank_quota_key,
+                ),
                 filters=SelectionFilters(
                     cefr_level=payload.cefr_level,
                     theme_ids=tuple(payload.theme_ids),
@@ -211,6 +218,33 @@ def authorize_consumer(authenticated_consumer_id: str, requested_consumer_id: st
             "The authenticated consumer cannot access another consumer's data.",
             "https://api.quizbank.example/problems/consumer-access-denied",
         )
+
+
+def quota_scope_key_for_consumer(consumer_id: str, raw_quota_key: str | None) -> str | None:
+    if consumer_id not in SCOPED_QUOTA_CONSUMERS:
+        return None
+    if raw_quota_key is None or not raw_quota_key.strip():
+        raise QuizBankProblem(
+            400,
+            "QUOTA_SCOPE_REQUIRED",
+            "Quota scope required",
+            "This consumer requires a per-session, per-IP or per-user quota scope key.",
+            "https://api.quizbank.example/problems/quota-scope-required",
+        )
+    quota_key = raw_quota_key.strip()
+    if len(quota_key) > MAX_QUOTA_SCOPE_KEY_LENGTH or has_control_character(quota_key):
+        raise QuizBankProblem(
+            400,
+            "QUOTA_SCOPE_INVALID",
+            "Quota scope invalid",
+            "Quota scope key must be printable and at most 128 characters.",
+            "https://api.quizbank.example/problems/quota-scope-invalid",
+        )
+    return quota_key
+
+
+def has_control_character(value: str) -> bool:
+    return any(ord(character) < 32 or ord(character) == 127 for character in value)
 
 
 def problem_response(error: QuizBankProblem) -> JSONResponse:

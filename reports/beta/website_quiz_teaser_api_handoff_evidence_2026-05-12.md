@@ -13,7 +13,8 @@ Scope: API Bank local runtime only. VPS deploy was not touched. This is a Contro
 - CEFR scope: `A1, A2`
 - allowed themes: `Artikel, Alltag, Verben, Präpositionen`
 - runtime theme scope: `T02`
-- quota: `5/day`
+- quota: `5/scope/day`
+- quota scope: `per-session/IP/user key via X-QuizBank-Quota-Key`
 
 ## API Proof
 
@@ -22,6 +23,7 @@ Scope: API Bank local runtime only. VPS deploy was not touched. This is a Contro
 - repeat policy: `5` unique items in 5 requests
 - quota denial: `429 QUOTA_EXCEEDED`
 - unauthenticated denial: `401 AUTH_REQUIRED`
+- missing quota scope denial: `400 QUOTA_SCOPE_REQUIRED`
 - wrong credential denial: `401 AUTH_INVALID_API_KEY`
 - entitlement removal denial: `403 ENTITLEMENT_MISSING_FEATURE`
 - suspended consumer denial: `403 CONSUMER_NOT_ACTIVE`
@@ -31,15 +33,15 @@ Scope: API Bank local runtime only. VPS deploy was not touched. This is a Contro
 
 ```text
 QUIZ_BANK_API_BASE_URL=http://127.0.0.1:8000
-QUIZ_BANK_EDGE_API_KEY=qb_pjg...edge
+QUIZ_BANK_EDGE_API_KEY=qb_D7E...edge
 QUIZ_BANK_CONSUMER_ID=website_quiz_teaser
-QUIZ_BANK_CONSUMER_API_KEY=qb_myi...ated
+QUIZ_BANK_CONSUMER_API_KEY=qb_K3J...ated
 ```
 
 ## API / Frontend Contract
 
 - API Bank endpoint: `POST /v1/quiz-items/next`
-- Required headers: `X-API-Key`, `X-Consumer-Id`, `X-QuizBank-API-Key`
+- Required headers: `X-API-Key`, `X-Consumer-Id`, `X-QuizBank-API-Key`, `X-QuizBank-Quota-Key`
 - Expected body: `{ "consumer_id": "website_quiz_teaser", "cefr_level": "A2", "theme_ids": ["T02"] }`
 - Question id: `quiz_item.id`
 - Question text: `quiz_item.question.text`
@@ -47,7 +49,8 @@ QUIZ_BANK_CONSUMER_API_KEY=qb_myi...ated
 - Validation data: `quiz_item.feedback.correctAnswerId` for this protected beta consumer
 - Explanation: `quiz_item.feedback.explanation` when available
 - Delivery id: top-level `delivery_id` and `delivery.delivery_id`
-- Quota exceeded: `429 QUOTA_EXCEEDED`
+- Quota scope key missing: `400 QUOTA_SCOPE_REQUIRED`
+- Quota exceeded for the current scope: `429 QUOTA_EXCEEDED`
 - Unauthorized or wrong credential: `401 AUTH_REQUIRED` or `401 AUTH_INVALID_API_KEY`
 - Suspended consumer: `403 CONSUMER_NOT_ACTIVE`
 - Frontend proxy should fail closed and show unavailable UI for non-2xx API Bank responses.

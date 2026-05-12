@@ -40,6 +40,7 @@ DISPLAY_NAME = "Website Quiz Teaser"
 CONSUMER_KIND = "api_client"
 FEATURE = "quiz_delivery"
 DAILY_QUOTA_LIMIT = 5
+SMOKE_QUOTA_SCOPE_KEY = "website-quiz-teaser-smoke-session"
 ALLOWED_CEFR_LEVELS = ("A1", "A2")
 ALLOWED_THEME_IDS = ("T02",)
 ALLOWED_THEME_LABELS = ("Artikel", "Alltag", "Verben", "Präpositionen")
@@ -280,6 +281,7 @@ def run_five_question_flow(db_path: Path, client: TestClient, api_key: str) -> d
         "unique_item_count": len(set(item_ids)),
         "item_ids": item_ids,
         "quota_denial": problem_summary(quota_response),
+        "quota_scope": "per-session/IP/user key",
         "delivery_count_after_quota_denial": delivery_count(db_path),
     }
 
@@ -291,6 +293,13 @@ def run_denial_checks(
 ) -> dict[str, Any]:
     return {
         "unauthenticated": problem_summary(client.post("/v1/quiz-items/next", json=payload())),
+        "missing_quota_scope": problem_summary(
+            client.post(
+                "/v1/quiz-items/next",
+                json=payload(),
+                headers={"X-Consumer-Id": CONSUMER_ID, "X-QuizBank-API-Key": api_key},
+            )
+        ),
         "wrong_credential": problem_summary(next_item(client, "wrong_consumer_api_key")),
         "entitlement_denial": problem_summary(
             client.post(
@@ -398,7 +407,10 @@ def payload(
 
 
 def headers(consumer_id: str, api_key: str) -> dict[str, str]:
-    return {"X-Consumer-Id": consumer_id, "X-QuizBank-API-Key": api_key}
+    headers = {"X-Consumer-Id": consumer_id, "X-QuizBank-API-Key": api_key}
+    if consumer_id == CONSUMER_ID:
+        headers["X-QuizBank-Quota-Key"] = SMOKE_QUOTA_SCOPE_KEY
+    return headers
 
 
 def problem_summary(response: Any) -> dict[str, Any]:
@@ -513,13 +525,15 @@ def report_markdown(evidence: dict[str, Any]) -> str:
         "",
         f"- consumer created: {'yes' if consumer['created'] else 'no'}",
         f"- entitlement: `{consumer['entitlement_feature']}` / `{consumer['entitlement_status']}`",
-        f"- quota: `{consumer['daily_quota_limit']}/day`",
+        f"- quota: `{consumer['daily_quota_limit']}/scope/day`",
+        "- quota scope: `per-session/IP/user key via X-QuizBank-Quota-Key`",
         f"- CEFR scope: `{', '.join(consumer['allowed_cefr_levels'])}`",
         f"- themes: `{', '.join(consumer['allowed_theme_labels'])}`",
         f"- next item: `{flow['statuses'][0]}`",
         f"- 5-question flow: `{flow['statuses']}`, unique `{flow['unique_item_count']}`",
         f"- quota denial: `{flow['quota_denial']['status']} {flow['quota_denial']['reason_code']}`",
         f"- wrong credential: `{checks['wrong_credential']['status']} {checks['wrong_credential']['reason_code']}`",
+        f"- missing quota scope: `{checks['missing_quota_scope']['status']} {checks['missing_quota_scope']['reason_code']}`",
         f"- suspended: `{evidence['suspended']['status']} {evidence['suspended']['reason_code']}`",
         f"- revoked credential: `{evidence['revoked']['status']} {evidence['revoked']['reason_code']}`",
         "",

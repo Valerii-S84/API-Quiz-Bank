@@ -40,7 +40,8 @@ This is a Controlled Protected Beta. This is not a broad public launch. This is 
 - CEFR scope: `A1,A2`
 - Runtime theme scope: `T02`
 - Controlled teaser theme labels: `Artikel`, `Alltag`, `Verben`, `Präpositionen`
-- Quota: `5/day`
+- Quota: `5/scope/day`
+- Quota scope: `per-session/IP/user key via X-QuizBank-Quota-Key`
 - Runtime corpus check for `A1/A2 + T02`: `2021` eligible published/approved items
 - No unrestricted corpus access: confirmed by scope denial proofs below.
 
@@ -62,12 +63,13 @@ Valid protected request returned quiz items and created deliveries:
 - Repeat policy proof: `5` distinct item IDs across `5` deliveries
 - Delivery record proof: final DB state had `5` delivery rows and `5` distinct delivered items
 - Quota denial proof: 6th request returned `429 QUOTA_EXCEEDED`
-- Quota reset for handoff: after proof, daily usage was reset from `5/5` to `0/5` while keeping delivery evidence rows.
+- Previous quota proof used a single quota scope and then reset that scope from `5/5` to `0/5` while keeping delivery evidence rows.
 
 ## Denial Proofs
 
 - Public route without edge key: `401 Unauthorized`
 - Edge key present but missing consumer credentials: `401 AUTH_REQUIRED`
+- Valid credentials without `X-QuizBank-Quota-Key`: `400 QUOTA_SCOPE_REQUIRED`
 - Wrong consumer credential: `401 AUTH_INVALID_API_KEY`
 - Outside CEFR scope, `B1 + T02`: `403 CONSUMER_LEVEL_NOT_ALLOWED`
 - Outside theme scope, `A2 + T03`: `403 CONSUMER_THEME_NOT_ALLOWED`
@@ -77,6 +79,16 @@ Valid protected request returned quiz items and created deliveries:
   - old key after rotation: `401 AUTH_INVALID_API_KEY`
   - rotated key after rotation: accepted by auth and failed closed at quota gate during proof with `429 QUOTA_EXCEEDED`
 - Consumer was restored to `active` and entitlement restored to `active` after denial probes.
+
+## Scoped Quota Fix Proof
+
+VPS scoped quota smoke evidence was written to `/opt/api-quiz-bank/var/reports/website_quiz_teaser_scoped_quota_vps_smoke_20260512.json`.
+
+- Missing quota scope key: `400 QUOTA_SCOPE_REQUIRED`
+- Scope A flow: `200, 200, 200, 200, 200`
+- Scope A 6th request: `429 QUOTA_EXCEEDED`
+- Scope B request after Scope A was exhausted: `200`
+- DB quota rows use hashed feature values with prefix `quiz_delivery:scope:`; raw session/IP/user keys are not stored in the report.
 
 ## Masked Frontend Env Handoff
 
@@ -109,6 +121,7 @@ Content-Type: application/json
 X-API-Key: ${QUIZ_BANK_EDGE_API_KEY}
 X-Consumer-Id: ${QUIZ_BANK_CONSUMER_ID}
 X-QuizBank-API-Key: ${QUIZ_BANK_CONSUMER_API_KEY}
+X-QuizBank-Quota-Key: ${SERVER_SIDE_SESSION_OR_IP_OR_USER_KEY}
 ```
 
 Request body:
@@ -136,7 +149,8 @@ Response fields needed by the widget:
 
 Error behavior:
 
-- Quota exceeded: `429` with `reason_code=QUOTA_EXCEEDED`
+- Missing quota scope key for `website_quiz_teaser`: `400` with `reason_code=QUOTA_SCOPE_REQUIRED`
+- Quota exceeded for current session/IP/user scope: `429` with `reason_code=QUOTA_EXCEEDED`
 - Unauthorized or missing consumer credential: `401` with `AUTH_REQUIRED` or `AUTH_INVALID_API_KEY`
 - Missing public edge key: `401 Unauthorized`
 - Suspended consumer: `403` with `CONSUMER_NOT_ACTIVE`
@@ -149,6 +163,7 @@ Error behavior:
 - Use the secure env handoff file, not this report, for raw values.
 - Wire the values into server-only frontend runtime env.
 - Ensure the browser calls only `/api/quiz-teaser/next`.
+- Send `X-QuizBank-Quota-Key` from the server-side proxy using a stable per-session, per-IP or per-user value; do not put API Bank credentials in browser code.
 - Confirm no API Bank secrets appear in HTML, browser bundle, logs, or Git.
 
 ## Evidence Hygiene

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -116,6 +117,7 @@ class SelectionRequest:
     objective_ids: tuple[str, ...] = ()
     pattern_ids: tuple[str, ...] = ()
     excluded_item_ids: tuple[str, ...] = ()
+    quota_scope_key: str | None = None
 
     def __post_init__(self) -> None:
         filters = self.normalized_filters(self.filters or self.legacy_filters())
@@ -168,7 +170,7 @@ def select_next_item(db_path: Path | None, request: SelectionRequest) -> dict[st
         entitlement = load_active_entitlement(connection, request)
         enforce_consumer_scope(consumer, request)
         enforce_entitlement_scope(entitlement, request)
-        quota_usage = reserve_quota(connection, consumer)
+        quota_usage = reserve_quota(connection, consumer, request)
         candidate_total = candidate_count(connection, request)
         item, eligible_count = find_eligible_item(connection, request)
         blocked_counts = blocked_reason_counts(connection, request)
@@ -307,25 +309,44 @@ def enforce_scope_list(allowed: list[str], requested: list[str], reason_code: st
         )
 
 
-def reserve_quota(connection, consumer: dict[str, Any]) -> dict[str, Any]:
+def reserve_quota(
+    connection,
+    consumer: dict[str, Any],
+    request: SelectionRequest,
+) -> dict[str, Any]:
     usage_date = today_usage_date()
-    row = load_quota_usage(connection, consumer["consumer_id"], usage_date)
+    feature = quota_feature(request)
+    row = load_quota_usage(connection, consumer["consumer_id"], usage_date, feature)
     used_count = 0 if row is None else int(row["used_count"])
     quota_limit = int(consumer["daily_quota_limit"])
     if used_count >= quota_limit:
         raise quota_exceeded_problem(used_count, quota_limit)
     quota_usage_id = row["quota_usage_id"] if row else new_id("quota")
-    upsert_quota_usage(connection, consumer, usage_date, quota_usage_id, used_count + 1)
+    upsert_quota_usage(
+        connection,
+        consumer,
+        usage_date,
+        feature,
+        quota_usage_id,
+        used_count + 1,
+    )
     return {"quota_usage_id": quota_usage_id}
 
 
-def load_quota_usage(connection, consumer_id: str, usage_date: str):
+def quota_feature(request: SelectionRequest) -> str:
+    if not request.quota_scope_key:
+        return "quiz_delivery"
+    digest = hashlib.sha256(request.quota_scope_key.encode("utf-8")).hexdigest()[:24]
+    return f"quiz_delivery:scope:{digest}"
+
+
+def load_quota_usage(connection, consumer_id: str, usage_date: str, feature: str):
     row = connection.execute(
         """
         SELECT * FROM quota_usage
-        WHERE consumer_id = ? AND feature = 'quiz_delivery' AND usage_date = ?
+        WHERE consumer_id = ? AND feature = ? AND usage_date = ?
         """,
-        (consumer_id, usage_date),
+        (consumer_id, feature, usage_date),
     ).fetchone()
     return row
 
@@ -345,6 +366,7 @@ def upsert_quota_usage(
     connection,
     consumer: dict[str, Any],
     usage_date: str,
+    feature: str,
     quota_usage_id: str,
     next_used_count: int,
 ) -> None:
@@ -353,7 +375,7 @@ def upsert_quota_usage(
         INSERT INTO quota_usage (
             quota_usage_id, consumer_id, feature, usage_date, used_count,
             quota_limit, updated_at
-        ) VALUES (?, ?, 'quiz_delivery', ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(consumer_id, feature, usage_date) DO UPDATE SET
             used_count = excluded.used_count,
             quota_limit = excluded.quota_limit,
@@ -362,6 +384,7 @@ def upsert_quota_usage(
         (
             quota_usage_id,
             consumer["consumer_id"],
+            feature,
             usage_date,
             next_used_count,
             int(consumer["daily_quota_limit"]),

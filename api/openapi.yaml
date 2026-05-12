@@ -116,6 +116,14 @@ paths:
           schema:
             type: string
             minLength: 1
+        - name: X-QuizBank-Quota-Key
+          in: header
+          required: false
+          description: Required for website_quiz_teaser; server-side proxy supplies a per-session, per-IP or per-user quota key.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
       requestBody:
         required: true
         content:
@@ -143,6 +151,12 @@ paths:
                 $ref: '#/components/schemas/ProblemDetails'
         '403':
           description: Consumer credential is inactive, unauthorized or not entitled.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '400':
+          description: Missing or invalid scoped quota key for consumers that require per-session quota.
           content:
             application/problem+json:
               schema:

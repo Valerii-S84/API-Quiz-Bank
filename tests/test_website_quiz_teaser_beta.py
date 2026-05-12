@@ -56,7 +56,11 @@ class WebsiteQuizTeaserBetaTests(unittest.TestCase):
             response = TestClient(create_app(db_path)).post(
                 "/v1/quiz-items/next",
                 json={"consumer_id": CONSUMER_ID, "cefr_level": "A2", "theme_ids": ["T10"]},
-                headers={"X-Consumer-Id": CONSUMER_ID, "X-QuizBank-API-Key": "website_key"},
+                headers={
+                    "X-Consumer-Id": CONSUMER_ID,
+                    "X-QuizBank-API-Key": "website_key",
+                    "X-QuizBank-Quota-Key": "test-session-feedback",
+                },
             )
 
         self.assertEqual(response.status_code, 200)
@@ -64,6 +68,67 @@ class WebsiteQuizTeaserBetaTests(unittest.TestCase):
         self.assertEqual(quiz["feedback"]["correctAnswerId"], "option_1")
         self.assertIn("explanation", quiz["feedback"])
         self.assertNotIn("answer_key", quiz)
+
+    def test_website_teaser_requires_quota_scope_key(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "runtime.sqlite3"
+            initialize_database(db_path)
+            seed_control_fixture(
+                db_path,
+                ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl",
+                "approved",
+            )
+            seed_consumer(db_path, CONSUMER_ID, 5, ["A2"], ["T10"])
+            seed_api_credential(db_path, CONSUMER_ID, "website_key")
+            seed_entitlement(db_path, CONSUMER_ID, ["A2"], ["T10"])
+
+            response = TestClient(create_app(db_path)).post(
+                "/v1/quiz-items/next",
+                json={"consumer_id": CONSUMER_ID, "cefr_level": "A2", "theme_ids": ["T10"]},
+                headers={"X-Consumer-Id": CONSUMER_ID, "X-QuizBank-API-Key": "website_key"},
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["reason_code"], "QUOTA_SCOPE_REQUIRED")
+
+    def test_website_teaser_quota_is_scoped_per_session_key(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            db_path = workspace / "runtime.sqlite3"
+            fixture_path = workspace / "items.jsonl"
+            self.write_runtime_fixture(fixture_path, 3)
+            initialize_database(db_path)
+            seed_control_fixture(db_path, fixture_path, "approved")
+            seed_consumer(db_path, CONSUMER_ID, 1, ["A2"], ["T10"])
+            seed_api_credential(db_path, CONSUMER_ID, "website_key")
+            seed_entitlement(db_path, CONSUMER_ID, ["A2"], ["T10"])
+            client = TestClient(create_app(db_path))
+
+            first_scope = self.next_item_for_scope(client, "session-a")
+            same_scope = self.next_item_for_scope(client, "session-a")
+            second_scope = self.next_item_for_scope(client, "session-b")
+
+            with sqlite3.connect(db_path) as connection:
+                connection.row_factory = sqlite3.Row
+                quota_rows = connection.execute(
+                    """
+                    SELECT feature, used_count, quota_limit
+                    FROM quota_usage
+                    WHERE consumer_id = ?
+                    ORDER BY feature
+                    """,
+                    (CONSUMER_ID,),
+                ).fetchall()
+
+        self.assertEqual(first_scope.status_code, 200)
+        self.assertEqual(same_scope.status_code, 429)
+        self.assertEqual(same_scope.json()["reason_code"], "QUOTA_EXCEEDED")
+        self.assertEqual(second_scope.status_code, 200)
+        self.assertEqual(len(quota_rows), 2)
+        self.assertTrue(all(row["feature"].startswith("quiz_delivery:scope:") for row in quota_rows))
+        self.assertFalse(any("session-a" in row["feature"] for row in quota_rows))
+        self.assertEqual([row["used_count"] for row in quota_rows], [1, 1])
+        self.assertEqual([row["quota_limit"] for row in quota_rows], [1, 1])
 
     def test_provisioning_report_masks_credentials_and_leaves_consumer_active(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -122,6 +187,25 @@ class WebsiteQuizTeaserBetaTests(unittest.TestCase):
             writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
             writer.writeheader()
             writer.writerows(rows)
+
+    def write_runtime_fixture(self, path: Path, count: int) -> None:
+        rows = []
+        for index in range(count):
+            row = dict(BASE_ITEM)
+            row.update({"item_id": f"runtime_item_{index}", "status": "approved"})
+            rows.append(json.dumps(row))
+        path.write_text("\n".join(rows), encoding="utf-8")
+
+    def next_item_for_scope(self, client: TestClient, quota_scope_key: str):
+        return client.post(
+            "/v1/quiz-items/next",
+            json={"consumer_id": CONSUMER_ID, "cefr_level": "A2", "theme_ids": ["T10"]},
+            headers={
+                "X-Consumer-Id": CONSUMER_ID,
+                "X-QuizBank-API-Key": "website_key",
+                "X-QuizBank-Quota-Key": quota_scope_key,
+            },
+        )
 
     def item(self, item_id: str) -> dict[str, str]:
         row = dict(BASE_ITEM)
