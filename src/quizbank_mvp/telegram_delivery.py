@@ -262,12 +262,35 @@ def shuffled_telegram_options(
     indexed_options = list(enumerate(options))
     rng = random.Random(stable_shuffle_seed(options, answer_key, salt))
     rng.shuffle(indexed_options)
+    indexed_options = move_correct_option_from_first_position(
+        indexed_options,
+        correct_option_id,
+        salt,
+    )
     shuffled_options = [option for _, option in indexed_options]
     shuffled_correct_id = next(
         index for index, (source_index, _) in enumerate(indexed_options)
         if source_index == correct_option_id
     )
     return shuffled_options, [shuffled_correct_id]
+
+
+def move_correct_option_from_first_position(
+    indexed_options: list[tuple[int, str]],
+    correct_option_id: int,
+    salt: str,
+) -> list[tuple[int, str]]:
+    if len(indexed_options) <= 1 or indexed_options[0][0] != correct_option_id:
+        return indexed_options
+    swap_index = 1 + stable_index(salt, len(indexed_options) - 1)
+    moved_options = list(indexed_options)
+    moved_options[0], moved_options[swap_index] = moved_options[swap_index], moved_options[0]
+    return moved_options
+
+
+def stable_index(salt: str, modulo: int) -> int:
+    digest = hashlib.sha256(salt.encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "big") % modulo
 
 
 def stable_shuffle_seed(options: list[str], answer_key: str, salt: str) -> int:
