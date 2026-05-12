@@ -196,6 +196,7 @@ def select_next_item(db_path: Path | None, request: SelectionRequest) -> dict[st
     return {
         "delivery": delivery,
         "quiz_item": build_learner_quiz_projection(item),
+        "answer_feedback": answer_feedback(item),
         "selection_decision": decision.to_context(),
     }
 
@@ -527,6 +528,14 @@ def delivery_projection(delivery: dict[str, Any]) -> dict[str, Any]:
         "status": delivery["delivery_status"],
         "selected_at": delivery["selected_at"],
         "reason": delivery["selection_reason_summary"],
+    }
+
+
+def answer_feedback(item: dict[str, Any]) -> dict[str, str]:
+    option_index = int(item["answer_key"]) + 1
+    return {
+        "correctAnswerId": f"option_{option_index}",
+        "explanation": str(item["explanation"]).strip(),
     }
 
 

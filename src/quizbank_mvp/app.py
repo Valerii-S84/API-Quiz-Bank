@@ -23,6 +23,7 @@ ThemeId = Literal[
     "T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09",
     "T10", "T11", "T12", "T13", "T14", "T15", "T16", "T17", "T18",
 ]
+ANSWER_FEEDBACK_CONSUMERS = {"website_quiz_teaser"}
 ObjectiveId = Literal[
     "O01", "O02", "O03", "O04", "O05", "O06", "O07", "O08",
     "O09", "O10", "O11", "O12", "O13", "O14", "O15", "O16",
@@ -152,13 +153,17 @@ def next_quiz_response(consumer_id: str, result: dict[str, object]) -> dict[str,
     delivery = result["delivery"]
     if not isinstance(delivery, dict):
         raise TypeError("delivery result must be a dictionary")
+    quiz_item = result["quiz_item"]
+    if not isinstance(quiz_item, dict):
+        raise TypeError("quiz item result must be a dictionary")
+    quiz_item = quiz_item_for_consumer(consumer_id, quiz_item, result.get("answer_feedback"))
     selection_decision = result.get("selection_decision", {})
     if not isinstance(selection_decision, dict):
         raise TypeError("selection decision result must be a dictionary")
     return {
         "delivery_id": delivery["delivery_id"],
         "consumer_id": consumer_id,
-        "quiz_item": result["quiz_item"],
+        "quiz_item": quiz_item,
         "delivery": delivery,
         "interaction": {
             "mode": "hidden_before_attempt",
@@ -171,6 +176,18 @@ def next_quiz_response(consumer_id: str, result: dict[str, object]) -> dict[str,
             "decision": public_selection_decision(selection_decision),
         },
     }
+
+
+def quiz_item_for_consumer(
+    consumer_id: str,
+    quiz_item: dict[str, object],
+    answer_feedback: object,
+) -> dict[str, object]:
+    if consumer_id not in ANSWER_FEEDBACK_CONSUMERS:
+        return quiz_item
+    if not isinstance(answer_feedback, dict):
+        return quiz_item
+    return {**quiz_item, "feedback": answer_feedback}
 
 
 def public_selection_decision(decision: dict[str, object]) -> dict[str, object]:
