@@ -19,6 +19,7 @@ from .database import (
     transition_consumer_status,
     transition_item_status,
 )
+from .protected_beta import seed_protected_beta_channels
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -59,6 +60,12 @@ def parse_args() -> argparse.Namespace:
     )
     seed_admin.add_argument("--reset", action="store_true")
 
+    seed_beta = subparsers.add_parser(
+        "seed-protected-beta",
+        help="Create configured protected beta Telegram consumers.",
+    )
+    seed_beta.add_argument("--actor", default="protected_beta_seed")
+
     transition = subparsers.add_parser("transition-status", help="Transition item status.")
     transition.add_argument("--item-id", required=True)
     transition.add_argument("--to-status", required=True)
@@ -93,33 +100,17 @@ def main() -> int:
         print(f"seeded quiz items: {count}")
         return 0
     if args.command == "seed-consumer":
-        seed_consumer(
-            args.db_path,
-            args.consumer_id,
-            args.daily_quota_limit,
-            args.cefr_level,
-            args.theme_id,
-        )
-        if args.with_entitlement:
-            seed_entitlement(
-                args.db_path,
-                args.consumer_id,
-                args.cefr_level,
-                args.theme_id,
-                valid_until=args.entitlement_valid_until,
-                actor=args.actor,
-                reason=args.grant_reason,
-            )
-        if args.api_key:
-            seed_api_credential(args.db_path, args.consumer_id, args.api_key)
-        print(f"seeded consumer: {args.consumer_id}")
-        return 0
+        return seed_consumer_command(args)
     if args.command == "seed-demo":
         seed_demo_state(args.db_path, args.fixture)
         print("seeded MVP demo state")
         return 0
     if args.command == "seed-admin":
         return seed_admin(args)
+    if args.command == "seed-protected-beta":
+        consumer_ids = seed_protected_beta_channels(args.db_path, actor=args.actor)
+        print("seeded protected beta consumers: " + ", ".join(consumer_ids))
+        return 0
     if args.command == "transition-status":
         transition_item_status(args.db_path, args.item_id, args.to_status, args.actor, args.reason)
         print(f"transitioned {args.item_id} to {args.to_status}")
@@ -140,6 +131,30 @@ def main() -> int:
         print(json.dumps([dict(row) for row in rows], ensure_ascii=False, indent=2))
         return 0
     raise AssertionError(f"unhandled command: {args.command}")
+
+
+def seed_consumer_command(args: argparse.Namespace) -> int:
+    seed_consumer(
+        args.db_path,
+        args.consumer_id,
+        args.daily_quota_limit,
+        args.cefr_level,
+        args.theme_id,
+    )
+    if args.with_entitlement:
+        seed_entitlement(
+            args.db_path,
+            args.consumer_id,
+            args.cefr_level,
+            args.theme_id,
+            valid_until=args.entitlement_valid_until,
+            actor=args.actor,
+            reason=args.grant_reason,
+        )
+    if args.api_key:
+        seed_api_credential(args.db_path, args.consumer_id, args.api_key)
+    print(f"seeded consumer: {args.consumer_id}")
+    return 0
 
 
 def prompt_admin_password() -> str:

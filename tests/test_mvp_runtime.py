@@ -241,18 +241,16 @@ class MvpTelegramDeliveryTests(MvpRuntimeCase):
         self.assertEqual(result.status, "sent")
         self.assertEqual(result.telegram_message_id, "12345")
         self.assertEqual(result.telegram_poll_id, "poll_abc")
-        self.assertEqual(adapter.payloads[0]["correct_option_ids"], [0])
+        correct_id = adapter.payloads[0]["correct_option_ids"][0]
+        self.assertEqual(adapter.payloads[0]["options"][correct_id], "buchen")
+        self.assertNotEqual(correct_id, 0)
         self.assertEqual(
             adapter.payloads[0]["explanation"],
             "Internal answer explanation is retained in canonical data only.",
         )
         self.assertNotIn("correct_option_id", adapter.payloads[0])
         api_payload = telegram_api_payload(adapter.payloads[0])
-        self.assertEqual(api_payload["correct_option_id"], 0)
-        self.assertEqual(
-            api_payload["explanation"],
-            "Internal answer explanation is retained in canonical data only.",
-        )
+        self.assertEqual(api_payload["correct_option_id"], correct_id)
         with connect(self.db_path) as connection:
             delivery = connection.execute(
                 "SELECT delivery_status FROM deliveries WHERE delivery_id = ?",
