@@ -12,7 +12,11 @@ WORKDIR /app
 COPY --chown=nonroot:nonroot pyproject.toml README.md ./
 COPY --chown=nonroot:nonroot src ./src
 COPY --chown=nonroot:nonroot database ./database
-COPY --chown=nonroot:nonroot tools/quizbank_common.py tools/import_production_corpus_to_runtime.py ./tools/
+COPY --chown=nonroot:nonroot \
+    tools/quizbank_common.py \
+    tools/import_production_corpus_to_runtime.py \
+    tools/run_protected_beta_schedule.py \
+    ./tools/
 COPY --chown=nonroot:nonroot tests/fixtures/selection ./tests/fixtures/selection
 
 USER root
