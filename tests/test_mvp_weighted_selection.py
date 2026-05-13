@@ -16,8 +16,23 @@ from quizbank_mvp.database import (  # noqa: E402
     seed_entitlement,
     utc_now,
 )
-from quizbank_mvp.selection import SelectionFilters, SelectionRequest, select_next_item  # noqa: E402
-from quizbank_mvp.weighted_selection import candidate_score, select_ranked_candidate  # noqa: E402
+from quizbank_mvp.selection import (  # noqa: E402
+    SelectionFilters,
+    SelectionRequest,
+    SelectionTargetMix,
+    select_next_item,
+)
+from quizbank_mvp.weighted_selection import (  # noqa: E402
+    NEUTRAL_SCORE,
+    axis_score,
+    candidate_score,
+    freshness_score,
+    inverse_count_score,
+    parse_timestamp,
+    quality_score,
+    select_ranked_candidate,
+    target_mix_score,
+)
 
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
@@ -80,6 +95,26 @@ class MvpWeightedSelectionTests(unittest.TestCase):
         )
 
         self.assertEqual(selected["item_id"], "aaa_first")
+
+    def test_empty_candidate_list_returns_no_selection(self) -> None:
+        request = SelectionRequest("consumer_allowed", deterministic=True)
+
+        self.assertIsNone(select_ranked_candidate([], request))
+
+    def test_score_helpers_use_neutral_fallbacks_for_unparseable_values(self) -> None:
+        candidate = {
+            **self.candidate("candidate_invalid_score_inputs", "T10", "P01"),
+            "quality_score": "not-a-number",
+        }
+
+        self.assertEqual(inverse_count_score("not-a-count"), NEUTRAL_SCORE)
+        self.assertIsNone(parse_timestamp("not-a-timestamp"))
+        self.assertEqual(quality_score(candidate), NEUTRAL_SCORE)
+        self.assertEqual(target_mix_score(candidate, SelectionTargetMix()), NEUTRAL_SCORE)
+        self.assertEqual(axis_score({"A2": "not-a-weight"}, "A2"), 0.0)
+
+    def test_freshness_score_caps_old_deliveries_at_full_freshness(self) -> None:
+        self.assertEqual(freshness_score("2000-01-01T00:00:00Z"), 1.0)
 
     def test_runtime_weighted_selector_chooses_top_scored_candidate_not_first_id(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")

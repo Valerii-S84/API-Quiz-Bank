@@ -51,3 +51,22 @@ jobs:
             tests.test_release_governance_gate \
             tests.test_scale_load_gate \
             tests.test_style_numeric_limits
+
+      - name: Run runtime coverage gate
+        run: |
+          python3 -m coverage run -m unittest \
+            tests.test_database_backend_contract \
+            tests.test_mvp_admin \
+            tests.test_mvp_coverage_branches \
+            tests.test_mvp_projections \
+            tests.test_mvp_rate_limit \
+            tests.test_mvp_runtime \
+            tests.test_mvp_selection_contract \
+            tests.test_mvp_selection_decisions \
+            tests.test_mvp_selection_policy \
+            tests.test_mvp_weighted_selection \
+            tests.test_pre_pilot_runtime_invariants \
+            tests.test_protected_beta \
+            tests.test_telegram_shuffle \
+            tests.test_website_quiz_teaser_beta
+          python3 -m coverage report
