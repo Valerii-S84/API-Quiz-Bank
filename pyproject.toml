@@ -15,6 +15,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "coverage>=7.13,<8",
   "httpx>=0.28,<1",
 ]
 
@@ -23,3 +24,10 @@ quizbank-mvp = "quizbank_mvp.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.coverage.run]
+source = ["src/quizbank_mvp"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
