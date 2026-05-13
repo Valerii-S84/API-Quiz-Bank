@@ -180,7 +180,7 @@ def seed_channel_credential_from_env(
         return False
     raw_api_key = os.environ.get(channel.credential_env, "").strip()
     if not raw_api_key:
-        raise RuntimeError(f"missing required credential environment: {channel.credential_env}")
+        return False
     seed_api_credential(db_path, channel.consumer_id, raw_api_key)
     return True
 
