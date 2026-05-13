@@ -16,8 +16,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from quizbank_mvp.protected_beta import (  # noqa: E402
     PROTECTED_BETA_TELEGRAM_CHANNELS,
-    due_slots,
-    run_protected_beta_slot,
+    due_batches,
+    run_protected_beta_batch,
     seed_protected_beta_channels,
 )
 from quizbank_mvp.telegram_delivery import TelegramBotApiAdapter  # noqa: E402
@@ -43,16 +43,29 @@ def main() -> int:
     adapter = telegram_adapter(args)
     report = []
     for channel in PROTECTED_BETA_TELEGRAM_CHANNELS:
-        for slot in selected_slots(channel, args):
-            results = run_protected_beta_slot(args.db_path, channel, slot, args.mode, adapter)
+        for batch in selected_batches(channel, args):
+            results = run_protected_beta_batch(
+                args.db_path,
+                channel,
+                batch,
+                args.mode,
+                adapter,
+                schedule_now(channel.timezone, args.now),
+            )
             report.append(
                 {
                     "consumer_id": channel.consumer_id,
                     "telegram_target_ref": results[0].telegram_target_ref if results else None,
-                    "local_time": slot.local_time,
-                    "cefr_level": slot.cefr_level,
-                    "theme_id": slot.theme_id,
-                    "requested_count": slot.quiz_count,
+                    "local_time": batch.local_time,
+                    "slots": [
+                        {
+                            "slot_id": slot.stable_slot_id(channel.consumer_id),
+                            "cefr_level": slot.cefr_level,
+                            "theme_id": slot.theme_id,
+                            "requested_count": slot.quiz_count,
+                        }
+                        for slot in batch.slots
+                    ],
                     "results": [result.to_public_dict() for result in results],
                 }
             )
@@ -68,10 +81,13 @@ def telegram_adapter(args: argparse.Namespace):
     return TelegramBotApiAdapter(read_bot_token(args))
 
 
-def selected_slots(channel, args: argparse.Namespace):
+def selected_batches(channel, args: argparse.Namespace):
     if args.slot_time is not None:
-        return tuple(slot for slot in channel.schedule_slots if slot.local_time == args.slot_time)
-    return due_slots(channel, schedule_now(channel.timezone, args.now))
+        return tuple(
+            batch for batch in channel.schedule_batches
+            if batch.local_time == args.slot_time
+        )
+    return due_batches(channel, schedule_now(channel.timezone, args.now))
 
 
 def schedule_now(timezone: str, raw_now: str | None) -> datetime:

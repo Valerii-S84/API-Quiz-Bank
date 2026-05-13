@@ -136,6 +136,31 @@ def run_telegram_delivery(
     return result
 
 
+def send_existing_telegram_delivery(
+    db_path: Path | None,
+    delivery_id: str,
+    request: TelegramDeliveryRequest,
+    adapter: TelegramAdapter | None = None,
+) -> TelegramDeliveryResult:
+    validate_delivery_mode(request.mode)
+    item = load_delivery_item(db_path, delivery_id, request.consumer_id)
+    try:
+        payload = build_telegram_poll_payload(request.chat_id, item)
+        result = handle_telegram_send(request.mode, payload, adapter)
+    except TelegramDeliveryError as error:
+        result = TelegramDeliveryResult(
+            delivery_id=delivery_id,
+            consumer_id=request.consumer_id,
+            quiz_item_id=item["item_id"],
+            mode=request.mode,
+            status="failed",
+            telegram_target_ref=redact_telegram_target(request.chat_id),
+            failure_reason=str(error),
+        )
+    record_telegram_result(db_path, result)
+    return result
+
+
 def selection_request_from_telegram(
     db_path: Path | None,
     request: TelegramDeliveryRequest,
