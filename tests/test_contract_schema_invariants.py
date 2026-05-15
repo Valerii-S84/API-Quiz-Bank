@@ -133,7 +133,7 @@ class ContractSchemaInvariantTests(unittest.TestCase):
     def test_openapi_seed_preserves_public_delivery_boundary(self) -> None:
         openapi = (ROOT / "api" / "openapi.yaml").read_text(encoding="utf-8")
         public_projection = openapi.split("QuizItemPublicProjection:", 1)[1].split(
-            "ProblemDetails:", 1
+            "QuizItemAnswerFeedback:", 1
         )[0]
         self.assertIn("/v1/levels:", openapi)
         self.assertIn("/v1/topics:", openapi)

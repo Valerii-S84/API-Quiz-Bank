@@ -6,6 +6,8 @@ info:
 servers:
   - url: http://127.0.0.1:8000
     description: Local MVP API endpoint.
+  - url: https://api.valerchik.de
+    description: Protected beta route; edge deployments may also require X-API-Key.
 paths:
   /health:
     get:
@@ -119,7 +121,7 @@ paths:
         - name: X-QuizBank-Quota-Key
           in: header
           required: false
-          description: Required for website_quiz_teaser; server-side proxy supplies a per-session, per-IP or per-user quota key.
+          description: Required for website_quiz_teaser; optional for shorts_factory_backend and regular server-to-server consumers.
           schema:
             type: string
             minLength: 1
@@ -167,6 +169,55 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+  /v1/quiz-items/{item_id}:
+    get:
+      operationId: getTrustedQuizItemById
+      summary: Read an answer-enabled approved or published quiz item for a trusted consumer.
+      tags:
+        - quiz-delivery
+      parameters:
+        - name: item_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Consumer-Id
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: X-QuizBank-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Answer-enabled quiz item projection for trusted manual quiz_id flow.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrustedQuizItemLookupResponse'
+        '401':
+          description: Missing or invalid consumer-bound API credentials.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: Consumer is not trusted, active or entitled for this item.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: Approved or published item is not visible for this trusted lookup.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
   /v1/deliveries/{delivery_id}:
     get:
       operationId: getDelivery
@@ -206,6 +257,61 @@ paths:
                 $ref: '#/components/schemas/ProblemDetails'
         '403':
           description: Consumer API key is inactive or consumer is not active.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: Delivery is not visible for this consumer.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /v1/deliveries/{delivery_id}/outcome:
+    post:
+      operationId: recordDeliveryOutcome
+      summary: Record sent, failed or cancelled outcome for a trusted consumer delivery.
+      tags:
+        - quiz-delivery
+      parameters:
+        - name: delivery_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Consumer-Id
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: X-QuizBank-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveryOutcomeRequest'
+      responses:
+        '200':
+          description: Updated consumer-scoped delivery log.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryProjection'
+        '401':
+          description: Missing or invalid consumer-bound API credentials.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: Consumer is not active or trusted for outcome writes.
           content:
             application/problem+json:
               schema:
@@ -694,6 +800,7 @@ components:
         - theme
         - objective
         - pattern
+        - status
         - metadata
       properties:
         id:
@@ -756,6 +863,9 @@ components:
           properties:
             title:
               type: string
+        status:
+          type: string
+          enum: [approved, published]
         metadata:
           type: object
           additionalProperties: false
@@ -781,6 +891,62 @@ components:
                   type: string
                 pattern_title:
                   type: string
+    QuizItemAnswerFeedback:
+      type: object
+      additionalProperties: false
+      required: [correctAnswerId, explanation]
+      properties:
+        correctAnswerId:
+          type: string
+          description: Option id from quiz_item.options[].id.
+        explanation:
+          type: string
+    QuizItemAnswerEnabledProjection:
+      type: object
+      additionalProperties: true
+      required:
+        - id
+        - public_id
+        - language
+        - question
+        - options
+        - cefr_level
+        - theme
+        - objective
+        - pattern
+        - status
+        - metadata
+        - feedback
+      properties:
+        id:
+          type: string
+        public_id:
+          type: string
+        language:
+          type: string
+          const: de
+        question:
+          type: object
+        options:
+          type: array
+          items:
+            type: object
+        cefr_level:
+          type: string
+          enum: [A1, A2, B1, B2, C1, C2]
+        theme:
+          type: object
+        objective:
+          type: object
+        pattern:
+          type: object
+        status:
+          type: string
+          enum: [approved, published]
+        metadata:
+          type: object
+        feedback:
+          $ref: '#/components/schemas/QuizItemAnswerFeedback'
     ProblemDetails:
       type: object
       additionalProperties: true
@@ -1054,6 +1220,48 @@ components:
           type: string
         reason:
           type: string
+    DeliveryOutcomeRequest:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [sent, failed, cancelled]
+        reason:
+          type:
+            - string
+            - 'null'
+          maxLength: 500
+    TrustedQuizItemLookupResponse:
+      type: object
+      additionalProperties: false
+      required: [consumer_id, quiz_item, interaction, access]
+      properties:
+        consumer_id:
+          type: string
+        quiz_item:
+          $ref: '#/components/schemas/QuizItemAnswerEnabledProjection'
+        interaction:
+          type: object
+          additionalProperties: false
+          required: [mode, answer_key_included]
+          properties:
+            mode:
+              type: string
+              const: trusted_item_lookup
+            answer_key_included:
+              type: boolean
+              const: true
+        access:
+          type: object
+          additionalProperties: false
+          required: [entitlement_checked, deliverable_status_checked]
+          properties:
+            entitlement_checked:
+              type: boolean
+            deliverable_status_checked:
+              type: boolean
     NextQuizResponse:
       type: object
       additionalProperties: false
@@ -1070,7 +1278,9 @@ components:
         consumer_id:
           type: string
         quiz_item:
-          $ref: '#/components/schemas/QuizItemPublicProjection'
+          oneOf:
+            - $ref: '#/components/schemas/QuizItemPublicProjection'
+            - $ref: '#/components/schemas/QuizItemAnswerEnabledProjection'
         delivery:
           $ref: '#/components/schemas/DeliveryProjection'
         interaction:
@@ -1082,7 +1292,6 @@ components:
               type: string
             answer_key_included:
               type: boolean
-              const: false
         selection:
           type: object
           additionalProperties: false

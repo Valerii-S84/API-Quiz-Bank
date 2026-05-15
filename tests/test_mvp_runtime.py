@@ -85,7 +85,9 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
             "/v1/levels",
             "/v1/topics",
             "/v1/quiz-items/next",
+            "/v1/quiz-items/{item_id}",
             "/v1/deliveries/{delivery_id}",
+            "/v1/deliveries/{delivery_id}/outcome",
         ]:
             self.assertIn(path, app_paths)
             self.assertIn(f"  {path}:", committed_openapi)

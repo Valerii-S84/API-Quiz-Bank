@@ -37,6 +37,7 @@ def build_learner_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
         "theme": theme,
         "objective": objective,
         "pattern": pattern,
+        "status": str(item["status"]),
         "metadata": {
             "display": {
                 "cefr_level": level,

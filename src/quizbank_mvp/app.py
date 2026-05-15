@@ -16,6 +16,11 @@ from .database import configured_database_url, configured_db_path, database_is_r
 from .rate_limit import FixedWindowRateLimiter, delivery_rate_limit_key
 from .selection import QuizBankProblem, SelectionFilters, SelectionRequest, get_delivery, select_next_item
 from .taxonomy import level_catalog, topic_catalog
+from .trusted_delivery import (
+    is_answer_enabled_consumer,
+    lookup_trusted_quiz_item,
+    record_delivery_outcome,
+)
 
 
 CefrLevel = Literal["A1", "A2", "B1", "B2", "C1", "C2"]
@@ -23,9 +28,9 @@ ThemeId = Literal[
     "T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09",
     "T10", "T11", "T12", "T13", "T14", "T15", "T16", "T17", "T18",
 ]
-ANSWER_FEEDBACK_CONSUMERS = {"website_quiz_teaser"}
 SCOPED_QUOTA_CONSUMERS = {"website_quiz_teaser"}
 MAX_QUOTA_SCOPE_KEY_LENGTH = 128
+DeliveryOutcomeStatus = Literal["sent", "failed", "cancelled"]
 ObjectiveId = Literal[
     "O01", "O02", "O03", "O04", "O05", "O06", "O07", "O08",
     "O09", "O10", "O11", "O12", "O13", "O14", "O15", "O16",
@@ -46,6 +51,13 @@ class NextQuizRequest(BaseModel):
     pattern_ids: list[PatternId] = Field(default_factory=list)
 
 
+class DeliveryOutcomeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: DeliveryOutcomeStatus
+    reason: str | None = Field(default=None, max_length=500)
+
+
 def create_app(db_path: Path | None = None) -> FastAPI:
     database_path = db_path if db_path is not None or configured_database_url() else configured_db_path()
     app = FastAPI(
@@ -57,6 +69,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     register_error_handlers(app)
     register_operations_routes(app, database_path)
     register_delivery_routes(app, database_path, rate_limiter)
+    register_trusted_delivery_routes(app, database_path)
     register_admin_routes(app, database_path)
     return app
 
@@ -156,6 +169,42 @@ def register_delivery_routes(
         return get_delivery(database_path, delivery_id, authenticated.consumer_id)
 
 
+def register_trusted_delivery_routes(app: FastAPI, database_path: Path) -> None:
+    @app.get("/v1/quiz-items/{item_id}", tags=["quiz-delivery"])
+    def trusted_quiz_item(
+        item_id: str,
+        x_consumer_id: Annotated[str | None, Header()] = None,
+        x_quizbank_api_key: Annotated[str | None, Header(alias="X-QuizBank-API-Key")] = None,
+    ) -> dict[str, object]:
+        authenticated = authenticate_consumer(
+            database_path,
+            x_consumer_id,
+            x_quizbank_api_key,
+        )
+        result = lookup_trusted_quiz_item(database_path, item_id, authenticated.consumer_id)
+        return trusted_quiz_item_response(authenticated.consumer_id, result)
+
+    @app.post("/v1/deliveries/{delivery_id}/outcome", tags=["quiz-delivery"])
+    def delivery_outcome(
+        delivery_id: str,
+        payload: DeliveryOutcomeRequest,
+        x_consumer_id: Annotated[str | None, Header()] = None,
+        x_quizbank_api_key: Annotated[str | None, Header(alias="X-QuizBank-API-Key")] = None,
+    ) -> dict[str, object]:
+        authenticated = authenticate_consumer(
+            database_path,
+            x_consumer_id,
+            x_quizbank_api_key,
+        )
+        return record_delivery_outcome(
+            database_path,
+            delivery_id,
+            authenticated.consumer_id,
+            payload.status,
+            payload.reason,
+        )
+
+
 def next_quiz_response(consumer_id: str, result: dict[str, object]) -> dict[str, object]:
     delivery = result["delivery"]
     if not isinstance(delivery, dict):
@@ -163,7 +212,8 @@ def next_quiz_response(consumer_id: str, result: dict[str, object]) -> dict[str,
     quiz_item = result["quiz_item"]
     if not isinstance(quiz_item, dict):
         raise TypeError("quiz item result must be a dictionary")
-    quiz_item = quiz_item_for_consumer(consumer_id, quiz_item, result.get("answer_feedback"))
+    answer_feedback = result.get("answer_feedback")
+    quiz_item = quiz_item_for_consumer(consumer_id, quiz_item, answer_feedback)
     selection_decision = result.get("selection_decision", {})
     if not isinstance(selection_decision, dict):
         raise TypeError("selection decision result must be a dictionary")
@@ -174,7 +224,7 @@ def next_quiz_response(consumer_id: str, result: dict[str, object]) -> dict[str,
         "delivery": delivery,
         "interaction": {
             "mode": "hidden_before_attempt",
-            "answer_key_included": False,
+            "answer_key_included": answer_feedback_is_included(consumer_id, answer_feedback),
         },
         "selection": {
             "entitlement_checked": True,
@@ -185,16 +235,37 @@ def next_quiz_response(consumer_id: str, result: dict[str, object]) -> dict[str,
     }
 
 
+def trusted_quiz_item_response(consumer_id: str, result: dict[str, object]) -> dict[str, object]:
+    quiz_item = result["quiz_item"]
+    if not isinstance(quiz_item, dict):
+        raise TypeError("quiz item result must be a dictionary")
+    answer_feedback = result.get("answer_feedback")
+    return {
+        "consumer_id": consumer_id,
+        "quiz_item": quiz_item_for_consumer(consumer_id, quiz_item, answer_feedback),
+        "interaction": {
+            "mode": "trusted_item_lookup",
+            "answer_key_included": answer_feedback_is_included(consumer_id, answer_feedback),
+        },
+        "access": {
+            "entitlement_checked": True,
+            "deliverable_status_checked": True,
+        },
+    }
+
+
 def quiz_item_for_consumer(
     consumer_id: str,
     quiz_item: dict[str, object],
     answer_feedback: object,
 ) -> dict[str, object]:
-    if consumer_id not in ANSWER_FEEDBACK_CONSUMERS:
-        return quiz_item
-    if not isinstance(answer_feedback, dict):
+    if not answer_feedback_is_included(consumer_id, answer_feedback):
         return quiz_item
     return {**quiz_item, "feedback": answer_feedback}
+
+
+def answer_feedback_is_included(consumer_id: str, answer_feedback: object) -> bool:
+    return is_answer_enabled_consumer(consumer_id) and isinstance(answer_feedback, dict)
 
 
 def public_selection_decision(decision: dict[str, object]) -> dict[str, object]:
