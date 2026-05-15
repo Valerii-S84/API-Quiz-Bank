@@ -39,6 +39,7 @@ class MvpProjectionTests(unittest.TestCase):
 
         self.assertEqual(projection["id"], "approved_traceable_001")
         self.assertEqual(projection["public_id"], "approved_traceable_001")
+        self.assertEqual(projection["status"], "approved")
         self.assertEqual(
             projection["question"]["text"],
             "Welche Ergänzung passt hier am besten?\nIch muss morgen einen Termin ___.",

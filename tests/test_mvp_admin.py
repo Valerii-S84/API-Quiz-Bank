@@ -12,11 +12,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from quizbank_mvp.app import create_app  # noqa: E402
+from quizbank_mvp import admin_service  # noqa: E402
 from quizbank_mvp.cli import seed_admin as seed_owner_password  # noqa: E402
 from quizbank_mvp.database import (  # noqa: E402
     connect,
     initialize_database,
     seed_admin_credential,
+    seed_consumer,
     seed_control_fixture,
 )
 
@@ -225,6 +227,78 @@ class MvpAdminEndpointTests(MvpAdminCase):
                 "SELECT COUNT(*) AS count FROM audit_log WHERE entity_type = 'quiz_item'"
             ).fetchone()
         return int(row["count"])
+
+
+class MvpAdminServiceTests(MvpAdminCase):
+    def test_admin_service_reports_missing_quiz_item_as_problem(self) -> None:
+        with self.assertRaises(Exception) as error:
+            admin_service.get_admin_quiz_item(self.db_path, "missing_item")
+
+        self.assertEqual(error.exception.reason_code, "ADMIN_ITEM_NOT_FOUND")
+
+    def test_admin_service_filters_items_and_lists_audit_rows(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "draft")
+        admin_service.change_admin_quiz_item_status(
+            self.db_path,
+            "approved_traceable_001",
+            "approve",
+            "content_admin",
+            "metadata checked",
+        )
+
+        filtered = admin_service.list_admin_quiz_items(
+            self.db_path,
+            {
+                "status": "approved",
+                "cefr_level": "A2",
+                "theme_id": "T10",
+                "source_id": "src_control_mvp",
+            },
+            10,
+        )
+        audit_rows = admin_service.list_audit_log(self.db_path, 10)
+
+        self.assertEqual(filtered["data"][0]["item_id"], "approved_traceable_001")
+        self.assertEqual(audit_rows["data"][0]["action"], "status_transition")
+
+    def test_admin_service_maps_transition_errors_to_problem_details(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "draft")
+        seed_consumer(self.db_path, "consumer_active", 2, ["A2"], ["T10"])
+
+        with self.assertRaises(Exception) as missing_item:
+            admin_service.change_admin_quiz_item_status(
+                self.db_path,
+                "missing_item",
+                "approve",
+                "content_admin",
+                "metadata checked",
+            )
+        with self.assertRaises(Exception) as invalid_consumer_transition:
+            admin_service.change_admin_consumer_status(
+                self.db_path,
+                "consumer_active",
+                "active",
+                "owner",
+                "invalid no-op",
+            )
+        with self.assertRaises(Exception) as missing_consumer:
+            admin_service.change_admin_consumer_status(
+                self.db_path,
+                "missing_consumer",
+                "blocked",
+                "owner",
+                "missing consumer",
+            )
+        with self.assertRaises(Exception) as missing_consumer_read:
+            admin_service.get_admin_consumer(self.db_path, "missing_consumer")
+
+        self.assertEqual(missing_item.exception.reason_code, "ADMIN_ITEM_NOT_FOUND")
+        self.assertEqual(
+            invalid_consumer_transition.exception.reason_code,
+            "ADMIN_INVALID_CONSUMER_TRANSITION",
+        )
+        self.assertEqual(missing_consumer.exception.reason_code, "ADMIN_CONSUMER_NOT_FOUND")
+        self.assertEqual(missing_consumer_read.exception.reason_code, "ADMIN_CONSUMER_NOT_FOUND")
 
 
 class AdminSeedArgs:
