@@ -29,8 +29,8 @@ CONSUMER_ID = SHORTS_FACTORY_BACKEND_CONSUMER_ID
 DISPLAY_NAME = "Shorts Factory Backend"
 CONSUMER_KIND = "api_client"
 DAILY_QUOTA_LIMIT = 100
-ALLOWED_CEFR_LEVELS = ("A1", "A2", "B1", "B2", "C1", "C2")
-ALLOWED_THEME_IDS = tuple(f"T{index:02d}" for index in range(1, 19))
+ALLOWED_CEFR_LEVELS = ("A2",)
+ALLOWED_THEME_IDS = ("T05",)
 DB_PATH = ROOT / "var" / "quizbank_mvp.sqlite3"
 SECRET_ENV_PATH = ROOT / "var" / "deployment_env" / "shorts_factory_backend.env"
 API_BASE_URL = "http://127.0.0.1:8000"
@@ -75,7 +75,7 @@ def provision_shorts_factory_backend(args: argparse.Namespace) -> dict[str, Any]
         ALLOWED_CEFR_LEVELS,
         ALLOWED_THEME_IDS,
         actor="owner",
-        reason="Trusted Shorts Factory backend approved/published quiz delivery",
+        reason="Trusted Shorts Factory backend A2/T05 approved/published quiz delivery",
     )
     upsert_consumer_profile(args.db_path)
     return {

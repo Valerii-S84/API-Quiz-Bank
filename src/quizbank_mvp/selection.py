@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -25,6 +25,7 @@ from .selection_decision_log import (
 )
 from .selection_diagnostics import blocked_reason_counts, candidate_count
 from .selection_policy import SelectionPolicy
+from .selection_scope import effective_scope_replacement
 from .weighted_selection import select_ranked_candidate
 
 
@@ -168,6 +169,7 @@ def select_next_item(db_path: Path | None, request: SelectionRequest) -> dict[st
     with connect(db_path) as connection:
         consumer = load_active_consumer(connection, request.consumer_id)
         entitlement = load_active_entitlement(connection, request)
+        request = replace(request, **effective_scope_replacement(request, consumer, entitlement))
         enforce_consumer_scope(consumer, request)
         enforce_entitlement_scope(entitlement, request)
         quota_usage = reserve_quota(connection, consumer, request)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sqlite3
 import sys
 import tempfile
@@ -59,6 +60,34 @@ class ShortsFactoryBackendTests(unittest.TestCase):
         )
         self.assertTrue(response.json()["interaction"]["answer_key_included"])
         self.assertNotIn("answer_key", quiz)
+
+    def test_trusted_consumer_scope_limits_selection_when_filters_are_omitted(self) -> None:
+        self.seed_access(TRUSTED_CONSUMER_ID, "trusted_key")
+
+        response = self.client.post(
+            "/v1/quiz-items/next",
+            json={"consumer_id": TRUSTED_CONSUMER_ID},
+            headers={
+                "X-Consumer-Id": TRUSTED_CONSUMER_ID,
+                "X-QuizBank-API-Key": "trusted_key",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        quiz = response.json()["quiz_item"]
+        self.assertEqual(quiz["cefr_level"], "A2")
+        self.assertEqual(item_scope(self.db_path, quiz["id"]), ("A2", "T10"))
+
+    def test_trusted_consumer_scope_rejects_outside_filters(self) -> None:
+        self.seed_access(TRUSTED_CONSUMER_ID, "trusted_key")
+
+        level_denial = self.next_item(TRUSTED_CONSUMER_ID, "trusted_key", "B1", "T10")
+        theme_denial = self.next_item(TRUSTED_CONSUMER_ID, "trusted_key", "A2", "T11")
+
+        self.assertEqual(level_denial.status_code, 403)
+        self.assertEqual(theme_denial.status_code, 403)
+        self.assertEqual(level_denial.json()["reason_code"], "CONSUMER_LEVEL_NOT_ALLOWED")
+        self.assertEqual(theme_denial.json()["reason_code"], "CONSUMER_THEME_NOT_ALLOWED")
 
     def test_regular_consumer_does_not_receive_answer_feedback(self) -> None:
         self.seed_access(REGULAR_CONSUMER_ID, "regular_key")
@@ -172,6 +201,12 @@ class ShortsFactoryBackendTests(unittest.TestCase):
         consumer = self.consumer_row(TRUSTED_CONSUMER_ID)
         self.assertEqual(consumer["status"], "active")
         self.assertEqual(consumer["daily_quota_limit"], 3)
+        self.assertEqual(json.loads(consumer["allowed_cefr_levels_json"]), ["A2"])
+        self.assertEqual(json.loads(consumer["allowed_theme_ids_json"]), ["T05"])
+        entitlement = entitlement_row(self.db_path, TRUSTED_CONSUMER_ID)
+        self.assertEqual(entitlement["status"], "active")
+        self.assertEqual(json.loads(entitlement["allowed_cefr_levels_json"]), ["A2"])
+        self.assertEqual(json.loads(entitlement["allowed_theme_ids_json"]), ["T05"])
         self.assertTrue(secret_env_path.exists())
         raw_key = evidence["env_handoff"]["raw"]["QUIZ_BANK_CONSUMER_API_KEY"]
         self.assertNotEqual(raw_key, evidence["credential_masked"])
@@ -183,10 +218,16 @@ class ShortsFactoryBackendTests(unittest.TestCase):
         seed_api_credential(self.db_path, consumer_id, api_key)
         seed_entitlement(self.db_path, consumer_id, ["A2"], ["T10"])
 
-    def next_item(self, consumer_id: str, api_key: str):
+    def next_item(
+        self,
+        consumer_id: str,
+        api_key: str,
+        cefr_level: str = "A2",
+        theme_id: str = "T10",
+    ):
         return self.client.post(
             "/v1/quiz-items/next",
-            json={"consumer_id": consumer_id, "cefr_level": "A2", "theme_ids": ["T10"]},
+            json={"consumer_id": consumer_id, "cefr_level": cefr_level, "theme_ids": [theme_id]},
             headers={"X-Consumer-Id": consumer_id, "X-QuizBank-API-Key": api_key},
         )
 
@@ -207,6 +248,32 @@ class ShortsFactoryBackendTests(unittest.TestCase):
             return row
         finally:
             connection.close()
+
+
+def entitlement_row(db_path: Path, consumer_id: str) -> sqlite3.Row:
+    connection = sqlite3.connect(db_path)
+    connection.row_factory = sqlite3.Row
+    try:
+        row = connection.execute(
+            "SELECT * FROM entitlements WHERE consumer_id = ? AND feature = 'quiz_delivery'",
+            (consumer_id,),
+        ).fetchone()
+        if row is None:
+            raise AssertionError(f"entitlement not found: {consumer_id}")
+        return row
+    finally:
+        connection.close()
+
+
+def item_scope(db_path: Path, item_id: str) -> tuple[str, str]:
+    with sqlite3.connect(db_path) as connection:
+        row = connection.execute(
+            "SELECT sublevel, theme_id FROM quiz_items WHERE item_id = ?",
+            (item_id,),
+        ).fetchone()
+    if row is None:
+        raise AssertionError(f"item not found: {item_id}")
+    return str(row[0]), str(row[1])
 
 
 if __name__ == "__main__":
