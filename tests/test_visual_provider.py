@@ -83,7 +83,7 @@ class VisualProviderTests(unittest.TestCase):
         payload = json.loads(spy.request.data.decode("utf-8"))
         self.assertEqual(payload["model"], "gpt-image-2")
         self.assertEqual(payload["prompt"], "draw a classroom")
-        self.assertEqual(payload["quality"], "auto")
+        self.assertEqual(payload["quality"], "medium")
         self.assertEqual(spy.request.get_method(), "POST")
         self.assertEqual(spy.timeout, 7)
         self.assertEqual(result.provider_name, "openai")
