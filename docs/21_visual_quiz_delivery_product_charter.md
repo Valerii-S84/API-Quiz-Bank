@@ -10,7 +10,7 @@
 **Мова:** українська з канонічними технічними термінами англійською  
 **Власник:** project owner / authorized product maintainer  
 **Керівні документи:** `CONSTITUTION.md`, `docs/01_product_charter.md`, `docs/02_requirements_srs.md`, `docs/07_api_standard.md`, `docs/10_operations.md`, `docs/11_billing_model.md`, `docs/18_telegram_delivery_playbook.md`, `docs/19_privacy_compliance.md`, `docs/20_visual_quiz_delivery.md`  
-**Наступні документи:** none in current module chain
+**Наступні документи:** `docs/22_visual_quiz_delivery_implementation_plan.md`
 
 ---
 
