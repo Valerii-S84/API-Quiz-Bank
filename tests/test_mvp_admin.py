@@ -20,7 +20,10 @@ from quizbank_mvp.database import (  # noqa: E402
     seed_admin_credential,
     seed_consumer,
     seed_control_fixture,
+    utc_now,
 )
+from quizbank_mvp.visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings  # noqa: E402
+from quizbank_mvp.visual_settings import save_visual_settings  # noqa: E402
 
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
@@ -61,6 +64,7 @@ class MvpAdminEndpointTests(MvpAdminCase):
             "/v1/admin/quiz-items/{item_id}/block",
             "/v1/admin/audit-log",
             "/v1/admin/consumers",
+            "/v1/admin/consumers/{consumer_id}/visual-settings",
             "/v1/admin/consumers/{consumer_id}/suspend",
             "/v1/admin/consumers/{consumer_id}/activate",
             "/v1/admin/consumers/{consumer_id}/block",
@@ -93,6 +97,24 @@ class MvpAdminEndpointTests(MvpAdminCase):
             credential = connection.execute("SELECT key_prefix, key_hash FROM admin_credentials").fetchone()
         self.assertEqual(credential["key_prefix"], key[:12])
         self.assertNotEqual(credential["key_hash"], key)
+
+    def test_admin_dashboard_includes_visual_metrics_summary(self) -> None:
+        key = self.seed_admin()
+        seed_consumer(self.db_path, "consumer_visual", 5, ["A2"], ["T10"])
+        save_visual_settings(self.db_path, visual_settings("consumer_visual"))
+        insert_visual_usage_event(self, "vusage_cache", "cache_hit")
+        insert_visual_usage_event(self, "vusage_fallback", "fallback_used")
+        insert_visual_usage_event(self, "vusage_generation", "generation_requested")
+
+        response = self.client.get("/v1/admin/dashboard", headers=self.admin_headers(key))
+        visual = response.json()["visual_metrics"]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(visual["settings_by_mode"]["image_standard"], 1)
+        self.assertEqual(visual["event_counts"]["cache_hit"], 1)
+        self.assertEqual(visual["generation_count_by_consumer"]["consumer_visual"], 1)
+        self.assertEqual(visual["cache_hit_rate"], 0.5)
+        self.assertEqual(visual["fallback_rate"], 0.5)
 
     def test_read_only_reviewer_can_list_items_but_cannot_write(self) -> None:
         key = self.seed_admin("reviewer", "read_only_reviewer")
@@ -227,6 +249,124 @@ class MvpAdminEndpointTests(MvpAdminCase):
                 "SELECT COUNT(*) AS count FROM audit_log WHERE entity_type = 'quiz_item'"
             ).fetchone()
         return int(row["count"])
+
+
+class MvpAdminVisualSettingsTests(MvpAdminCase):
+    def test_owner_can_configure_visual_settings(self) -> None:
+        key = self.seed_admin("owner", "owner")
+        seed_consumer(self.db_path, "consumer_visual", 5, ["A2"], ["T10"])
+
+        patch = self.client.patch(
+            "/v1/admin/consumers/consumer_visual/visual-settings",
+            json={
+                "delivery_mode": "image_standard",
+                "visual_style": "standard_illustration",
+                "branding_preset": "none",
+                "fallback_policy": "text_only",
+                "daily_visual_delivery_limit": 3,
+                "daily_generation_limit": 2,
+                "monthly_generation_limit": 10,
+                "is_active": True,
+                "reason": "enable standard visual pilot",
+            },
+            headers=self.admin_headers(key),
+        )
+        get = self.client.get(
+            "/v1/admin/consumers/consumer_visual/visual-settings",
+            headers=self.admin_headers(key),
+        )
+
+        self.assertEqual(patch.status_code, 200)
+        self.assertEqual(patch.json()["settings"]["delivery_mode"], "image_standard")
+        self.assertEqual(patch.json()["audit"]["action"], "visual_settings_update")
+        self.assertEqual(get.json()["delivery_mode"], "image_standard")
+        self.assertEqual(self.visual_audit_count(), 1)
+
+    def test_invalid_visual_mode_is_rejected(self) -> None:
+        key = self.seed_admin("owner", "owner")
+        seed_consumer(self.db_path, "consumer_visual", 5, ["A2"], ["T10"])
+
+        response = self.client.patch(
+            "/v1/admin/consumers/consumer_visual/visual-settings",
+            json={"delivery_mode": "video", "reason": "invalid mode"},
+            headers=self.admin_headers(key),
+        )
+
+        self.assertEqual(response.status_code, 422)
+
+    def test_non_owner_cannot_mutate_visual_settings(self) -> None:
+        key = self.seed_admin("content_admin", "content_admin")
+        seed_consumer(self.db_path, "consumer_visual", 5, ["A2"], ["T10"])
+
+        response = self.client.patch(
+            "/v1/admin/consumers/consumer_visual/visual-settings",
+            json={"delivery_mode": "image_standard", "reason": "not owner"},
+            headers=self.admin_headers(key),
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["reason_code"], "ADMIN_OWNER_REQUIRED")
+
+    def test_non_owner_cannot_read_visual_settings(self) -> None:
+        key = self.seed_admin("content_admin", "content_admin")
+        seed_consumer(self.db_path, "consumer_visual", 5, ["A2"], ["T10"])
+
+        response = self.client.get(
+            "/v1/admin/consumers/consumer_visual/visual-settings",
+            headers=self.admin_headers(key),
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["reason_code"], "ADMIN_OWNER_REQUIRED")
+
+    def test_visual_settings_for_missing_consumer_are_not_exposed(self) -> None:
+        key = self.seed_admin("owner", "owner")
+
+        response = self.client.get(
+            "/v1/admin/consumers/missing_consumer/visual-settings",
+            headers=self.admin_headers(key),
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()["reason_code"], "ADMIN_CONSUMER_NOT_FOUND")
+
+    def visual_audit_count(self) -> int:
+        with connect(self.db_path) as connection:
+            row = connection.execute(
+                """
+                SELECT COUNT(*) AS count
+                FROM audit_log
+                WHERE action = 'visual_settings_update'
+                """
+            ).fetchone()
+        return int(row["count"])
+
+
+def visual_settings(consumer_id: str) -> VisualSettings:
+    return VisualSettings(
+        consumer_id=consumer_id,
+        delivery_mode=VisualDeliveryMode.IMAGE_STANDARD,
+        visual_style="standard_illustration",
+        branding_preset="none",
+        fallback_policy=VisualFallbackPolicy.TEXT_ONLY,
+        daily_visual_delivery_limit=5,
+        daily_generation_limit=5,
+        monthly_generation_limit=20,
+        is_active=True,
+    )
+
+
+def insert_visual_usage_event(case: MvpAdminCase, usage_event_id: str, event_type: str) -> None:
+    with connect(case.db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO visual_usage_events (
+                usage_event_id, consumer_id, event_type, feature, quantity,
+                estimated_cost_minor, provider_name, created_at
+            ) VALUES (?, 'consumer_visual', ?, 'visual_delivery.standard', 1, 0, 'local', ?)
+            """,
+            (usage_event_id, event_type, utc_now()),
+        )
 
 
 class MvpAdminServiceTests(MvpAdminCase):

@@ -107,11 +107,16 @@ ADMIN_PANEL_HTML = """<!doctype html>
       }
     }
     function renderMetrics(data) {
+      const visual = data.visual_metrics || {};
+      const visualEvents = visual.event_counts || {};
       document.getElementById('metrics').innerHTML = [
         ['Approved + Published', data.approved_published_count],
         ['Deliveries', data.delivery_log_count],
         ['Audit Events', data.audit_log_count],
-        ['Blocked', data.corpus_status_counts.blocked || 0]
+        ['Blocked', data.corpus_status_counts.blocked || 0],
+        ['Visual Cache Hit Rate', `${Math.round((visual.cache_hit_rate || 0) * 100)}%`],
+        ['Visual Fallback Rate', `${Math.round((visual.fallback_rate || 0) * 100)}%`],
+        ['Visual Generations', visualEvents.generation_requested || 0]
       ].map(([label, value]) => `<div class="metric"><strong>${value}</strong><br>${label}</div>`).join('');
     }
     function renderItems(items) {

@@ -133,7 +133,7 @@ class ContractSchemaInvariantTests(unittest.TestCase):
     def test_openapi_seed_preserves_public_delivery_boundary(self) -> None:
         openapi = (ROOT / "api" / "openapi.yaml").read_text(encoding="utf-8")
         public_projection = openapi.split("QuizItemPublicProjection:", 1)[1].split(
-            "ProblemDetails:", 1
+            "QuizItemAnswerFeedback:", 1
         )[0]
         self.assertIn("/v1/levels:", openapi)
         self.assertIn("/v1/topics:", openapi)
@@ -156,13 +156,33 @@ class ContractSchemaInvariantTests(unittest.TestCase):
             f"enum: [{', '.join(NORMAL_DELIVERY_STATUSES)}]",
             openapi,
         )
+        self.assertIn("  /v1/admin/consumers/{consumer_id}/visual-settings:", openapi)
+        self.assertIn("AdminVisualSettingsPatchRequest", openapi)
+        self.assertIn("enum: [text_only, image_standard, image_branded]", openapi)
+        self.assertNotIn("  /v1/visual-assets/generate:", openapi)
 
     def test_mvp_plan_catalog_defines_manual_entitlement_seed(self) -> None:
         catalog = json.loads((ROOT / "data/billing/plan_catalog.json").read_text())
         plan_codes = {plan["plan_code"] for plan in catalog["plans"]}
+        feature_codes = {
+            feature["feature_code"]
+            for plan in catalog["plans"]
+            for feature in plan["features"]
+        }
         self.assertEqual(catalog["status"], "seed")
         self.assertIn("manual_mvp_demo", plan_codes)
         self.assertIn("api_pilot", plan_codes)
+        self.assertIn("manual_visual_demo", plan_codes)
+        self.assertIn("visual_pilot", plan_codes)
+        self.assertIn("pro_visual_pilot", plan_codes)
+        self.assertTrue(
+            {
+                "visual_delivery.standard",
+                "visual_delivery.branded",
+                "visual_generation.standard",
+                "visual_generation.branded",
+            }.issubset(feature_codes)
+        )
         for plan in catalog["plans"]:
             self.assertTrue(plan["features"])
             self.assertEqual(plan["features"][0]["feature_code"], "quiz_delivery")

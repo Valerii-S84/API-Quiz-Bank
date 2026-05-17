@@ -15,11 +15,13 @@ from .admin_service import (
     change_admin_quiz_item_status,
     change_admin_consumer_status,
     create_admin_consumer,
+    get_admin_visual_settings,
     get_admin_quiz_item,
     list_admin_consumers,
     list_admin_quiz_items,
     list_audit_log,
     admin_dashboard,
+    update_admin_visual_settings,
 )
 
 
@@ -40,6 +42,8 @@ AdminTheme = Literal[
     "T10", "T11", "T12", "T13", "T14", "T15", "T16", "T17", "T18",
 ]
 ConsumerKind = Literal["api_client", "telegram_channel", "telegram_bot", "teacher", "school"]
+VisualDeliveryMode = Literal["text_only", "image_standard", "image_branded"]
+VisualFallbackPolicy = Literal["text_only", "cache_only", "block_visual_delivery"]
 
 
 class AdminStatusChangeRequest(BaseModel):
@@ -58,6 +62,20 @@ class AdminConsumerCreateRequest(BaseModel):
     allowed_cefr_levels: list[AdminLevel] = Field(min_length=1)
     allowed_theme_ids: list[AdminTheme] = Field(min_length=1)
     api_key: str = Field(min_length=8, max_length=200)
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class AdminVisualSettingsPatchRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    delivery_mode: VisualDeliveryMode | None = None
+    visual_style: str | None = Field(default=None, min_length=1, max_length=120)
+    branding_preset: str | None = Field(default=None, min_length=1, max_length=120)
+    fallback_policy: VisualFallbackPolicy | None = None
+    daily_visual_delivery_limit: int | None = Field(default=None, ge=0, le=10000)
+    daily_generation_limit: int | None = Field(default=None, ge=0, le=10000)
+    monthly_generation_limit: int | None = Field(default=None, ge=0, le=100000)
+    is_active: bool | None = None
     reason: str = Field(min_length=3, max_length=500)
 
 
@@ -132,6 +150,30 @@ def register_consumer_routes(app: FastAPI, database_path: Path) -> None:
         admin = authenticate_admin(database_path, x_quizbank_admin_key)
         require_owner(admin)
         return create_admin_consumer(database_path, payload.model_dump(), admin.actor)
+
+    @app.get("/v1/admin/consumers/{consumer_id}/visual-settings", tags=["admin"])
+    def consumer_visual_settings(
+        consumer_id: str,
+        x_quizbank_admin_key: AdminKeyHeader = None,
+    ) -> dict[str, object]:
+        admin = authenticate_admin(database_path, x_quizbank_admin_key)
+        require_owner(admin)
+        return get_admin_visual_settings(database_path, consumer_id)
+
+    @app.patch("/v1/admin/consumers/{consumer_id}/visual-settings", tags=["admin"])
+    def patch_consumer_visual_settings(
+        consumer_id: str,
+        payload: AdminVisualSettingsPatchRequest,
+        x_quizbank_admin_key: AdminKeyHeader = None,
+    ) -> dict[str, object]:
+        admin = authenticate_admin(database_path, x_quizbank_admin_key)
+        require_owner(admin)
+        return update_admin_visual_settings(
+            database_path,
+            consumer_id,
+            payload.model_dump(exclude_none=True),
+            admin.actor,
+        )
 
     register_consumer_status_route(app, database_path, "suspend", "suspended")
     register_consumer_status_route(app, database_path, "activate", "active")
