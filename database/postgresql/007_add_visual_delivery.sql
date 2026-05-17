@@ -41,6 +41,20 @@ CREATE TABLE IF NOT EXISTS visual_assets (
     provider_name TEXT NOT NULL CHECK (provider_name <> ''),
     provider_model TEXT NOT NULL CHECK (provider_model <> ''),
     provider_asset_ref TEXT,
+    visual_mode TEXT NOT NULL DEFAULT 'target_object' CHECK (
+        visual_mode IN (
+            'target_action',
+            'target_object',
+            'context_only',
+            'document_form',
+            'symbolic_abstract'
+        )
+    ),
+    visual_target TEXT NOT NULL DEFAULT 'unknown' CHECK (visual_target <> ''),
+    visual_context_hint TEXT NOT NULL DEFAULT '',
+    visual_prompt_policy_version TEXT NOT NULL DEFAULT 'unknown' CHECK (
+        visual_prompt_policy_version <> ''
+    ),
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL
 );
@@ -51,9 +65,23 @@ CREATE TABLE IF NOT EXISTS visual_prompt_audit (
     quiz_item_id TEXT NOT NULL REFERENCES quiz_items(item_id),
     consumer_id TEXT REFERENCES consumers(consumer_id),
     prompt_type TEXT NOT NULL CHECK (prompt_type <> ''),
+    visual_mode TEXT NOT NULL DEFAULT 'target_object' CHECK (
+        visual_mode IN (
+            'target_action',
+            'target_object',
+            'context_only',
+            'document_form',
+            'symbolic_abstract'
+        )
+    ),
+    visual_target TEXT NOT NULL DEFAULT 'unknown' CHECK (visual_target <> ''),
+    visual_context_hint TEXT NOT NULL DEFAULT '',
     generated_prompt TEXT NOT NULL CHECK (generated_prompt <> ''),
     negative_prompt TEXT NOT NULL,
     prompt_policy_version TEXT NOT NULL CHECK (prompt_policy_version <> ''),
+    visual_prompt_policy_version TEXT NOT NULL DEFAULT 'unknown' CHECK (
+        visual_prompt_policy_version <> ''
+    ),
     provider_name TEXT NOT NULL CHECK (provider_name <> ''),
     provider_model TEXT NOT NULL CHECK (provider_model <> ''),
     provider_response_id TEXT,

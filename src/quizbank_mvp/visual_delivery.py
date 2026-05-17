@@ -120,7 +120,7 @@ def qa_store_and_resolve(
         record_usage(db_path, delivery, settings.consumer_id, None, "generation_failed", feature)
         return fallback_with_usage(db_path, delivery, settings, "IMAGE_POSTPROCESS_FAILED", feature)
     qa_decision = evaluate_visual_qa(prompt, result, quiz_item, settings)
-    asset = store_after_basic_validation(db_path, quiz_item, settings, cache_key, result, asset_root)
+    asset = store_after_basic_validation(db_path, quiz_item, settings, cache_key, result, asset_root, prompt)
     if asset is not None:
         insert_prompt_audit(db_path, asset, quiz_item, settings, prompt, result)
         mark_visual_asset_qa_status(db_path, asset.asset_id, qa_decision.qa_status)
@@ -139,10 +139,28 @@ def store_after_basic_validation(
     cache_key: str,
     result: ImageGenerationResult,
     asset_root: Path,
+    prompt: VisualPrompt,
 ) -> VisualAssetRecord | None:
     if not result.image_bytes or result.mime_type not in SUPPORTED_MIME_TYPES:
         return None
-    return store_visual_asset_candidate(db_path, quiz_item, settings, cache_key, result, asset_root)
+    return store_visual_asset_candidate(
+        db_path,
+        quiz_item,
+        settings,
+        cache_key,
+        result,
+        asset_root,
+        visual_metadata=visual_metadata(prompt),
+    )
+
+
+def visual_metadata(prompt: VisualPrompt) -> dict[str, str]:
+    return {
+        "visual_mode": prompt.visual_mode,
+        "visual_target": prompt.visual_target,
+        "visual_context_hint": prompt.visual_context_hint,
+        "visual_prompt_policy_version": prompt.visual_prompt_policy_version,
+    }
 
 
 def provider_request(
@@ -184,20 +202,26 @@ def insert_prompt_audit(
             """
             INSERT INTO visual_prompt_audit (
                 prompt_id, asset_id, quiz_item_id, consumer_id, prompt_type,
+                visual_mode, visual_target, visual_context_hint,
                 generated_prompt, negative_prompt, prompt_policy_version,
+                visual_prompt_policy_version,
                 provider_name, provider_model, provider_response_id,
                 provider_revised_prompt, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 new_id("vprompt"),
                 asset.asset_id,
                 quiz_item["item_id"],
                 settings.consumer_id,
-                prompt.visualization_type,
+                prompt.visual_mode,
+                prompt.visual_mode,
+                prompt.visual_target,
+                prompt.visual_context_hint,
                 prompt.generated_prompt,
                 prompt.negative_prompt,
                 prompt.prompt_policy_version,
+                prompt.visual_prompt_policy_version,
                 result.provider_name,
                 result.provider_model,
                 result.provider_response_id,
