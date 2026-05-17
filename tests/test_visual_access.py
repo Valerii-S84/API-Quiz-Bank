@@ -15,6 +15,8 @@ from quizbank_mvp.visual_access import (  # noqa: E402
     check_visual_delivery_quota,
     check_visual_generation_access,
     check_visual_generation_quota,
+    reserve_visual_delivery_quota,
+    reserve_visual_generation_quota,
 )
 from quizbank_mvp.visual_models import (  # noqa: E402
     VisualDeliveryMode,
@@ -117,6 +119,25 @@ class VisualAccessTests(unittest.TestCase):
         self.assertFalse(daily.is_allowed)
         self.assertEqual(daily.period_key, "2026-05-17")
 
+    def test_visual_delivery_quota_reservation_updates_quota_usage(self) -> None:
+        settings = self.settings(VisualDeliveryMode.IMAGE_STANDARD)
+
+        first = reserve_visual_delivery_quota(self.db_path, settings, "2026-05-17")
+        second = reserve_visual_delivery_quota(self.db_path, settings, "2026-05-17")
+
+        self.assertTrue(first.is_allowed)
+        self.assertTrue(second.is_allowed)
+        self.assertEqual(self.quota_used("visual_delivery.standard", "2026-05-17"), 2)
+
+    def test_visual_generation_quota_reservation_updates_daily_and_monthly_usage(self) -> None:
+        settings = self.settings(VisualDeliveryMode.IMAGE_STANDARD)
+
+        reservation = reserve_visual_generation_quota(self.db_path, settings, "2026-05-17")
+
+        self.assertTrue(reservation.is_allowed)
+        self.assertEqual(self.quota_used("visual_generation.standard", "2026-05-17"), 1)
+        self.assertEqual(self.quota_used("visual_generation.standard", "2026-05"), 1)
+
     def settings(
         self,
         mode: VisualDeliveryMode,
@@ -180,6 +201,17 @@ class VisualAccessTests(unittest.TestCase):
                     utc_now(),
                 ),
             )
+
+    def quota_used(self, feature: str, period_key: str) -> int:
+        with connect(self.db_path) as connection:
+            row = connection.execute(
+                """
+                SELECT used_count FROM quota_usage
+                WHERE consumer_id = ? AND feature = ? AND usage_date = ?
+                """,
+                ("consumer_visual", feature, period_key),
+            ).fetchone()
+        return 0 if row is None else int(row["used_count"])
 
 
 if __name__ == "__main__":

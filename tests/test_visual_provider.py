@@ -82,6 +82,7 @@ class VisualProviderTests(unittest.TestCase):
         payload = json.loads(spy.request.data.decode("utf-8"))
         self.assertEqual(payload["model"], "gpt-image-2")
         self.assertEqual(payload["prompt"], "draw a classroom")
+        self.assertEqual(payload["quality"], "auto")
         self.assertEqual(spy.request.get_method(), "POST")
         self.assertEqual(spy.timeout, 7)
         self.assertEqual(result.provider_name, "openai")
@@ -123,6 +124,14 @@ class VisualProviderTests(unittest.TestCase):
             provider.generate(ImageGenerationRequest(prompt="x", negative_prompt=""))
 
         self.assertEqual(str(problem.exception), "openai_image_payload_missing_b64")
+
+    def test_openai_provider_rejects_quality_outside_gpt_image_2_enum(self) -> None:
+        provider = OpenAIImageProvider("test-key", "gpt-image-2", True, urlopen=UrlopenSpy(openai_response()))
+
+        with self.assertRaises(ImageGenerationError) as problem:
+            provider.generate(ImageGenerationRequest(prompt="x", negative_prompt="", quality="standard"))
+
+        self.assertEqual(str(problem.exception), "openai_image_quality_invalid")
 
 
 class UrlopenSpy:

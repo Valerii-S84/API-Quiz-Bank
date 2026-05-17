@@ -164,18 +164,18 @@ class MvpCoverageBranchTests(unittest.TestCase):
         payload = self.telegram_payload()
         adapter = TelegramBotApiAdapter(" token ", api_base="https://telegram.test/")
         ok_body = {"ok": True, "result": {"message_id": 42, "poll": {"id": "poll42"}}}
-        with patch("quizbank_mvp.telegram_delivery.urllib.request.urlopen") as urlopen:
+        with patch("quizbank_mvp.telegram_bot_api.urllib.request.urlopen") as urlopen:
             urlopen.return_value = FakeHttpResponse(ok_body)
             result = adapter.send_quiz_poll(payload)
         self.assertEqual(result.message_id, "42")
         self.assertEqual(result.poll_id, "poll42")
         with self.assertRaisesRegex(ValueError, "must not be empty"):
             TelegramBotApiAdapter(" ")
-        with patch("quizbank_mvp.telegram_delivery.urllib.request.urlopen") as urlopen:
+        with patch("quizbank_mvp.telegram_bot_api.urllib.request.urlopen") as urlopen:
             urlopen.side_effect = urllib.error.URLError("network")
             with self.assertRaisesRegex(TelegramDeliveryError, "telegram_request_failed"):
                 adapter.send_quiz_poll(payload)
-        with patch("quizbank_mvp.telegram_delivery.urllib.request.urlopen") as urlopen:
+        with patch("quizbank_mvp.telegram_bot_api.urllib.request.urlopen") as urlopen:
             urlopen.return_value = FakeHttpResponse({"ok": False, "description": "rejected"})
             with self.assertRaisesRegex(TelegramDeliveryError, "rejected"):
                 adapter.send_quiz_poll(payload)

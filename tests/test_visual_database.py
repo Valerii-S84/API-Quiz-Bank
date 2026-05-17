@@ -6,9 +6,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from fastapi.testclient import TestClient
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from quizbank_mvp.app import create_app  # noqa: E402
 from quizbank_mvp.database import (  # noqa: E402
     connect,
     initialize_database,
@@ -54,6 +57,12 @@ class VisualDatabaseTests(unittest.TestCase):
 
         self.assertTrue(VISUAL_TABLES.issubset(table_names))
         self.assertTrue(visual_database_is_ready(self.db_path))
+
+    def test_runtime_readiness_reports_visual_database_check(self) -> None:
+        ready = TestClient(create_app(self.db_path)).get("/ready").json()
+
+        self.assertEqual(ready["status"], "ok")
+        self.assertIn({"name": "visual_database", "status": "ok"}, ready["checks"])
 
     def test_visual_settings_helper_writes_defaults_and_updates_mode(self) -> None:
         seed_consumer(self.db_path, "consumer_visual", 3, ["A2"], ["T10"])

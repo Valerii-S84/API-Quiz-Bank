@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .database import connect, today_usage_date, utc_now
+from .database import connect, new_id, today_usage_date, utc_now
 from .visual_models import (
     VisualAccessDecision,
     VisualDeliveryMode,
@@ -93,6 +93,41 @@ def check_visual_generation_quota(
     return check_quota(db_path, settings.consumer_id, feature, month_key, settings.monthly_generation_limit)
 
 
+def reserve_visual_delivery_quota(
+    db_path: Path | None,
+    settings: VisualSettings,
+    usage_date: str | None = None,
+) -> VisualQuotaDecision:
+    if not settings.is_active or settings.delivery_mode == VisualDeliveryMode.TEXT_ONLY:
+        return quota_allowed("visual_delivery.none", 0, 0, usage_date or today_usage_date())
+    day_key = usage_date or today_usage_date()
+    feature = visual_delivery_feature(settings.delivery_mode)
+    allowed = check_quota(db_path, settings.consumer_id, feature, day_key, settings.daily_visual_delivery_limit)
+    if not allowed.is_allowed:
+        return allowed
+    return increment_quota_usage(db_path, settings.consumer_id, feature, day_key, settings.daily_visual_delivery_limit)
+
+
+def reserve_visual_generation_quota(
+    db_path: Path | None,
+    settings: VisualSettings,
+    usage_date: str | None = None,
+) -> VisualQuotaDecision:
+    if not settings.is_active or settings.delivery_mode == VisualDeliveryMode.TEXT_ONLY:
+        return quota_allowed("visual_generation.none", 0, 0, usage_date or today_usage_date())
+    day_key = usage_date or today_usage_date()
+    month_key = day_key[:7]
+    feature = visual_generation_feature(settings.delivery_mode)
+    daily = check_quota(db_path, settings.consumer_id, feature, day_key, settings.daily_generation_limit)
+    if not daily.is_allowed:
+        return daily
+    monthly = check_quota(db_path, settings.consumer_id, feature, month_key, settings.monthly_generation_limit)
+    if not monthly.is_allowed:
+        return monthly
+    increment_quota_usage(db_path, settings.consumer_id, feature, day_key, settings.daily_generation_limit)
+    return increment_quota_usage(db_path, settings.consumer_id, feature, month_key, settings.monthly_generation_limit)
+
+
 def has_active_entitlement(db_path: Path | None, consumer_id: str, feature: str) -> bool:
     with connect(db_path) as connection:
         row = connection.execute(
@@ -145,6 +180,42 @@ def load_quota_used_count(
             (consumer_id, feature, period_key),
         ).fetchone()
     return 0 if row is None else int(row["used_count"])
+
+
+def increment_quota_usage(
+    db_path: Path | None,
+    consumer_id: str,
+    feature: str,
+    period_key: str,
+    quota_limit: int,
+) -> VisualQuotaDecision:
+    used_count = load_quota_used_count(db_path, consumer_id, feature, period_key)
+    if used_count >= quota_limit:
+        return VisualQuotaDecision(False, feature, used_count, quota_limit, period_key, "VISUAL_QUOTA_EXHAUSTED")
+    next_used_count = used_count + 1
+    with connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO quota_usage (
+                quota_usage_id, consumer_id, feature, usage_date, used_count,
+                quota_limit, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(consumer_id, feature, usage_date) DO UPDATE SET
+                used_count = excluded.used_count,
+                quota_limit = excluded.quota_limit,
+                updated_at = excluded.updated_at
+            """,
+            (
+                new_id("quota"),
+                consumer_id,
+                feature,
+                period_key,
+                next_used_count,
+                quota_limit,
+                utc_now(),
+            ),
+        )
+    return quota_allowed(feature, next_used_count, quota_limit, period_key)
 
 
 def visual_delivery_feature(mode: VisualDeliveryMode) -> str:

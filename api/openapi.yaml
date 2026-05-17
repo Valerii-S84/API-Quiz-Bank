@@ -576,7 +576,7 @@ paths:
   /v1/admin/consumers/{consumer_id}/visual-settings:
     get:
       operationId: getAdminConsumerVisualSettings
-      summary: Read admin-only visual delivery settings for a consumer.
+      summary: Read owner-only visual delivery settings for a consumer.
       tags:
         - admin
       parameters:
@@ -1132,6 +1132,7 @@ components:
         - approved_published_count
         - delivery_log_count
         - audit_log_count
+        - visual_metrics
       properties:
         corpus_status_counts:
           type: object
@@ -1150,6 +1151,45 @@ components:
         delivery_log_count:
           type: integer
         audit_log_count:
+          type: integer
+        visual_metrics:
+          $ref: '#/components/schemas/AdminVisualMetricsSummary'
+    AdminVisualMetricsSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - settings_by_mode
+        - event_counts
+        - cache_hit_rate
+        - fallback_rate
+        - generation_count_by_consumer
+        - qa_rejection_count
+        - estimated_cost_minor_by_consumer
+        - estimated_cost_minor_total
+      properties:
+        settings_by_mode:
+          type: object
+          additionalProperties:
+            type: integer
+        event_counts:
+          type: object
+          additionalProperties:
+            type: integer
+        cache_hit_rate:
+          type: number
+        fallback_rate:
+          type: number
+        generation_count_by_consumer:
+          type: object
+          additionalProperties:
+            type: integer
+        qa_rejection_count:
+          type: integer
+        estimated_cost_minor_by_consumer:
+          type: object
+          additionalProperties:
+            type: integer
+        estimated_cost_minor_total:
           type: integer
     AdminStatusChangeResponse:
       type: object

@@ -18,6 +18,7 @@ from quizbank_mvp.database import (  # noqa: E402
     seed_consumer,
     seed_control_fixture,
     seed_entitlement,
+    today_usage_date,
     utc_now,
 )
 from quizbank_mvp.selection import QuizBankProblem, SelectionFilters, SelectionRequest, select_next_item  # noqa: E402
@@ -88,6 +89,22 @@ class VisualDeliveryTests(unittest.TestCase):
         self.assertEqual(asset_status(self, resolution.asset_id), "approved")
         self.assertEqual(prompt_audit_count(self), 1)
         self.assertEqual(usage_count(self, "generation_succeeded"), 1)
+        self.assertEqual(quota_used(self, "visual_delivery.standard", today_usage_date()), 1)
+        self.assertEqual(quota_used(self, "visual_generation.standard", today_usage_date()), 1)
+        self.assertEqual(quota_used(self, "visual_generation.standard", today_usage_date()[:7]), 1)
+
+    def test_cache_hit_consumes_delivery_quota_without_generation_quota(self) -> None:
+        settings = enable_standard_visual(self)
+        grant_feature(self, "visual_delivery.standard")
+        insert_cached_asset(self, settings)
+
+        resolution = resolve_visual_delivery(
+            self.db_path, self.delivery, self.quiz_item, "consumer_visual", FakeImageProvider(), self.asset_root
+        )
+
+        self.assertEqual(resolution.state, "cache_hit")
+        self.assertEqual(quota_used(self, "visual_delivery.standard", today_usage_date()), 1)
+        self.assertEqual(quota_used(self, "visual_generation.standard", today_usage_date()), 0)
 
     def test_provider_failure_falls_back_to_text_only(self) -> None:
         enable_standard_visual(self)
@@ -338,6 +355,18 @@ def usage_count(case: VisualDeliveryTests, event_type: str) -> int:
             (event_type,),
         ).fetchone()
     return int(row["count"])
+
+
+def quota_used(case: VisualDeliveryTests, feature: str, period_key: str) -> int:
+    with connect(case.db_path) as connection:
+        row = connection.execute(
+            """
+            SELECT used_count FROM quota_usage
+            WHERE consumer_id = 'consumer_visual' AND feature = ? AND usage_date = ?
+            """,
+            (feature, period_key),
+        ).fetchone()
+    return 0 if row is None else int(row["used_count"])
 
 
 class TimeoutImageProvider:

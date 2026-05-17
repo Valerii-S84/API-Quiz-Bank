@@ -5,8 +5,6 @@ from __future__ import annotations
 import hashlib
 import json
 import random
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
@@ -14,22 +12,27 @@ from typing import Any, Protocol
 from .database import connect, row_to_dict, utc_now
 from .projections import build_telegram_quiz_projection
 from .selection import SelectionFilters, SelectionRequest, select_next_item
+from .telegram_bot_api import (
+    TELEGRAM_API_BASE,
+    TelegramBotApiAdapter,
+    TelegramDeliveryError,
+    TelegramImageSendResult,
+    TelegramSendResult,
+    poll_id_from_result,
+    read_http_error_description,
+    telegram_api_payload,
+)
 from .visual_cache import DEFAULT_ASSET_ROOT
 from .visual_delivery import VisualDeliveryResolution, resolve_visual_delivery
 from .visual_models import VisualDeliveryMode
 from .visual_provider import FakeImageProvider, ImageGenerationProvider
 
 
-TELEGRAM_API_BASE = "https://api.telegram.org"
 TELEGRAM_QUESTION_LIMIT = 300
 TELEGRAM_OPTION_LIMIT = 100
 TELEGRAM_EXPLANATION_LIMIT = 200
 TELEGRAM_MIN_OPTIONS = 2
 TELEGRAM_MAX_OPTIONS = 12
-
-
-class TelegramDeliveryError(Exception):
-    """Raised when a Telegram payload cannot be delivered or validated."""
 
 
 class TelegramAdapter(Protocol):
@@ -50,17 +53,6 @@ class TelegramDeliveryRequest:
     objective_ids: tuple[str, ...] = ()
     pattern_ids: tuple[str, ...] = ()
     excluded_item_ids: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True)
-class TelegramSendResult:
-    message_id: str
-    poll_id: str | None = None
-
-
-@dataclass(frozen=True)
-class TelegramImageSendResult:
-    message_id: str
 
 
 @dataclass(frozen=True)
@@ -96,42 +88,6 @@ class TelegramDeliveryResult:
             "failure_reason": self.failure_reason,
         }
 
-
-class TelegramBotApiAdapter:
-    def __init__(self, bot_token: str, api_base: str = TELEGRAM_API_BASE) -> None:
-        if not bot_token.strip():
-            raise ValueError("Telegram bot token must not be empty")
-        self.bot_token = bot_token.strip()
-        self.api_base = api_base.rstrip("/")
-
-    def send_quiz_poll(self, payload: dict[str, Any]) -> TelegramSendResult:
-        url = f"{self.api_base}/bot{self.bot_token}/sendPoll"
-        request = urllib.request.Request(
-            url,
-            data=json.dumps(telegram_api_payload(payload)).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(request, timeout=15) as response:
-                body = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as error:
-            raise TelegramDeliveryError(read_http_error_description(error)) from error
-        except urllib.error.URLError as error:
-            raise TelegramDeliveryError(f"telegram_request_failed:{error.reason}") from error
-        if not body.get("ok"):
-            description = str(body.get("description", "telegram_send_rejected"))
-            raise TelegramDeliveryError(description[:180])
-        result = body.get("result", {})
-        return TelegramSendResult(
-            message_id=str(result.get("message_id", "")),
-            poll_id=poll_id_from_result(result),
-        )
-
-    def send_photo(self, _payload: dict[str, Any]) -> TelegramImageSendResult:
-        raise TelegramDeliveryError("telegram_photo_send_not_enabled")
-
-
 def run_telegram_delivery(
     db_path: Path | None,
     request: TelegramDeliveryRequest,
@@ -152,6 +108,17 @@ def run_telegram_delivery(
         image_provider or FakeImageProvider(),
         asset_root,
     )
+    if visual_resolution.state == "blocked":
+        result = blocked_visual_delivery_result(request, item, visual_resolution)
+        record_visual_result(
+            db_path,
+            delivery_id,
+            request.consumer_id,
+            visual_resolution,
+            blocked_visual_telegram_result(visual_resolution),
+        )
+        record_telegram_result(db_path, result)
+        return result
     visual_result = handle_visual_telegram_send(request, item, visual_resolution, adapter)
     try:
         payload = build_telegram_poll_payload(request.chat_id, item)
@@ -281,6 +248,28 @@ def send_visual_image(
         raise TelegramDeliveryError("real_image_send_requires_adapter")
     send_result = adapter.send_photo(payload)
     return VisualTelegramResult("sent", False, telegram_image_message_id=send_result.message_id)
+
+
+def blocked_visual_delivery_result(
+    request: TelegramDeliveryRequest,
+    item: dict[str, Any],
+    resolution: VisualDeliveryResolution,
+) -> TelegramDeliveryResult:
+    reason = resolution.fallback_reason or "VISUAL_DELIVERY_BLOCKED"
+    return TelegramDeliveryResult(
+        delivery_id=str(item["delivery_id"]),
+        consumer_id=request.consumer_id,
+        quiz_item_id=str(item["item_id"]),
+        mode=request.mode,
+        status="failed",
+        telegram_target_ref=redact_telegram_target(request.chat_id),
+        failure_reason=f"visual_delivery_blocked:{reason}",
+    )
+
+
+def blocked_visual_telegram_result(resolution: VisualDeliveryResolution) -> VisualTelegramResult:
+    reason = resolution.fallback_reason or "VISUAL_DELIVERY_BLOCKED"
+    return VisualTelegramResult("failed", False, f"visual_delivery_blocked:{reason}")
 
 
 def visual_result_after_poll(
@@ -452,21 +441,6 @@ def validate_correct_option_ids(correct_option_ids: list[int], option_count: int
         previous = option_id
 
 
-def telegram_api_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    correct_option_ids = payload["correct_option_ids"]
-    if not isinstance(correct_option_ids, list) or len(correct_option_ids) != 1:
-        raise TelegramDeliveryError("telegram_bot_api_requires_single_correct_option")
-    return {
-        "chat_id": payload["chat_id"],
-        "question": payload["question"],
-        "options": payload["options"],
-        "type": payload["type"],
-        "correct_option_id": correct_option_ids[0],
-        "explanation": payload["explanation"],
-        "is_anonymous": payload["is_anonymous"],
-    }
-
-
 def telegram_excluded_item_ids(
     db_path: Path | None,
     request: TelegramDeliveryRequest,
@@ -570,23 +544,6 @@ def record_visual_result(
                 utc_now(),
             ),
         )
-
-
-def poll_id_from_result(result: dict[str, Any]) -> str | None:
-    poll = result.get("poll")
-    if not isinstance(poll, dict):
-        return None
-    poll_id = poll.get("id")
-    return None if poll_id is None else str(poll_id)
-
-
-def read_http_error_description(error: urllib.error.HTTPError) -> str:
-    try:
-        body = json.loads(error.read().decode("utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return f"telegram_http_error:{error.code}"
-    description = str(body.get("description", f"telegram_http_error:{error.code}"))
-    return description[:180]
 
 
 def redact_telegram_target(chat_id: str) -> str:

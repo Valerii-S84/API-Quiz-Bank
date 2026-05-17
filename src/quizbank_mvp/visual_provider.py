@@ -21,7 +21,7 @@ class ImageGenerationRequest:
     prompt: str
     negative_prompt: str
     size: str = "1024x1024"
-    quality: str = "standard"
+    quality: str = "auto"
     output_format: str = "png"
     style_context: str = ""
     idempotency_key: str = ""

@@ -19,6 +19,7 @@ from .database import (
 )
 from .projections import admin_quiz_projection
 from .selection import QuizBankProblem
+from .visual_reporting import visual_metrics_summary
 from .visual_settings import load_visual_settings, save_visual_settings, visual_settings_from_mapping
 
 
@@ -94,6 +95,7 @@ def admin_dashboard(db_path: Path | None) -> dict[str, object]:
         "approved_published_count": sum(status_counts.get(status, 0) for status in ("approved", "published")),
         "delivery_log_count": delivery_count,
         "audit_log_count": audit_count,
+        "visual_metrics": visual_metrics_summary(db_path),
     }
 
 

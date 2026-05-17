@@ -4,6 +4,7 @@ import json
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +22,7 @@ from quizbank_mvp.selection import QuizBankProblem  # noqa: E402
 from quizbank_mvp.telegram_delivery import (  # noqa: E402
     TelegramDeliveryError,
     TelegramDeliveryRequest,
+    TelegramBotApiAdapter,
     TelegramImageSendResult,
     TelegramSendResult,
     run_telegram_delivery,
@@ -164,6 +166,42 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
         self.assertEqual(repeat_error.exception.reason_code, "SELECTION_NO_ELIGIBLE_ITEM")
         self.assertEqual(adapter.events, ["photo", "poll"])
 
+    def test_block_visual_delivery_policy_stops_telegram_poll_fallback(self) -> None:
+        save_blocking_visual_settings(self, "consumer_visual")
+        adapter = FakeVisualTelegramAdapter()
+
+        result = run_telegram_delivery(
+            self.db_path,
+            request(mode="real"),
+            adapter=adapter,
+            asset_root=self.asset_root,
+        )
+        visual = visual_result_row(self, result.delivery_id)
+
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(result.failure_reason, "visual_delivery_blocked:VISUAL_ENTITLEMENT_MISSING")
+        self.assertEqual(adapter.events, [])
+        self.assertEqual(visual["visual_status"], "failed")
+        self.assertEqual(visual["fallback_used"], 0)
+
+    def test_real_telegram_adapter_send_photo_uses_bot_api_multipart_upload(self) -> None:
+        image_path = Path(self.temp_directory.name) / "photo.png"
+        image_path.write_bytes(b"\x89PNG\r\n\x1a\nphoto")
+        adapter = TelegramBotApiAdapter(" token ", api_base="https://telegram.test")
+
+        with patch("quizbank_mvp.telegram_bot_api.urllib.request.urlopen") as urlopen:
+            urlopen.return_value = FakeHttpResponse({"ok": True, "result": {"message_id": 77}})
+            result = adapter.send_photo({"chat_id": "@controlled_channel", "photo_path": str(image_path)})
+
+        request_payload = urlopen.call_args.args[0]
+        self.assertEqual(result.message_id, "77")
+        self.assertIn("/bottoken/sendPhoto", request_payload.full_url)
+        self.assertEqual(request_payload.get_method(), "POST")
+        self.assertIn("multipart/form-data", request_payload.headers["Content-type"])
+        self.assertIn(b'name="chat_id"', request_payload.data)
+        self.assertIn(b"photo.png", request_payload.data)
+        self.assertIn(b"\x89PNG\r\n\x1a\nphoto", request_payload.data)
+
 
 def request(consumer_id: str = "consumer_visual", mode: str = "dry_run") -> TelegramDeliveryRequest:
     return TelegramDeliveryRequest(
@@ -194,6 +232,23 @@ def enable_visual(case: VisualTelegramDeliveryTests, consumer_id: str) -> None:
     grant_feature(case, consumer_id, "visual_generation.standard")
 
 
+def save_blocking_visual_settings(case: VisualTelegramDeliveryTests, consumer_id: str) -> None:
+    save_visual_settings(
+        case.db_path,
+        VisualSettings(
+            consumer_id=consumer_id,
+            delivery_mode=VisualDeliveryMode.IMAGE_STANDARD,
+            visual_style="standard_illustration",
+            branding_preset="none",
+            fallback_policy=VisualFallbackPolicy.BLOCK_VISUAL_DELIVERY,
+            daily_visual_delivery_limit=5,
+            daily_generation_limit=5,
+            monthly_generation_limit=20,
+            is_active=True,
+        ),
+    )
+
+
 def grant_feature(case: VisualTelegramDeliveryTests, consumer_id: str, feature: str) -> None:
     with connect(case.db_path) as connection:
         connection.execute(
@@ -221,6 +276,20 @@ def visual_result_row(case: VisualTelegramDeliveryTests, delivery_id: str):
             "SELECT * FROM visual_delivery_results WHERE delivery_id = ?",
             (delivery_id,),
         ).fetchone()
+
+
+class FakeHttpResponse:
+    def __init__(self, body: dict[str, object]) -> None:
+        self.body = body
+
+    def __enter__(self) -> "FakeHttpResponse":
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        return None
+
+    def read(self) -> bytes:
+        return json.dumps(self.body).encode("utf-8")
 
 
 if __name__ == "__main__":

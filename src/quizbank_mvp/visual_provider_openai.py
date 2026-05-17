@@ -16,6 +16,7 @@ from .visual_provider import ImageGenerationError, ImageGenerationRequest, Image
 
 
 OPENAI_IMAGE_ENDPOINT = "https://api.openai.com/v1/images/generations"
+OPENAI_IMAGE_QUALITY_VALUES = frozenset({"low", "medium", "high", "auto"})
 
 
 class OpenAIProviderConfigurationError(RuntimeError):
@@ -84,7 +85,7 @@ class OpenAIImageProvider:
             "prompt": request.prompt,
             "n": 1,
             "size": request.size,
-            "quality": request.quality,
+            "quality": validated_image_quality(request.quality),
             "output_format": request.output_format,
         }
         return urllib.request.Request(
@@ -143,6 +144,12 @@ def timeout_from_environment(env: Mapping[str, str]) -> int:
     if timeout <= 0:
         raise OpenAIProviderConfigurationError("VISUAL_OPENAI_TIMEOUT_SECONDS must be positive")
     return timeout
+
+
+def validated_image_quality(quality: str) -> str:
+    if quality not in OPENAI_IMAGE_QUALITY_VALUES:
+        raise ImageGenerationError("openai_image_quality_invalid")
+    return quality
 
 
 def parse_size(size: str) -> tuple[int, int]:

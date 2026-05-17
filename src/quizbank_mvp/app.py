@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import __version__
 from .admin_api import register_admin_routes
 from .auth import authenticate_consumer
-from .database import configured_database_url, configured_db_path, database_is_ready
+from .database import configured_database_url, configured_db_path, database_is_ready, visual_database_is_ready
 from .rate_limit import FixedWindowRateLimiter, delivery_rate_limit_key
 from .selection import QuizBankProblem, SelectionFilters, SelectionRequest, get_delivery, select_next_item
 from .taxonomy import level_catalog, topic_catalog
@@ -89,8 +89,9 @@ def register_operations_routes(app: FastAPI, database_path: Path) -> None:
     @app.get("/ready", tags=["operations"], response_model=None)
     @app.get("/v1/ready", tags=["operations"], response_model=None)
     def ready():
-        if database_is_ready(database_path):
-            return {"status": "ok", "checks": [{"name": "database", "status": "ok"}]}
+        checks = readiness_checks(database_path)
+        if all(check["status"] == "ok" for check in checks):
+            return {"status": "ok", "checks": checks}
         return problem_response(
             QuizBankProblem(
                 503,
@@ -108,6 +109,13 @@ def register_operations_routes(app: FastAPI, database_path: Path) -> None:
     @app.get("/v1/topics", tags=["taxonomy"])
     def topics() -> dict[str, object]:
         return {"data": topic_catalog()}
+
+
+def readiness_checks(database_path: Path | None) -> list[dict[str, str]]:
+    return [
+        {"name": "database", "status": "ok" if database_is_ready(database_path) else "failed"},
+        {"name": "visual_database", "status": "ok" if visual_database_is_ready(database_path) else "failed"},
+    ]
 
 
 def register_delivery_routes(

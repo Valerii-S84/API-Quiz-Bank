@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -16,6 +17,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from quizbank_mvp.database import (  # noqa: E402
     connect,
     initialize_database,
+    insert_visual_asset,
     new_id,
     row_to_dict,
     seed_consumer,
@@ -24,9 +26,11 @@ from quizbank_mvp.database import (  # noqa: E402
     utc_now,
 )
 from quizbank_mvp.selection import SelectionFilters, SelectionRequest, select_next_item  # noqa: E402
+from quizbank_mvp.visual_cache import compute_visual_cache_key  # noqa: E402
 from quizbank_mvp.visual_delivery import resolve_visual_delivery  # noqa: E402
 from quizbank_mvp.visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings  # noqa: E402
 from quizbank_mvp.visual_provider import FakeImageProvider, ImageGenerationProvider  # noqa: E402
+from quizbank_mvp.visual_reporting import visual_metrics_summary  # noqa: E402
 from quizbank_mvp.visual_provider_openai import (  # noqa: E402
     OpenAIImageProvider,
     OpenAIProviderConfigurationError,
@@ -43,6 +47,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--asset-root", type=Path)
     parser.add_argument("--consumer-id", default="consumer_visual_smoke")
     parser.add_argument("--provider", choices=["fake", "openai"], default="fake")
+    parser.add_argument(
+        "--scenario",
+        choices=["generated", "cache-hit", "provider-failure", "text-only"],
+        default="generated",
+    )
     parser.add_argument("--visual-mode", choices=["image_standard", "image_branded"], default="image_standard")
     parser.add_argument("--cefr-level", default="A2")
     parser.add_argument("--theme-id", default="T10")
@@ -61,6 +70,9 @@ def main() -> int:
         prepare_smoke_database(db_path, args)
         selection = select_next_item(db_path, selection_request(args))
         quiz_item = load_quiz_item(db_path, selection["delivery"]["quiz_item_id"])
+        settings = visual_settings_for_args(args)
+        if args.scenario == "cache-hit":
+            insert_smoke_cached_asset(db_path, asset_root, quiz_item, settings)
         resolution = resolve_visual_delivery(
             db_path, selection["delivery"], quiz_item, args.consumer_id, provider, asset_root
         )
@@ -74,13 +86,23 @@ def prepare_smoke_database(db_path: Path, args: argparse.Namespace) -> None:
     seed_control_fixture(db_path, APPROVED_FIXTURE, "approved")
     seed_consumer(db_path, args.consumer_id, 5, [args.cefr_level], [args.theme_id])
     seed_entitlement(db_path, args.consumer_id, [args.cefr_level], [args.theme_id])
-    mode = VisualDeliveryMode(args.visual_mode)
+    if args.scenario == "text-only":
+        save_visual_settings(db_path, visual_settings_for_args(args))
+        return
+    mode = visual_mode_for_args(args)
     grant_visual_feature(db_path, args.consumer_id, f"visual_delivery.{mode.value.removeprefix('image_')}")
-    grant_visual_feature(db_path, args.consumer_id, f"visual_generation.{mode.value.removeprefix('image_')}")
-    save_visual_settings(db_path, visual_settings(args.consumer_id, mode))
+    if args.scenario != "cache-hit":
+        grant_visual_feature(db_path, args.consumer_id, f"visual_generation.{mode.value.removeprefix('image_')}")
+    save_visual_settings(db_path, visual_settings_for_args(args))
 
 
 def provider_for_args(args: argparse.Namespace) -> ImageGenerationProvider:
+    if args.scenario == "provider-failure":
+        if args.provider != "fake":
+            raise SystemExit("provider-failure scenario uses the fake provider")
+        return FakeImageProvider(should_fail=True)
+    if args.scenario in {"cache-hit", "text-only"}:
+        return FakeImageProvider()
     if args.provider == "fake":
         return FakeImageProvider()
     if not args.approve_real_generation:
@@ -101,9 +123,10 @@ def openai_environment(args: argparse.Namespace) -> dict[str, str]:
     return env
 
 
-def visual_settings(consumer_id: str, mode: VisualDeliveryMode) -> VisualSettings:
+def visual_settings_for_args(args: argparse.Namespace) -> VisualSettings:
+    mode = visual_mode_for_args(args)
     return VisualSettings(
-        consumer_id=consumer_id,
+        consumer_id=args.consumer_id,
         delivery_mode=mode,
         visual_style="standard_illustration",
         branding_preset="visual_smoke_brand" if mode == VisualDeliveryMode.IMAGE_BRANDED else "none",
@@ -113,6 +136,12 @@ def visual_settings(consumer_id: str, mode: VisualDeliveryMode) -> VisualSetting
         monthly_generation_limit=10,
         is_active=True,
     )
+
+
+def visual_mode_for_args(args: argparse.Namespace) -> VisualDeliveryMode:
+    if args.scenario == "text-only":
+        return VisualDeliveryMode.TEXT_ONLY
+    return VisualDeliveryMode(args.visual_mode)
 
 
 def selection_request(args: argparse.Namespace) -> SelectionRequest:
@@ -126,6 +155,40 @@ def load_quiz_item(db_path: Path, item_id: str) -> dict[str, object]:
     with connect(db_path) as connection:
         row = connection.execute("SELECT * FROM quiz_items WHERE item_id = ?", (item_id,)).fetchone()
     return row_to_dict(row)
+
+
+def insert_smoke_cached_asset(
+    db_path: Path,
+    asset_root: Path,
+    quiz_item: dict[str, object],
+    settings: VisualSettings,
+) -> None:
+    asset_root.mkdir(parents=True, exist_ok=True)
+    image_path = asset_root / "visual-smoke-cache-hit.png"
+    image_bytes = b"\x89PNG\r\n\x1a\nvisual-smoke-cache-hit"
+    image_path.write_bytes(image_bytes)
+    insert_visual_asset(
+        db_path,
+        {
+            "asset_id": "vasset_visual_smoke_cache_hit",
+            "quiz_item_id": quiz_item["item_id"],
+            "consumer_id": None,
+            "delivery_mode": settings.delivery_mode.value,
+            "visual_style": settings.visual_style,
+            "branding_preset": settings.branding_preset,
+            "image_version": "v1",
+            "language": quiz_item.get("language", "de"),
+            "cache_key": compute_visual_cache_key(quiz_item, settings),
+            "image_path": str(image_path),
+            "image_sha256": hashlib.sha256(image_bytes).hexdigest(),
+            "mime_type": "image/png",
+            "width": 1024,
+            "height": 1024,
+            "qa_status": "approved",
+            "provider_name": "fake",
+            "provider_model": "fake-image-v1",
+        },
+    )
 
 
 def grant_visual_feature(db_path: Path, consumer_id: str, feature: str) -> None:
@@ -145,6 +208,7 @@ def grant_visual_feature(db_path: Path, consumer_id: str, feature: str) -> None:
 def smoke_report(args, delivery: dict[str, object], resolution, db_path: Path) -> dict[str, object]:
     return {
         "provider": args.provider,
+        "scenario": args.scenario,
         "visual_mode": args.visual_mode,
         "delivery_id": delivery["delivery_id"],
         "quiz_item_id": delivery["quiz_item_id"],
@@ -155,6 +219,8 @@ def smoke_report(args, delivery: dict[str, object], resolution, db_path: Path) -
             "fallback_reason": resolution.fallback_reason,
         },
         "asset": load_asset_summary(db_path, resolution.asset_id),
+        "metrics": visual_metrics_summary(db_path),
+        "quota_usage": load_quota_usage_summary(db_path, args.consumer_id),
     }
 
 
@@ -172,6 +238,20 @@ def load_asset_summary(db_path: Path, asset_id: str | None) -> dict[str, object]
             (asset_id,),
         ).fetchone()
     return None if row is None else row_to_dict(row)
+
+
+def load_quota_usage_summary(db_path: Path, consumer_id: str) -> list[dict[str, object]]:
+    with connect(db_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT feature, usage_date, used_count, quota_limit
+            FROM quota_usage
+            WHERE consumer_id = ? AND feature LIKE 'visual_%'
+            ORDER BY feature, usage_date
+            """,
+            (consumer_id,),
+        ).fetchall()
+    return [row_to_dict(row) for row in rows]
 
 
 if __name__ == "__main__":

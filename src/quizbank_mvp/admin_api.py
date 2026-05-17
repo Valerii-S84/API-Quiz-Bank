@@ -157,7 +157,7 @@ def register_consumer_routes(app: FastAPI, database_path: Path) -> None:
         x_quizbank_admin_key: AdminKeyHeader = None,
     ) -> dict[str, object]:
         admin = authenticate_admin(database_path, x_quizbank_admin_key)
-        require_admin_read(admin)
+        require_owner(admin)
         return get_admin_visual_settings(database_path, consumer_id)
 
     @app.patch("/v1/admin/consumers/{consumer_id}/visual-settings", tags=["admin"])
