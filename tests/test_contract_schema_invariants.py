@@ -156,6 +156,10 @@ class ContractSchemaInvariantTests(unittest.TestCase):
             f"enum: [{', '.join(NORMAL_DELIVERY_STATUSES)}]",
             openapi,
         )
+        self.assertIn("  /v1/admin/consumers/{consumer_id}/visual-settings:", openapi)
+        self.assertIn("AdminVisualSettingsPatchRequest", openapi)
+        self.assertIn("enum: [text_only, image_standard, image_branded]", openapi)
+        self.assertNotIn("  /v1/visual-assets/generate:", openapi)
 
     def test_mvp_plan_catalog_defines_manual_entitlement_seed(self) -> None:
         catalog = json.loads((ROOT / "data/billing/plan_catalog.json").read_text())

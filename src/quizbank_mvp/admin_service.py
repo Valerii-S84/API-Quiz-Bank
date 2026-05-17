@@ -19,6 +19,7 @@ from .database import (
 )
 from .projections import admin_quiz_projection
 from .selection import QuizBankProblem
+from .visual_settings import load_visual_settings, save_visual_settings, visual_settings_from_mapping
 
 
 ITEM_STATUSES = (
@@ -177,6 +178,35 @@ def change_admin_consumer_status(
     return get_admin_consumer(db_path, consumer_id)
 
 
+def get_admin_visual_settings(db_path: Path | None, consumer_id: str) -> dict[str, object]:
+    get_admin_consumer(db_path, consumer_id)
+    settings = load_visual_settings(db_path, consumer_id)
+    return visual_settings_projection(settings)
+
+
+def update_admin_visual_settings(
+    db_path: Path | None,
+    consumer_id: str,
+    payload: dict[str, Any],
+    actor: str,
+) -> dict[str, object]:
+    get_admin_consumer(db_path, consumer_id)
+    current = load_visual_settings(db_path, consumer_id)
+    reason = str(payload["reason"])
+    merged = {**visual_settings_projection(current), **payload, "consumer_id": consumer_id}
+    merged.pop("reason", None)
+    try:
+        updated = visual_settings_from_mapping(merged)
+    except ValueError as error:
+        raise admin_problem(422, "ADMIN_INVALID_VISUAL_SETTINGS", "Invalid visual settings", str(error)) from error
+    save_visual_settings(db_path, updated)
+    write_visual_settings_audit(db_path, consumer_id, actor, current.delivery_mode.value, updated.delivery_mode.value, reason)
+    return {
+        "settings": visual_settings_projection(updated),
+        "audit": latest_visual_settings_audit(db_path, consumer_id),
+    }
+
+
 def get_admin_consumer(db_path: Path | None, consumer_id: str) -> dict[str, object]:
     with connect(db_path) as connection:
         row = connection.execute(
@@ -207,6 +237,20 @@ def get_admin_consumer(db_path: Path | None, consumer_id: str) -> dict[str, obje
     return consumer_projection(row_to_dict(row))
 
 
+def visual_settings_projection(settings) -> dict[str, object]:
+    return {
+        "consumer_id": settings.consumer_id,
+        "delivery_mode": settings.delivery_mode.value,
+        "visual_style": settings.visual_style,
+        "branding_preset": settings.branding_preset,
+        "fallback_policy": settings.fallback_policy.value,
+        "daily_visual_delivery_limit": settings.daily_visual_delivery_limit,
+        "daily_generation_limit": settings.daily_generation_limit,
+        "monthly_generation_limit": settings.monthly_generation_limit,
+        "is_active": settings.is_active,
+    }
+
+
 def latest_item_audit(db_path: Path | None, item_id: str) -> dict[str, Any] | None:
     with connect(db_path) as connection:
         row = connection.execute(
@@ -221,6 +265,42 @@ def latest_item_audit(db_path: Path | None, item_id: str) -> dict[str, Any] | No
             (item_id,),
         ).fetchone()
     return None if row is None else row_to_dict(row)
+
+
+def latest_visual_settings_audit(db_path: Path | None, consumer_id: str) -> dict[str, Any] | None:
+    with connect(db_path) as connection:
+        row = connection.execute(
+            """
+            SELECT audit_id, actor, action, entity_type, entity_id, from_status,
+                   to_status, reason, created_at
+            FROM audit_log
+            WHERE entity_type = 'consumer_visual_settings' AND entity_id = ?
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (consumer_id,),
+        ).fetchone()
+    return None if row is None else row_to_dict(row)
+
+
+def write_visual_settings_audit(
+    db_path: Path | None,
+    consumer_id: str,
+    actor: str,
+    from_mode: str,
+    to_mode: str,
+    reason: str,
+) -> None:
+    with connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO audit_log (
+                audit_id, actor, action, entity_type, entity_id, from_status,
+                to_status, reason, created_at
+            ) VALUES (?, ?, 'visual_settings_update', 'consumer_visual_settings', ?, ?, ?, ?, ?)
+            """,
+            (new_id("audit"), actor, consumer_id, from_mode, to_mode, reason, utc_now()),
+        )
 
 
 def upsert_consumer_profile(db_path: Path | None, payload: dict[str, Any], actor: str) -> None:

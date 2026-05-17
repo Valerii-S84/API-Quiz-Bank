@@ -573,6 +573,65 @@ paths:
                 $ref: '#/components/schemas/AdminConsumerProjection'
         '403':
           $ref: '#/components/responses/AdminForbidden'
+  /v1/admin/consumers/{consumer_id}/visual-settings:
+    get:
+      operationId: getAdminConsumerVisualSettings
+      summary: Read admin-only visual delivery settings for a consumer.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminConsumerId'
+      responses:
+        '200':
+          description: Consumer visual settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminVisualSettingsProjection'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+        '404':
+          description: Consumer not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+    patch:
+      operationId: patchAdminConsumerVisualSettings
+      summary: Update admin-only visual delivery settings as owner.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminConsumerId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminVisualSettingsPatchRequest'
+      responses:
+        '200':
+          description: Updated visual settings with audit evidence.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminVisualSettingsUpdateResponse'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+        '404':
+          description: Consumer not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: Visual settings payload is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
   /v1/admin/consumers/{consumer_id}/suspend:
     post:
       operationId: suspendAdminConsumer
@@ -1183,6 +1242,93 @@ components:
           type:
             - string
             - 'null'
+    VisualDeliveryMode:
+      type: string
+      enum: [text_only, image_standard, image_branded]
+    VisualFallbackPolicy:
+      type: string
+      enum: [text_only, cache_only, block_visual_delivery]
+    AdminVisualSettingsProjection:
+      type: object
+      additionalProperties: false
+      required:
+        - consumer_id
+        - delivery_mode
+        - visual_style
+        - branding_preset
+        - fallback_policy
+        - daily_visual_delivery_limit
+        - daily_generation_limit
+        - monthly_generation_limit
+        - is_active
+      properties:
+        consumer_id:
+          type: string
+        delivery_mode:
+          $ref: '#/components/schemas/VisualDeliveryMode'
+        visual_style:
+          type: string
+        branding_preset:
+          type: string
+        fallback_policy:
+          $ref: '#/components/schemas/VisualFallbackPolicy'
+        daily_visual_delivery_limit:
+          type: integer
+          minimum: 0
+        daily_generation_limit:
+          type: integer
+          minimum: 0
+        monthly_generation_limit:
+          type: integer
+          minimum: 0
+        is_active:
+          type: boolean
+    AdminVisualSettingsPatchRequest:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        delivery_mode:
+          $ref: '#/components/schemas/VisualDeliveryMode'
+        visual_style:
+          type: string
+          minLength: 1
+          maxLength: 120
+        branding_preset:
+          type: string
+          minLength: 1
+          maxLength: 120
+        fallback_policy:
+          $ref: '#/components/schemas/VisualFallbackPolicy'
+        daily_visual_delivery_limit:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        daily_generation_limit:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        monthly_generation_limit:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        is_active:
+          type: boolean
+        reason:
+          type: string
+          minLength: 3
+          maxLength: 500
+    AdminVisualSettingsUpdateResponse:
+      type: object
+      additionalProperties: false
+      required: [settings, audit]
+      properties:
+        settings:
+          $ref: '#/components/schemas/AdminVisualSettingsProjection'
+        audit:
+          anyOf:
+            - $ref: '#/components/schemas/AuditLogEntry'
+            - type: 'null'
     AdminConsumerListResponse:
       type: object
       additionalProperties: false
