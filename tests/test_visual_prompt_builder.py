@@ -7,6 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from quizbank_mvp import image_quality_policy as policy  # noqa: E402
+from quizbank_mvp.image_quality_repository import upsert_quiz_item_image_quality_policy  # noqa: E402
 from quizbank_mvp.visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings
 from quizbank_mvp.visual_prompt_builder import build_visual_prompt
 
@@ -98,5 +100,100 @@ class VisualPromptBuilderTests(unittest.TestCase):
         }
 
 
-if __name__ == "__main__":
-    unittest.main()
+class ImageQualityPolicyCoverageTests(unittest.TestCase):
+    theme_groups = {"T01": "simple_visual", "T02": "situational", "T03": "abstract_complex"}
+
+    def test_policy_fields_cover_override_and_level_normalization(self) -> None:
+        fields = policy.enriched_image_quality_fields(
+            {
+                "item_id": "quiz_visual_001",
+                "sublevel": "B2.1",
+                "theme_id": "T03",
+                "image_quality_override": "medium",
+            },
+            self.theme_groups,
+        )
+
+        self.assertEqual(fields["theme_group"], "abstract_complex")
+        self.assertEqual(fields["image_quality_policy_share"], 40)
+        self.assertEqual(fields["image_quality_recommended"], "medium")
+        self.assertEqual(fields["image_quality_source"], "override")
+        self.assertEqual(policy.medium_share_for("A1.2", "simple_visual"), 0)
+        self.assertEqual(policy.medium_share_for("C2", "abstract_complex"), 60)
+        policy.validate_policy_fields({"theme_id": "T03", **fields})
+
+    def test_policy_validation_rejects_invalid_runtime_values(self) -> None:
+        invalid_calls = [
+            lambda: policy.resolve_image_quality_decision("quiz", "D1", "T01", theme_groups=self.theme_groups),
+            lambda: policy.resolve_image_quality_decision("quiz", "A1", "T99", theme_groups=self.theme_groups),
+            lambda: policy.resolve_image_quality_decision("quiz", "A1", "T01", "auto", self.theme_groups),
+            lambda: policy.policy_quality_for("", 5),
+            lambda: policy.policy_quality_for("quiz", 101),
+            lambda: policy.validate_theme_group_coverage({"T01", "T02"}, {"T01": "simple_visual"}),
+            lambda: policy.validate_theme_group_coverage({"T01"}, {"T01": "invalid"}),
+            lambda: policy.validate_policy_fields(
+                {
+                    "theme_id": "T01",
+                    "theme_group": "simple_visual",
+                    "image_quality_recommended": "high",
+                    "image_quality_source": "policy",
+                    "image_quality_policy_share": 10,
+                    "image_quality_override": None,
+                }
+            ),
+        ]
+
+        for call in invalid_calls:
+            with self.subTest(call=call):
+                with self.assertRaises(policy.ImageQualityPolicyError):
+                    call()
+
+    def test_theme_group_config_parser_is_strict(self) -> None:
+        config = "theme_groups:\n  T01: simple_visual\n  T02: situational\n  T03: abstract_complex\n"
+
+        self.assertEqual(policy.parse_theme_group_config(config), self.theme_groups)
+        with self.assertRaises(policy.ImageQualityPolicyError):
+            policy.parse_theme_group_config("theme_groups:\n  T01: simple_visual\n  T01: situational\n")
+        with self.assertRaises(policy.ImageQualityPolicyError):
+            policy.parse_theme_group_config("other:\n  T01: simple_visual\n")
+
+
+class ImageQualityRepositoryCoverageTests(unittest.TestCase):
+    def test_upsert_skips_absent_policy_and_writes_complete_policy(self) -> None:
+        connection = RecordingConnection()
+
+        upsert_quiz_item_image_quality_policy(connection, {"item_id": "quiz_visual_001"})
+        self.assertEqual(connection.executed, [])
+
+        upsert_quiz_item_image_quality_policy(
+            connection,
+            {
+                "item_id": "quiz_visual_001",
+                "theme_group": "situational",
+                "image_quality_recommended": "low",
+                "image_quality_source": "policy",
+                "image_quality_policy_share": "20",
+                "image_quality_override": "",
+            },
+        )
+
+        self.assertEqual(len(connection.executed), 1)
+        parameters = connection.executed[0][1]
+        self.assertEqual(parameters["image_quality_policy_share"], 20)
+        self.assertIsNone(parameters["image_quality_override"])
+        self.assertIn("INSERT INTO quiz_item_image_quality_policy", connection.executed[0][0])
+
+    def test_upsert_rejects_partial_policy_fields(self) -> None:
+        with self.assertRaises(ValueError):
+            upsert_quiz_item_image_quality_policy(
+                RecordingConnection(),
+                {"item_id": "quiz_visual_001", "theme_group": "situational"},
+            )
+
+
+class RecordingConnection:
+    def __init__(self) -> None:
+        self.executed: list[tuple[str, dict[str, object]]] = []
+
+    def execute(self, sql: str, parameters: dict[str, object]) -> None:
+        self.executed.append((sql, parameters))
