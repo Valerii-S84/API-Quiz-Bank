@@ -14,6 +14,10 @@ from typing import Any, Protocol
 from .database import connect, row_to_dict, utc_now
 from .projections import build_telegram_quiz_projection
 from .selection import SelectionFilters, SelectionRequest, select_next_item
+from .visual_cache import DEFAULT_ASSET_ROOT
+from .visual_delivery import VisualDeliveryResolution, resolve_visual_delivery
+from .visual_models import VisualDeliveryMode
+from .visual_provider import FakeImageProvider, ImageGenerationProvider
 
 
 TELEGRAM_API_BASE = "https://api.telegram.org"
@@ -32,6 +36,9 @@ class TelegramAdapter(Protocol):
     def send_quiz_poll(self, payload: dict[str, Any]) -> "TelegramSendResult":
         """Send a validated Telegram quiz poll payload."""
 
+    def send_photo(self, payload: dict[str, Any]) -> "TelegramImageSendResult":
+        """Send a Telegram photo payload."""
+
 
 @dataclass(frozen=True)
 class TelegramDeliveryRequest:
@@ -49,6 +56,19 @@ class TelegramDeliveryRequest:
 class TelegramSendResult:
     message_id: str
     poll_id: str | None = None
+
+
+@dataclass(frozen=True)
+class TelegramImageSendResult:
+    message_id: str
+
+
+@dataclass(frozen=True)
+class VisualTelegramResult:
+    visual_status: str
+    fallback_used: bool
+    fallback_reason: str | None = None
+    telegram_image_message_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -108,17 +128,31 @@ class TelegramBotApiAdapter:
             poll_id=poll_id_from_result(result),
         )
 
+    def send_photo(self, _payload: dict[str, Any]) -> TelegramImageSendResult:
+        raise TelegramDeliveryError("telegram_photo_send_not_enabled")
+
 
 def run_telegram_delivery(
     db_path: Path | None,
     request: TelegramDeliveryRequest,
     adapter: TelegramAdapter | None = None,
+    image_provider: ImageGenerationProvider | None = None,
+    asset_root: Path = DEFAULT_ASSET_ROOT,
 ) -> TelegramDeliveryResult:
     validate_delivery_mode(request.mode)
     selection = select_next_item(db_path, selection_request_from_telegram(db_path, request))
     delivery = selection["delivery"]
     delivery_id = str(delivery["delivery_id"])
     item = load_delivery_item(db_path, delivery_id, request.consumer_id)
+    visual_resolution = resolve_visual_delivery(
+        db_path,
+        delivery,
+        item,
+        request.consumer_id,
+        image_provider or FakeImageProvider(),
+        asset_root,
+    )
+    visual_result = handle_visual_telegram_send(request, item, visual_resolution, adapter)
     try:
         payload = build_telegram_poll_payload(request.chat_id, item)
         result = handle_telegram_send(request.mode, payload, adapter)
@@ -132,6 +166,8 @@ def run_telegram_delivery(
             telegram_target_ref=redact_telegram_target(request.chat_id),
             failure_reason=str(error),
         )
+    visual_result = visual_result_after_poll(visual_result, result)
+    record_visual_result(db_path, delivery_id, request.consumer_id, visual_resolution, visual_result)
     record_telegram_result(db_path, result)
     return result
 
@@ -215,6 +251,64 @@ def handle_telegram_send(
         telegram_message_id=send_result.message_id,
         telegram_poll_id=send_result.poll_id,
     )
+
+
+def handle_visual_telegram_send(
+    request: TelegramDeliveryRequest,
+    item: dict[str, Any],
+    resolution: VisualDeliveryResolution,
+    adapter: TelegramAdapter | None,
+) -> VisualTelegramResult | None:
+    if resolution.requested_mode == VisualDeliveryMode.TEXT_ONLY:
+        return None
+    if not resolution.asset_id or not resolution.image_path:
+        return VisualTelegramResult("fallback_used", True, resolution.fallback_reason)
+    payload = build_telegram_image_payload(request.chat_id, item, resolution)
+    try:
+        return send_visual_image(request.mode, payload, adapter)
+    except TelegramDeliveryError as error:
+        return VisualTelegramResult("failed", True, f"image_send_failed:{error}")
+
+
+def send_visual_image(
+    mode: str,
+    payload: dict[str, Any],
+    adapter: TelegramAdapter | None,
+) -> VisualTelegramResult:
+    if mode == "dry_run":
+        return VisualTelegramResult("skipped", False, "dry_run_no_bot_api_call")
+    if adapter is None or not hasattr(adapter, "send_photo"):
+        raise TelegramDeliveryError("real_image_send_requires_adapter")
+    send_result = adapter.send_photo(payload)
+    return VisualTelegramResult("sent", False, telegram_image_message_id=send_result.message_id)
+
+
+def visual_result_after_poll(
+    visual_result: VisualTelegramResult | None,
+    poll_result: TelegramDeliveryResult,
+) -> VisualTelegramResult | None:
+    if visual_result is None or poll_result.status != "failed":
+        return visual_result
+    return VisualTelegramResult(
+        "failed",
+        True,
+        f"poll_send_failed:{poll_result.failure_reason}",
+        visual_result.telegram_image_message_id,
+    )
+
+
+def build_telegram_image_payload(
+    chat_id: str,
+    item: dict[str, Any],
+    resolution: VisualDeliveryResolution,
+) -> dict[str, Any]:
+    return {
+        "delivery_id": item["delivery_id"],
+        "consumer_id": item["consumer_id"],
+        "quiz_item_id": item["item_id"],
+        "chat_id": chat_id,
+        "photo_path": resolution.image_path,
+    }
 
 
 def load_delivery_item(
@@ -434,6 +528,47 @@ def record_telegram_result(db_path: Path | None, result: TelegramDeliveryResult)
             WHERE delivery_id = ? AND consumer_id = ?
             """,
             (result.status, result.delivery_id, result.consumer_id),
+        )
+
+
+def record_visual_result(
+    db_path: Path | None,
+    delivery_id: str,
+    consumer_id: str,
+    resolution: VisualDeliveryResolution,
+    visual_result: VisualTelegramResult | None,
+) -> None:
+    if visual_result is None:
+        return
+    with connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO visual_delivery_results (
+                delivery_id, consumer_id, asset_id, requested_delivery_mode,
+                resolved_delivery_mode, visual_status, fallback_used,
+                fallback_reason, telegram_image_message_id, recorded_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(delivery_id) DO UPDATE SET
+                asset_id = excluded.asset_id,
+                resolved_delivery_mode = excluded.resolved_delivery_mode,
+                visual_status = excluded.visual_status,
+                fallback_used = excluded.fallback_used,
+                fallback_reason = excluded.fallback_reason,
+                telegram_image_message_id = excluded.telegram_image_message_id,
+                recorded_at = excluded.recorded_at
+            """,
+            (
+                delivery_id,
+                consumer_id,
+                resolution.asset_id,
+                resolution.requested_mode.value,
+                resolution.resolved_mode.value,
+                visual_result.visual_status,
+                int(visual_result.fallback_used),
+                visual_result.fallback_reason,
+                visual_result.telegram_image_message_id,
+                utc_now(),
+            ),
         )
 
 
