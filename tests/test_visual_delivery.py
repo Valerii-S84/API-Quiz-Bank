@@ -268,7 +268,7 @@ def cached_asset_payload(cache_key: str, image_path: Path) -> dict[str, object]:
         "delivery_mode": "image_standard",
         "visual_style": "standard_illustration",
         "branding_preset": "none",
-        "image_version": "v2_16x9",
+        "image_version": "v3_focused_target_extraction_object_only",
         "language": "de",
         "cache_key": cache_key,
         "image_path": str(image_path),

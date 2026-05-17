@@ -55,10 +55,10 @@ class VisualCacheTests(unittest.TestCase):
 
         self.assertIn("consumer:consumer_visual", key)
 
-    def test_cache_key_includes_16x9_image_version(self) -> None:
+    def test_cache_key_includes_focused_target_image_version(self) -> None:
         key = compute_visual_cache_key(self.quiz_item(), self.settings())
 
-        self.assertIn("version:v2_16x9", key)
+        self.assertIn("version:v3_focused_target_extraction_object_only", key)
 
     def test_approved_asset_is_reused(self) -> None:
         cache_key = self.insert_asset("approved")
@@ -119,7 +119,7 @@ class VisualCacheTests(unittest.TestCase):
                 "delivery_mode": "image_standard",
                 "visual_style": "standard_illustration",
                 "branding_preset": "none",
-                "image_version": "v2_16x9",
+                "image_version": "v3_focused_target_extraction_object_only",
                 "language": "de",
                 "cache_key": cache_key,
                 "image_path": str(stored_image_path or path),

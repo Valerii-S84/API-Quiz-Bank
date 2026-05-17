@@ -52,6 +52,7 @@ class TelegramPhotoGateCoverageTests(unittest.TestCase):
         self.assertIn("multipart/form-data", request.headers["Content-type"])
         self.assertIn(b'name="photo"', request.data)
         self.assertIn(b"photo.png", request.data)
+        self.assertIn(b"Content-Type: image/png", request.data)
 
     def test_photo_payload_rejects_missing_file_and_builds_parts(self) -> None:
         with self.assertRaisesRegex(TelegramDeliveryError, "telegram_photo_file_not_found"):

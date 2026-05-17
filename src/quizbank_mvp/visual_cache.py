@@ -13,7 +13,7 @@ from .visual_provider import ImageGenerationResult
 
 
 DEFAULT_ASSET_ROOT = ROOT / "var" / "visual-assets"
-VISUAL_IMAGE_VERSION = "v2_16x9"
+VISUAL_IMAGE_VERSION = "v3_focused_target_extraction_object_only"
 
 
 @dataclass(frozen=True)

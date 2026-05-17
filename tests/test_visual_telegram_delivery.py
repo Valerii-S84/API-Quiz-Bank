@@ -227,6 +227,7 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
         self.assertIn("multipart/form-data", request_payload.headers["Content-type"])
         self.assertIn(b'name="chat_id"', request_payload.data)
         self.assertIn(b"photo.png", request_payload.data)
+        self.assertIn(b"Content-Type: image/png", request_payload.data)
         self.assertIn(b"\x89PNG\r\n\x1a\nphoto", request_payload.data)
 
     def test_real_telegram_adapter_attaches_visual_media_to_single_poll_message(self) -> None:
@@ -258,6 +259,7 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
         self.assertIn(b'name="media"', request_payload.data)
         self.assertIn(b"attach://poll_media", request_payload.data)
         self.assertIn(b'name="poll_media"', request_payload.data)
+        self.assertIn(b"Content-Type: image/png", request_payload.data)
         self.assertIn(b"poll.png", request_payload.data)
 
 

@@ -10,7 +10,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from quizbank_mvp import image_quality_policy as policy  # noqa: E402
 from quizbank_mvp.image_quality_repository import upsert_quiz_item_image_quality_policy  # noqa: E402
 from quizbank_mvp.visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings
-from quizbank_mvp.visual_prompt_builder import build_visual_prompt
+from quizbank_mvp.visual_prompt_builder import build_visual_prompt, visual_target_text
 
 
 class VisualPromptBuilderTests(unittest.TestCase):
@@ -35,10 +35,59 @@ class VisualPromptBuilderTests(unittest.TestCase):
         prompt = build_visual_prompt(self.quiz_item(), self.settings())
 
         self.assertIn("The image must be wordless", prompt.generated_prompt)
-        self.assertIn("Do not copy any word from the semantic brief", prompt.generated_prompt)
+        self.assertIn("Do not copy any word from the target noun/action", prompt.generated_prompt)
         self.assertIn("no readable text", prompt.generated_prompt)
         self.assertIn("No embedded text", prompt.negative_prompt)
         self.assertIn("no signs", prompt.negative_prompt)
+
+    def test_prompt_requires_simple_focused_target_composition(self) -> None:
+        prompt = build_visual_prompt(self.quiz_item(), self.settings())
+
+        self.assertIn("Target noun/action: buchen", prompt.generated_prompt)
+        self.assertIn("one clear focal object or one clear focal action", prompt.generated_prompt)
+        self.assertIn("simple A1/A2-style composition", prompt.generated_prompt)
+        self.assertIn("never show more than three people", prompt.generated_prompt)
+        self.assertIn("uncluttered", prompt.generated_prompt)
+        self.assertIn("do not decorate the whole story", prompt.generated_prompt)
+        self.assertIn("no clutter", prompt.negative_prompt)
+        self.assertIn("no more than three people", prompt.negative_prompt)
+
+    def test_article_cloze_uses_noun_near_blank_as_visual_target(self) -> None:
+        item = self.quiz_item(
+            pattern_id="artikel_gap",
+            stem_text="Für das Team ist ___ Auftrag bis Freitag zu erledigen.",
+            options_json="[\"den\", \"die\", \"der\", \"das\"]",
+            answer_key="2",
+        )
+
+        prompt = build_visual_prompt(item, self.settings())
+
+        self.assertEqual(visual_target_text(item), "Auftrag")
+        self.assertIn("Target noun/action: Auftrag", prompt.generated_prompt)
+        self.assertIn("Focal object/action: one clear blank work order / task document", prompt.generated_prompt)
+        self.assertIn("object-only composition", prompt.generated_prompt)
+        self.assertIn("no office room", prompt.generated_prompt)
+        self.assertIn("no desk accessories", prompt.generated_prompt)
+        self.assertIn("Support only the target noun/action, not the grammar answer token", prompt.generated_prompt)
+        self.assertIn("no calendar wall", prompt.negative_prompt)
+        self.assertIn("no pseudo-text", prompt.negative_prompt)
+        self.assertIn("no desk clutter", prompt.negative_prompt)
+        self.assertNotIn("Target noun/action: der", prompt.generated_prompt)
+
+    def test_preposition_cloze_uses_connected_noun_as_visual_target(self) -> None:
+        item = self.quiz_item(
+            pattern_id="preposition_gap",
+            stem_text="Das Kind kommt ___ Schule.",
+            options_json="[\"aus\", \"bei\", \"mit\", \"ohne\"]",
+            answer_key="0",
+        )
+
+        self.assertEqual(visual_target_text(item), "Schule")
+
+    def test_visual_action_answer_stays_visual_target(self) -> None:
+        item = self.quiz_item(pattern_id="grammar_gap", stem_text="Ich muss morgen einen Termin ___.")
+
+        self.assertEqual(visual_target_text(item), "buchen")
 
     def test_branded_prompt_includes_preset_marker_without_private_payload(self) -> None:
         settings = self.settings(
@@ -67,7 +116,7 @@ class VisualPromptBuilderTests(unittest.TestCase):
         second = build_visual_prompt(item, settings)
 
         self.assertEqual(first, second)
-        self.assertEqual(first.prompt_policy_version, "visual_prompt_policy_v2_answer_grounded")
+        self.assertEqual(first.prompt_policy_version, "visual_prompt_policy_v3_focused_target")
 
     def settings(
         self,
@@ -86,7 +135,13 @@ class VisualPromptBuilderTests(unittest.TestCase):
             is_active=True,
         )
 
-    def quiz_item(self, pattern_id: str = "vocab_noun", stem_text: str = "Was ist das?") -> dict[str, str]:
+    def quiz_item(
+        self,
+        pattern_id: str = "vocab_noun",
+        stem_text: str = "Was ist das?",
+        options_json: str = "[\"buchen\", \"trinken\", \"lesen\", \"oeffnen\"]",
+        answer_key: str = "0",
+    ) -> dict[str, str]:
         return {
             "item_id": "quiz_visual_001",
             "language": "de",
@@ -95,8 +150,8 @@ class VisualPromptBuilderTests(unittest.TestCase):
             "pattern_id": pattern_id,
             "prompt": "Choose the correct word",
             "stem_text": stem_text,
-            "options_json": "[\"buchen\", \"trinken\", \"lesen\", \"oeffnen\"]",
-            "answer_key": "0",
+            "options_json": options_json,
+            "answer_key": answer_key,
         }
 
 
