@@ -20,7 +20,7 @@ class ImageGenerationError(RuntimeError):
 
 
 DEFAULT_IMAGE_GENERATION_SIZE = "1536x1024"
-DEFAULT_IMAGE_GENERATION_QUALITY = "medium"
+DEFAULT_IMAGE_GENERATION_QUALITY = "low"
 
 
 @dataclass(frozen=True)

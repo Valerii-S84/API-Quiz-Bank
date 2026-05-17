@@ -112,6 +112,7 @@ class DatabaseBackendContractTests(unittest.TestCase):
                 {"name": "consumer_admin_profiles"},
                 {"name": "deliveries"},
                 {"name": "selection_decisions"},
+                {"name": "quiz_item_image_quality_policy"},
             ]
         )
         with mock.patch.object(database, "connect", return_value=ready_connection):

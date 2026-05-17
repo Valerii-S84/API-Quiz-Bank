@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from .database import connect, new_id, utc_now
+from .image_quality_policy import ALLOWED_IMAGE_QUALITIES
 from .visual_access import (
     check_visual_delivery_access,
     check_visual_generation_access,
@@ -32,6 +34,9 @@ from .visual_provider import (
 )
 from .visual_qa import SUPPORTED_MIME_TYPES, VisualQADecision, evaluate_visual_qa
 from .visual_settings import load_visual_settings
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -91,7 +96,7 @@ def generate_or_fallback(
     prompt = build_visual_prompt(quiz_item, settings)
     record_usage(db_path, delivery, settings.consumer_id, None, "generation_requested", generation_quota.feature)
     try:
-        result = provider.generate(provider_request(prompt, settings, cache_key))
+        result = provider.generate(provider_request(prompt, settings, quiz_item, cache_key))
     except ImageGenerationError:
         record_usage(db_path, delivery, settings.consumer_id, None, "generation_failed", generation_quota.feature)
         return fallback_with_usage(db_path, delivery, settings, "GENERATION_FAILED", generation_quota.feature)
@@ -143,14 +148,27 @@ def store_after_basic_validation(
 def provider_request(
     prompt: VisualPrompt,
     settings: VisualSettings,
+    quiz_item: dict[str, Any],
     cache_key: str,
 ) -> ImageGenerationRequest:
     return ImageGenerationRequest(
         prompt=prompt.generated_prompt,
         negative_prompt=prompt.negative_prompt,
+        quality=image_quality_for_generation(quiz_item),
         style_context=f"{settings.visual_style}:{settings.branding_preset}",
         idempotency_key=cache_key,
     )
+
+
+def image_quality_for_generation(quiz_item: dict[str, Any]) -> str:
+    quality = str(quiz_item.get("image_quality_recommended") or "").strip()
+    if quality in ALLOWED_IMAGE_QUALITIES:
+        return quality
+    LOGGER.warning(
+        "image_quality_recommended missing or invalid; falling back to low",
+        extra={"quiz_item_id": str(quiz_item.get("item_id", ""))},
+    )
+    return "low"
 
 
 def insert_prompt_audit(

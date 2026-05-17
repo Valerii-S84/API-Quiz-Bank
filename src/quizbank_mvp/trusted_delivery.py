@@ -92,9 +92,15 @@ def load_deliverable_item(connection, item_id: str) -> dict[str, Any]:
     row = connection.execute(
         """
         SELECT qi.*, s.source_type AS resolved_source_type,
-               s.provenance_note AS resolved_provenance_note
+               s.provenance_note AS resolved_provenance_note,
+               iq.theme_group,
+               iq.image_quality_recommended,
+               iq.image_quality_source,
+               iq.image_quality_policy_share,
+               iq.image_quality_override
         FROM quiz_items qi
         JOIN sources s ON s.source_id = qi.source_id
+        LEFT JOIN quiz_item_image_quality_policy iq ON iq.item_id = qi.item_id
         WHERE qi.item_id = ?
           AND qi.status IN (?, ?)
           AND qi.source_id <> ''

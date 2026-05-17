@@ -32,6 +32,12 @@ from quizbank_mvp.database import (
     upsert_quiz_item,
     utc_now,
 )
+from quizbank_mvp.image_quality_policy import (
+    DEFAULT_THEME_GROUP_CONFIG_PATH,
+    enriched_image_quality_fields,
+    load_theme_groups,
+    validate_theme_group_coverage,
+)
 
 
 POSTGRES_IMAGE = "postgres:16-alpine"
@@ -114,6 +120,9 @@ def validate_promoted_inventory(inventory) -> None:
         raise PostgreSQLProductionSmokeError("empty_corpus")
     if status_counts.get("published", 0) != inventory.active_row_count:
         raise PostgreSQLProductionSmokeError(f"corpus_not_fully_published:{dict(status_counts)}")
+    theme_groups = load_theme_groups(DEFAULT_THEME_GROUP_CONFIG_PATH)
+    theme_ids = {row.get("theme_id", "").strip() for row in inventory.rows}
+    validate_theme_group_coverage(theme_ids, theme_groups)
 
 
 def seed_sources_and_items(inventory) -> None:
@@ -121,6 +130,8 @@ def seed_sources_and_items(inventory) -> None:
         source.filename: source.source_id
         for source in inventory.active_sources
     }
+    load_theme_groups.cache_clear()
+    theme_groups = load_theme_groups(DEFAULT_THEME_GROUP_CONFIG_PATH)
     with connect(None) as connection:
         for source in inventory.active_sources:
             connection.execute(
@@ -145,12 +156,13 @@ def seed_sources_and_items(inventory) -> None:
         for filename, rows in inventory.rows_by_file.items():
             source_id = source_ids_by_filename[filename]
             for row in rows:
-                upsert_quiz_item(connection, runtime_item(row), row["status"], source_id)
+                upsert_quiz_item(connection, runtime_item(row, theme_groups), row["status"], source_id)
 
 
-def runtime_item(row: dict[str, str]) -> dict[str, str]:
+def runtime_item(row: dict[str, str], theme_groups: dict[str, str]) -> dict[str, object]:
     item = dict(row)
     item["options"] = json.dumps(parse_options(row["options"]), ensure_ascii=False)
+    item.update(enriched_image_quality_fields(row, theme_groups))
     return item
 
 
@@ -282,11 +294,15 @@ def build_report(inventory, executed_at: str, api_smoke: dict[str, object]) -> d
         "sources": scalar_count("SELECT COUNT(*) AS count FROM sources"),
         "deliveries": scalar_count("SELECT COUNT(*) AS count FROM deliveries"),
         "selection_decisions": scalar_count("SELECT COUNT(*) AS count FROM selection_decisions"),
+        "image_quality_policy_rows": scalar_count(
+            "SELECT COUNT(*) AS count FROM quiz_item_image_quality_policy"
+        ),
         "status_counts": status_counts,
     }
     ok = (
         checks["quiz_items"] == inventory.active_row_count
         and checks["published_items"] == inventory.active_row_count
+        and checks["image_quality_policy_rows"] == inventory.active_row_count
         and api_smoke["health_status"] == 200
         and api_smoke["ready_status"] == 200
         and api_smoke["no_key_status"] == 401

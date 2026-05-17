@@ -320,9 +320,15 @@ def load_delivery_item(
     with connect(db_path) as connection:
         row = connection.execute(
             """
-            SELECT qi.*, d.delivery_id, d.consumer_id
+            SELECT qi.*, d.delivery_id, d.consumer_id,
+                   iq.theme_group,
+                   iq.image_quality_recommended,
+                   iq.image_quality_source,
+                   iq.image_quality_policy_share,
+                   iq.image_quality_override
             FROM deliveries d
             JOIN quiz_items qi ON qi.item_id = d.quiz_item_id
+            LEFT JOIN quiz_item_image_quality_policy iq ON iq.item_id = qi.item_id
             WHERE d.delivery_id = ? AND d.consumer_id = ?
             """,
             (delivery_id, consumer_id),

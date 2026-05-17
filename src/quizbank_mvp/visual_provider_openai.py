@@ -17,7 +17,7 @@ from .visual_provider import ImageGenerationError, ImageGenerationRequest, Image
 
 
 OPENAI_IMAGE_ENDPOINT = "https://api.openai.com/v1/images/generations"
-OPENAI_IMAGE_QUALITY_VALUES = frozenset({"low", "medium", "high", "auto"})
+OPENAI_IMAGE_QUALITY_VALUES = frozenset({"low", "medium"})
 
 
 class OpenAIProviderConfigurationError(RuntimeError):
