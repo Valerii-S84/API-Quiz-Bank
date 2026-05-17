@@ -10,45 +10,45 @@ Total active items: `30974`
 
 | visual_mode | count |
 |---|---:|
-| target_action | `11100` |
-| target_object | `8920` |
+| target_action | `12805` |
+| target_object | `9255` |
 | context_only | `2908` |
-| document_form | `3249` |
-| symbolic_abstract | `4797` |
+| document_form | `882` |
+| symbolic_abstract | `5124` |
 
 ## Breakdown By Theme
 
 | theme | target_action | target_object | context_only | document_form | symbolic_abstract |
 |---|---:|---:|---:|---:|---:|
-| T01 - Person / Identität / Familie | `883` | `1364` | `469` | `184` | `0` |
-| T02 - Alltag / Zeit / Organisation | `597` | `1497` | `1245` | `62` | `0` |
-| T03 - Wohnen / Haushalt / Verträge | `695` | `530` | `82` | `589` | `0` |
-| T04 - Einkaufen / Geld / Konsum | `1343` | `325` | `22` | `161` | `0` |
-| T05 - Essen / Gesundheit / Pflege | `1197` | `352` | `72` | `31` | `0` |
-| T06 - Arbeit / Beruf / Karriere | `828` | `573` | `262` | `189` | `0` |
-| T07 - Schule / Bildung / Weiterbildung | `1024` | `525` | `186` | `66` | `0` |
-| T08 - Verkehr / Reise / Orientierung | `724` | `751` | `118` | `95` | `0` |
-| T09 - Kommunikation / Telefon / Nachricht / E-Mail | `672` | `894` | `282` | `376` | `0` |
-| T10 - Termine / Formulare / Behörden / Recht | `821` | `400` | `49` | `921` | `0` |
-| T11 - Freizeit / Kultur / Service / soziale Kontakte | `1231` | `606` | `43` | `30` | `0` |
-| T12 - Medien / Digitales / Nachrichten | `574` | `606` | `9` | `20` | `0` |
+| T01 - Person / Identität / Familie | `977` | `1454` | `469` | `0` | `0` |
+| T02 - Alltag / Zeit / Organisation | `603` | `1553` | `1245` | `0` | `0` |
+| T03 - Wohnen / Haushalt / Verträge | `927` | `530` | `82` | `357` | `0` |
+| T04 - Einkaufen / Geld / Konsum | `1504` | `325` | `22` | `0` | `0` |
+| T05 - Essen / Gesundheit / Pflege | `1228` | `352` | `72` | `0` | `0` |
+| T06 - Arbeit / Beruf / Karriere | `896` | `694` | `262` | `0` | `0` |
+| T07 - Schule / Bildung / Weiterbildung | `1082` | `533` | `186` | `0` | `0` |
+| T08 - Verkehr / Reise / Orientierung | `778` | `792` | `118` | `0` | `0` |
+| T09 - Kommunikation / Telefon / Nachricht / E-Mail | `912` | `904` | `282` | `126` | `0` |
+| T10 - Termine / Formulare / Behörden / Recht | `1449` | `400` | `49` | `293` | `0` |
+| T11 - Freizeit / Kultur / Service / soziale Kontakte | `1256` | `611` | `43` | `0` | `0` |
+| T12 - Medien / Digitales / Nachrichten | `590` | `610` | `9` | `0` | `0` |
 | T13 - Gesellschaft / Integration / Werte | `0` | `0` | `3` | `0` | `1224` |
-| T14 - Umwelt / Nachhaltigkeit / Alltagssysteme | `0` | `0` | `1` | `9` | `1191` |
-| T15 - Wirtschaft / Finanzen / Arbeitswelt | `511` | `497` | `51` | `198` | `0` |
-| T16 - Wissenschaft / Technik / Forschung | `0` | `0` | `4` | `10` | `890` |
-| T17 - Politik / Öffentlichkeit / Debatte | `0` | `0` | `10` | `300` | `600` |
-| T18 - Analyse / Interpretation / Argumentation | `0` | `0` | `0` | `8` | `892` |
+| T14 - Umwelt / Nachhaltigkeit / Alltagssysteme | `0` | `0` | `1` | `0` | `1200` |
+| T15 - Wirtschaft / Finanzen / Arbeitswelt | `603` | `497` | `51` | `106` | `0` |
+| T16 - Wissenschaft / Technik / Forschung | `0` | `0` | `4` | `0` | `900` |
+| T17 - Politik / Öffentlichkeit / Debatte | `0` | `0` | `10` | `0` | `900` |
+| T18 - Analyse / Interpretation / Argumentation | `0` | `0` | `0` | `0` | `900` |
 
 ## Breakdown By Level
 
 | level | target_action | target_object | context_only | document_form | symbolic_abstract |
 |---|---:|---:|---:|---:|---:|
-| A1 | `1282` | `1699` | `1660` | `196` | `0` |
-| A2 | `2153` | `897` | `749` | `418` | `0` |
-| B1 | `3010` | `838` | `411` | `665` | `620` |
-| B2 | `3527` | `80` | `86` | `387` | `1185` |
-| C1 | `0` | `3383` | `2` | `527` | `1496` |
-| C2 | `1128` | `2023` | `0` | `1056` | `1496` |
+| A1 | `1435` | `1733` | `1660` | `9` | `0` |
+| A2 | `2509` | `949` | `749` | `10` | `0` |
+| B1 | `3646` | `845` | `411` | `18` | `624` |
+| B2 | `3892` | `80` | `86` | `7` | `1200` |
+| C1 | `0` | `3449` | `2` | `457` | `1500` |
+| C2 | `1323` | `2199` | `0` | `381` | `1800` |
 
 ## High-Risk Examples
 

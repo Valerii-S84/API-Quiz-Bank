@@ -11,7 +11,7 @@ Prompt policy: `visual_prompt_policy_v4_visual_modes`
 | gmb_administrative_documents_bank_a2_expanded_v01_100_ad_002 | T10 | A2 | visual_target = den Termin bestätigen | target_action / den Termin bestätigen | direct_visual_answer | Damit mein Platz frei bleibt, muss ich heute noch ___. |
 | gmb_administrative_documents_bank_a2_expanded_v01_100_ad_003 | T10 | A2 | visual_target = den Termin verschieben | target_action / den Termin verschieben | direct_visual_answer | Wenn ich morgen schon einen Arzttermin habe, muss ich ___. |
 | gmb_administrative_documents_bank_a2_expanded_v01_100_ad_004 | T10 | A2 | visual_target = den Termin absagen | target_action / den Termin absagen | direct_visual_answer | Weil ich seit dem Morgen Fieber habe, muss ich ___. |
-| gmb_administrative_documents_bank_a2_expanded_v01_100_ad_009 | T10 | A2 | visual_target = die Unterlagen kopieren | target_action / die Unterlagen kopieren | direct_visual_answer | Wenn das Amt ein Blatt behält, muss ich die Unterlagen noch ___. |
+| gmb_administrative_documents_bank_a2_expanded_v01_100_ad_005 | T10 | A2 | visual_target = das Formular herunterladen | target_action / das Formular herunterladen | direct_visual_answer | Bevor ich morgen losgehe, muss ich das Formular noch ___. |
 
 ## target_object
 
@@ -37,11 +37,11 @@ Prompt policy: `visual_prompt_policy_v4_visual_modes`
 
 | item_id | theme | level | old behavior | new behavior | reason | stem |
 |---|---|---|---|---|---|---|
-| gmb_administrative_documents_bank_a2_expanded_v01_100_ad_005 | T10 | A2 | visual_target = das Formular herunterladen | document_form / Formular | document_form_anchor | Bevor ich morgen losgehe, muss ich das Formular noch ___. |
-| gmb_administrative_documents_bank_a2_expanded_v01_100_ad_006 | T10 | A2 | visual_target = das Formular ausdrucken | document_form / Formular | document_form_anchor | Wenn ich nur die Datei habe, muss ich das Formular noch ___. |
-| gmb_administrative_documents_bank_a2_expanded_v01_100_ad_007 | T10 | A2 | visual_target = das Formular ausfüllen | document_form / Formular | document_form_anchor | Weil meine Adresse fehlt, muss ich das Formular noch ___. |
-| gmb_administrative_documents_bank_a2_expanded_v01_100_ad_008 | T10 | A2 | visual_target = das Formular unterschreiben | document_form / Formular | document_form_anchor | Damit der Antrag gültig ist, muss ich das Formular noch ___. |
-| gmb_administrative_documents_bank_a2_expanded_v01_100_ad_013 | T10 | A2 | visual_target = eine Kopie beilegen | document_form / Brief | document_form_anchor | Wenn ich den Brief heute schicke, muss ich noch ___. |
+| gmb_administrative_legal_procedures_implicit_paraphrase_bank_c1_300_alpip_001 | T10 | C1 | visual_target = deutlich eingegrenzt werden soll | document_form / Antrag | document_form_anchor | Obwohl Offenheit betont wird, zeigt der Vermerk, dass der Rahmen fuer den Antrag ___, w... |
+| gmb_administrative_legal_procedures_implicit_paraphrase_bank_c1_300_alpip_002 | T10 | C1 | visual_target = deutlich erweitert werden soll | document_form / Rueckmeldung | document_form_anchor | Obwohl Zurueckhaltung betont wird, zeigt die Rueckmeldung, dass der Rahmen fuer den Ant... |
+| gmb_administrative_legal_procedures_implicit_paraphrase_bank_c1_300_alpip_003 | T10 | C1 | visual_target = deutlich festgelegt werden soll | document_form / Antrag | document_form_anchor | Obgleich Pragmatismus betont wird, zeigt die Notiz, dass der Rahmen fuer den Antrag ___... |
+| gmb_administrative_legal_procedures_implicit_paraphrase_bank_c1_300_alpip_004 | T10 | C1 | visual_target = deutlich offengehalten werden soll | document_form / Antrag | document_form_anchor | Obwohl Klarheit betont wird, zeigt die Mail, dass der Rahmen fuer den Antrag ___, weil ... |
+| gmb_administrative_legal_procedures_implicit_paraphrase_bank_c1_300_alpip_005 | T10 | C1 | visual_target = klar eingegrenzt werden soll | document_form / Rueckmeldung | document_form_anchor | Obgleich Transparenz betont wird, zeigt die Rueckmeldung, dass die Linie fuer die Anmel... |
 
 ## symbolic_abstract
 

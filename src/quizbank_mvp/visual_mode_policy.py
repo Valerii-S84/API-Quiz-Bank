@@ -62,6 +62,7 @@ ABSTRACT_VERBS = frozenset(
         "begründen",
         "bewerten",
         "deuten",
+        "einordnen",
         "interpretieren",
         "meinen",
         "schliessen",
@@ -84,12 +85,14 @@ def resolve_visual_mode(
         return "context_only"
     del options
     combined_text = " ".join([question_text, correct_answer])
-    if document_form_candidate(theme_id, combined_text):
-        return "document_form"
     if normalized_theme(theme_id) in ABSTRACT_HIGH_RISK_THEME_IDS:
+        if document_form_candidate(theme_id, combined_text):
+            return "document_form"
         return "symbolic_abstract"
     if visible_action_answer(correct_answer):
         return "target_action"
+    if document_form_candidate(theme_id, combined_text):
+        return "document_form"
     return "target_object"
 
 
@@ -97,7 +100,7 @@ def document_form_candidate(theme_id: str, text: str) -> bool:
     normalized_theme_id = normalized_theme(theme_id)
     if not contains_document_keyword(text):
         return False
-    return normalized_theme_id in DOCUMENT_THEME_IDS or strong_document_text(text)
+    return normalized_theme_id in DOCUMENT_THEME_IDS
 
 
 def contains_document_keyword(text: str) -> bool:
