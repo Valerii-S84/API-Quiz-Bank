@@ -29,6 +29,24 @@ ALLOWED_CONSUMER_TRANSITIONS = {
     "suspended": {"active", "blocked"},
     "blocked": {"active"},
 }
+RUNTIME_TABLES = {
+    "quiz_items", "consumers", "api_credentials", "admin_credentials",
+    "consumer_admin_profiles", "deliveries", "selection_decisions",
+}
+VISUAL_RUNTIME_TABLES = {
+    "consumer_visual_settings", "visual_assets", "visual_prompt_audit",
+    "visual_delivery_results", "visual_usage_events",
+}
+DEFAULT_VISUAL_SETTINGS = {
+    "delivery_mode": "text_only",
+    "visual_style": "standard_illustration",
+    "branding_preset": "none",
+    "fallback_policy": "text_only",
+    "daily_visual_delivery_limit": 0,
+    "daily_generation_limit": 0,
+    "monthly_generation_limit": 0,
+    "is_active": 1,
+}
 
 
 def configured_db_path() -> Path:
@@ -114,22 +132,25 @@ def database_is_ready(db_path: Path | None = None) -> bool:
     if db_path is None and configured_database_url():
         return postgresql_is_ready()
     path = (db_path or configured_db_path()).resolve()
-    if not path.exists():
-        return False
+    return path.exists() and RUNTIME_TABLES.issubset(sqlite_table_names(path))
+
+
+def visual_database_is_ready(db_path: Path | None = None) -> bool:
+    if db_path is None and configured_database_url():
+        try:
+            return VISUAL_RUNTIME_TABLES.issubset(postgresql_table_names())
+        except Exception:
+            return False
+    path = (db_path or configured_db_path()).resolve()
+    return path.exists() and VISUAL_RUNTIME_TABLES.issubset(sqlite_table_names(path))
+
+
+def sqlite_table_names(path: Path) -> set[str]:
     with connect(path) as connection:
         rows = connection.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table'"
         ).fetchall()
-    table_names = {row["name"] for row in rows}
-    return {
-        "quiz_items",
-        "consumers",
-        "api_credentials",
-        "admin_credentials",
-        "consumer_admin_profiles",
-        "deliveries",
-        "selection_decisions",
-    }.issubset(table_names)
+    return {row["name"] for row in rows}
 
 
 def initialize_postgresql_database() -> None:
@@ -159,26 +180,21 @@ def initialize_postgresql_database() -> None:
 
 def postgresql_is_ready() -> bool:
     try:
-        with connect(None) as connection:
-            rows = connection.execute(
-                """
-                SELECT table_name AS name
-                FROM information_schema.tables
-                WHERE table_schema = 'public'
-                """
-            ).fetchall()
+        return RUNTIME_TABLES.issubset(postgresql_table_names())
     except Exception:
         return False
-    table_names = {row["name"] for row in rows}
-    return {
-        "quiz_items",
-        "consumers",
-        "api_credentials",
-        "admin_credentials",
-        "consumer_admin_profiles",
-        "deliveries",
-        "selection_decisions",
-    }.issubset(table_names)
+
+
+def postgresql_table_names() -> set[str]:
+    with connect(None) as connection:
+        rows = connection.execute(
+            """
+            SELECT table_name AS name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+            """
+        ).fetchall()
+    return {row["name"] for row in rows}
 
 
 def read_jsonl(path: Path) -> list[dict[str, str]]:
@@ -399,6 +415,81 @@ def seed_entitlement(
             (new_id("audit"), actor, entitlement_id, reason, utc_now()),
         )
     return entitlement_id
+
+
+def upsert_consumer_visual_settings(
+    db_path: Path | None,
+    consumer_id: str,
+    settings: dict[str, Any] | None = None,
+) -> None:
+    values = {**DEFAULT_VISUAL_SETTINGS, **(settings or {})}
+    now = utc_now()
+    created_at = str(values.get("created_at", now))
+    updated_at = str(values.get("updated_at", now))
+    with connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO consumer_visual_settings (
+                consumer_id, delivery_mode, visual_style, branding_preset,
+                fallback_policy, daily_visual_delivery_limit,
+                daily_generation_limit, monthly_generation_limit, is_active,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(consumer_id) DO UPDATE SET
+                delivery_mode = excluded.delivery_mode,
+                visual_style = excluded.visual_style,
+                branding_preset = excluded.branding_preset,
+                fallback_policy = excluded.fallback_policy,
+                daily_visual_delivery_limit = excluded.daily_visual_delivery_limit,
+                daily_generation_limit = excluded.daily_generation_limit,
+                monthly_generation_limit = excluded.monthly_generation_limit,
+                is_active = excluded.is_active,
+                updated_at = excluded.updated_at
+            """,
+            (
+                consumer_id,
+                values["delivery_mode"],
+                values["visual_style"],
+                values["branding_preset"],
+                values["fallback_policy"],
+                values["daily_visual_delivery_limit"],
+                values["daily_generation_limit"],
+                values["monthly_generation_limit"],
+                values["is_active"],
+                created_at,
+                updated_at,
+            ),
+        )
+
+
+def insert_visual_asset(db_path: Path | None, asset: dict[str, Any]) -> str:
+    asset_id = str(asset.get("asset_id") or new_id("vasset"))
+    now = utc_now()
+    values = {
+        **asset,
+        "asset_id": asset_id,
+        "created_at": asset.get("created_at", now),
+        "updated_at": asset.get("updated_at", now),
+        "provider_asset_ref": asset.get("provider_asset_ref"),
+    }
+    with connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO visual_assets (
+                asset_id, quiz_item_id, consumer_id, delivery_mode, visual_style,
+                branding_preset, image_version, language, cache_key, image_path,
+                image_sha256, mime_type, width, height, qa_status, provider_name,
+                provider_model, provider_asset_ref, created_at, updated_at
+            ) VALUES (
+                :asset_id, :quiz_item_id, :consumer_id, :delivery_mode, :visual_style,
+                :branding_preset, :image_version, :language, :cache_key, :image_path,
+                :image_sha256, :mime_type, :width, :height, :qa_status, :provider_name,
+                :provider_model, :provider_asset_ref, :created_at, :updated_at
+            )
+            """,
+            values,
+        )
+    return asset_id
 
 
 def seed_demo_state(db_path: Path | None, fixture_path: Path) -> None:

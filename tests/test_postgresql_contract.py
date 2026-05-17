@@ -14,6 +14,9 @@ POSTGRESQL_IMPORT_SQL = (
 POSTGRESQL_RUNTIME_EVIDENCE_SQL = (
     ROOT / "database" / "postgresql" / "003_add_runtime_delivery_evidence.sql"
 ).read_text(encoding="utf-8")
+POSTGRESQL_VISUAL_DELIVERY_SQL = (
+    ROOT / "database" / "postgresql" / "007_add_visual_delivery.sql"
+).read_text(encoding="utf-8")
 
 
 class PostgreSQLContractTests(unittest.TestCase):
@@ -96,6 +99,43 @@ class PostgreSQLContractTests(unittest.TestCase):
             "source_row_number INTEGER CHECK (source_row_number IS NULL OR source_row_number >= 1)",
         ]:
             self.assertIn(required_fragment, POSTGRESQL_IMPORT_SQL)
+
+    def test_visual_delivery_mirror_defines_runtime_tables(self) -> None:
+        for required_table in [
+            "CREATE TABLE IF NOT EXISTS consumer_visual_settings",
+            "CREATE TABLE IF NOT EXISTS visual_assets",
+            "CREATE TABLE IF NOT EXISTS visual_prompt_audit",
+            "CREATE TABLE IF NOT EXISTS visual_delivery_results",
+            "CREATE TABLE IF NOT EXISTS visual_usage_events",
+        ]:
+            self.assertIn(required_table, POSTGRESQL_VISUAL_DELIVERY_SQL)
+
+    def test_visual_delivery_mirror_keeps_constraints_and_foreign_keys(self) -> None:
+        for required_fragment in [
+            "consumer_id TEXT PRIMARY KEY REFERENCES consumers(consumer_id)",
+            "quiz_item_id TEXT NOT NULL REFERENCES quiz_items(item_id)",
+            "delivery_id TEXT PRIMARY KEY REFERENCES deliveries(delivery_id)",
+            "asset_id TEXT REFERENCES visual_assets(asset_id)",
+            "delivery_mode IN ('text_only', 'image_standard', 'image_branded')",
+            "qa_status IN ('approved', 'rejected', 'fallback_used', 'needs_review')",
+            "visual_status IN ('sent', 'skipped', 'failed', 'fallback_used')",
+            "cache_key TEXT NOT NULL UNIQUE CHECK (cache_key <> '')",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_VISUAL_DELIVERY_SQL)
+
+    def test_visual_usage_events_include_cost_and_generation_statuses(self) -> None:
+        for required_fragment in [
+            "'cache_hit'",
+            "'cache_miss'",
+            "'generation_requested'",
+            "'generation_succeeded'",
+            "'generation_failed'",
+            "'qa_approved'",
+            "'qa_rejected'",
+            "'fallback_used'",
+            "estimated_cost_minor INTEGER NOT NULL CHECK (estimated_cost_minor >= 0)",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_VISUAL_DELIVERY_SQL)
 
 
 if __name__ == "__main__":
