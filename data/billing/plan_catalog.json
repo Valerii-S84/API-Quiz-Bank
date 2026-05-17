@@ -33,6 +33,96 @@
           "limit_period": "day"
         }
       ]
+    },
+    {
+      "plan_id": "plan_manual_visual_demo",
+      "plan_code": "manual_visual_demo",
+      "name": "Manual Visual Demo",
+      "status": "draft",
+      "billing_interval": "manual",
+      "price_reference": "not_public_pricing",
+      "features": [
+        {
+          "feature_code": "quiz_delivery",
+          "is_enabled": true,
+          "limit_value": 2,
+          "limit_period": "day"
+        },
+        {
+          "feature_code": "visual_delivery.standard",
+          "is_enabled": true,
+          "limit_value": 2,
+          "limit_period": "day"
+        },
+        {
+          "feature_code": "visual_generation.standard",
+          "is_enabled": true,
+          "limit_value": 2,
+          "limit_period": "day"
+        }
+      ]
+    },
+    {
+      "plan_id": "plan_visual_pilot",
+      "plan_code": "visual_pilot",
+      "name": "Visual Pilot",
+      "status": "draft",
+      "billing_interval": "manual_contract",
+      "price_reference": "pilot_contract_only",
+      "features": [
+        {
+          "feature_code": "quiz_delivery",
+          "is_enabled": true,
+          "limit_value": 10,
+          "limit_period": "day"
+        },
+        {
+          "feature_code": "visual_delivery.standard",
+          "is_enabled": true,
+          "limit_value": 10,
+          "limit_period": "day"
+        },
+        {
+          "feature_code": "visual_generation.standard",
+          "is_enabled": true,
+          "limit_value": 50,
+          "limit_period": "month"
+        }
+      ]
+    },
+    {
+      "plan_id": "plan_pro_visual_pilot",
+      "plan_code": "pro_visual_pilot",
+      "name": "Pro Visual Pilot",
+      "status": "draft",
+      "billing_interval": "manual_contract",
+      "price_reference": "pilot_contract_only",
+      "features": [
+        {
+          "feature_code": "quiz_delivery",
+          "is_enabled": true,
+          "limit_value": 20,
+          "limit_period": "day"
+        },
+        {
+          "feature_code": "visual_delivery.branded",
+          "is_enabled": true,
+          "limit_value": 20,
+          "limit_period": "day"
+        },
+        {
+          "feature_code": "visual_generation.branded",
+          "is_enabled": true,
+          "limit_value": 100,
+          "limit_period": "month"
+        },
+        {
+          "feature_code": "branding_preset.access",
+          "is_enabled": true,
+          "limit_value": 1,
+          "limit_period": "manual"
+        }
+      ]
     }
   ]
 }
