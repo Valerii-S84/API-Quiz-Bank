@@ -63,12 +63,6 @@ class VisualFailPollAdapter(FakeTelegramAdapter):
         super().__init__()
         self.fail_poll = fail_poll
         self.events: list[str] = []
-        self.photo_payloads: list[dict[str, object]] = []
-
-    def send_photo(self, payload: dict[str, object]) -> TelegramImageSendResult:
-        self.events.append("photo")
-        self.photo_payloads.append(payload)
-        return TelegramImageSendResult(message_id=f"photo_{len(self.photo_payloads)}")
 
     def send_quiz_poll(self, payload: dict[str, object]) -> TelegramSendResult:
         self.events.append("poll")
@@ -432,8 +426,8 @@ class ProtectedBetaVisualRetryTests(ProtectedBetaTestCase):
 
         self.assertEqual(first.status, "failed")
         self.assertEqual(retry.status, "sent")
-        self.assertEqual(first_adapter.events, ["photo", "poll"])
-        self.assertEqual(retry_adapter.events, ["photo", "poll"])
+        self.assertEqual(first_adapter.events, ["poll"])
+        self.assertEqual(retry_adapter.events, ["poll"])
         with connect(self.db_path) as connection:
             visual = connection.execute(
                 """
@@ -444,7 +438,7 @@ class ProtectedBetaVisualRetryTests(ProtectedBetaTestCase):
                 (retry.delivery_id,),
             ).fetchone()
         self.assertEqual(visual["visual_status"], "sent")
-        self.assertEqual(visual["telegram_image_message_id"], "photo_1")
+        self.assertEqual(visual["telegram_image_message_id"], "msg_1")
 
 
 if __name__ == "__main__":

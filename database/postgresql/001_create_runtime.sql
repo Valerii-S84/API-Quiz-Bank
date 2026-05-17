@@ -82,7 +82,7 @@ CREATE TABLE quota_usage (
     quota_usage_id TEXT PRIMARY KEY,
     consumer_id TEXT NOT NULL REFERENCES consumers(consumer_id),
     feature TEXT NOT NULL,
-    usage_date DATE NOT NULL,
+    usage_date TEXT NOT NULL,
     used_count INTEGER NOT NULL,
     quota_limit INTEGER NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,

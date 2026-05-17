@@ -17,6 +17,9 @@ POSTGRESQL_RUNTIME_EVIDENCE_SQL = (
 POSTGRESQL_VISUAL_DELIVERY_SQL = (
     ROOT / "database" / "postgresql" / "007_add_visual_delivery.sql"
 ).read_text(encoding="utf-8")
+POSTGRESQL_QUOTA_PERIOD_SQL = (
+    ROOT / "database" / "postgresql" / "008_use_text_quota_usage_period_key.sql"
+).read_text(encoding="utf-8")
 
 
 class PostgreSQLContractTests(unittest.TestCase):
@@ -29,6 +32,10 @@ class PostgreSQLContractTests(unittest.TestCase):
             "quota_usage_id TEXT NOT NULL REFERENCES quota_usage(quota_usage_id)",
         ]:
             self.assertIn(required_fragment, POSTGRESQL_RUNTIME_SQL)
+
+    def test_quota_usage_period_key_supports_daily_and_monthly_windows(self) -> None:
+        self.assertIn("usage_date TEXT NOT NULL", POSTGRESQL_RUNTIME_SQL)
+        self.assertIn("ALTER COLUMN usage_date TYPE TEXT", POSTGRESQL_QUOTA_PERIOD_SQL)
 
     def test_runtime_seed_allows_unreviewed_draft_import_timestamps(self) -> None:
         self.assertIn("reviewed_at TIMESTAMPTZ,\n    level_locked", POSTGRESQL_RUNTIME_SQL)

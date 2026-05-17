@@ -36,8 +36,7 @@ APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceab
 
 
 class FakeVisualTelegramAdapter:
-    def __init__(self, fail_photo: bool = False, fail_poll: bool = False) -> None:
-        self.fail_photo = fail_photo
+    def __init__(self, fail_poll: bool = False) -> None:
         self.fail_poll = fail_poll
         self.events: list[str] = []
         self.photo_payloads: list[dict[str, object]] = []
@@ -89,7 +88,7 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
         self.assertEqual(visual["fallback_used"], 0)
         self.assertIsNotNone(visual["asset_id"])
 
-    def test_approved_visual_asset_sends_image_before_poll(self) -> None:
+    def test_approved_visual_asset_is_attached_to_single_poll_message(self) -> None:
         enable_visual(self, "consumer_visual")
         adapter = FakeVisualTelegramAdapter()
 
@@ -103,15 +102,16 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
         visual = visual_result_row(self, result.delivery_id)
 
         self.assertEqual(result.status, "sent")
-        self.assertEqual(adapter.events, ["photo", "poll"])
-        self.assertEqual(visual["telegram_image_message_id"], "photo_123")
+        self.assertEqual(adapter.events, ["poll"])
+        self.assertEqual(visual["telegram_image_message_id"], "poll_123")
         self.assertEqual(visual["visual_status"], "sent")
-        self.assertNotIn("correct_option_ids", adapter.photo_payloads[0])
-        self.assertNotIn("buchen", json.dumps(adapter.photo_payloads[0]))
+        self.assertEqual(adapter.photo_payloads, [])
+        self.assertIn("poll_media_path", adapter.poll_payloads[0])
+        self.assertNotIn("photo_path", adapter.poll_payloads[0])
 
-    def test_image_send_failure_does_not_lose_poll_delivery(self) -> None:
+    def test_poll_media_send_failure_marks_delivery_failed(self) -> None:
         enable_visual(self, "consumer_visual")
-        adapter = FakeVisualTelegramAdapter(fail_photo=True)
+        adapter = FakeVisualTelegramAdapter(fail_poll=True)
 
         result = run_telegram_delivery(
             self.db_path,
@@ -122,11 +122,11 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
         )
         visual = visual_result_row(self, result.delivery_id)
 
-        self.assertEqual(result.status, "sent")
-        self.assertEqual(adapter.events, ["photo", "poll"])
+        self.assertEqual(result.status, "failed")
+        self.assertEqual(adapter.events, ["poll"])
         self.assertEqual(visual["visual_status"], "failed")
         self.assertEqual(visual["fallback_used"], 1)
-        self.assertIn("image_send_failed", visual["fallback_reason"])
+        self.assertIn("poll_send_failed", visual["fallback_reason"])
 
     def test_poll_failure_marks_visual_delivery_failed(self) -> None:
         enable_visual(self, "consumer_visual")
@@ -170,7 +170,7 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
 
         self.assertEqual(first.status, "sent")
         self.assertEqual(repeat_error.exception.reason_code, "SELECTION_NO_ELIGIBLE_ITEM")
-        self.assertEqual(adapter.events, ["photo", "poll"])
+        self.assertEqual(adapter.events, ["poll"])
 
     def test_real_visual_delivery_defaults_to_openai_environment_provider(self) -> None:
         enable_visual(self, "consumer_visual")
@@ -189,7 +189,7 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
             )
 
         self.assertEqual(result.status, "sent")
-        self.assertEqual(adapter.events, ["photo", "poll"])
+        self.assertEqual(adapter.events, ["poll"])
         self.assertEqual(len(provider.calls), 1)
         from_environment.assert_called_once()
 
@@ -228,6 +228,37 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
         self.assertIn(b'name="chat_id"', request_payload.data)
         self.assertIn(b"photo.png", request_payload.data)
         self.assertIn(b"\x89PNG\r\n\x1a\nphoto", request_payload.data)
+
+    def test_real_telegram_adapter_attaches_visual_media_to_single_poll_message(self) -> None:
+        image_path = Path(self.temp_directory.name) / "poll.png"
+        image_path.write_bytes(b"\x89PNG\r\n\x1a\npoll")
+        adapter = TelegramBotApiAdapter(" token ", api_base="https://telegram.test")
+        payload = {
+            "chat_id": "@controlled_channel",
+            "question": "Welche Antwort passt?",
+            "options": ["buchen", "lesen"],
+            "type": "quiz",
+            "correct_option_ids": [0],
+            "explanation": "Hier passt buchen.",
+            "is_anonymous": True,
+            "poll_media_path": str(image_path),
+        }
+
+        with patch("quizbank_mvp.telegram_bot_api.urllib.request.urlopen") as urlopen:
+            urlopen.return_value = FakeHttpResponse(
+                {"ok": True, "result": {"message_id": 88, "poll": {"id": "poll_media"}}}
+            )
+            result = adapter.send_quiz_poll(payload)
+
+        request_payload = urlopen.call_args.args[0]
+        self.assertEqual(result.message_id, "88")
+        self.assertEqual(result.poll_id, "poll_media")
+        self.assertIn("/bottoken/sendPoll", request_payload.full_url)
+        self.assertIn("multipart/form-data", request_payload.headers["Content-type"])
+        self.assertIn(b'name="media"', request_payload.data)
+        self.assertIn(b"attach://poll_media", request_payload.data)
+        self.assertIn(b'name="poll_media"', request_payload.data)
+        self.assertIn(b"poll.png", request_payload.data)
 
 
 def request(consumer_id: str = "consumer_visual", mode: str = "dry_run") -> TelegramDeliveryRequest:

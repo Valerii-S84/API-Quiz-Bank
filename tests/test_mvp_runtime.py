@@ -252,7 +252,7 @@ class MvpTelegramDeliveryTests(MvpRuntimeCase):
         )
         self.assertNotIn("correct_option_id", adapter.payloads[0])
         api_payload = telegram_api_payload(adapter.payloads[0])
-        self.assertEqual(api_payload["correct_option_id"], correct_id)
+        self.assertEqual(api_payload["correct_option_ids"], [correct_id])
         with connect(self.db_path) as connection:
             delivery = connection.execute(
                 "SELECT delivery_status FROM deliveries WHERE delivery_id = ?",

@@ -12,21 +12,31 @@ from quizbank_mvp.visual_prompt_builder import build_visual_prompt
 
 
 class VisualPromptBuilderTests(unittest.TestCase):
-    def test_direct_vocabulary_prompt_does_not_include_option_labels(self) -> None:
-        prompt = build_visual_prompt(self.quiz_item(pattern_id="vocab_noun"), self.settings())
+    def test_answer_concept_prompt_does_not_include_option_labels(self) -> None:
+        prompt = build_visual_prompt(self.quiz_item(pattern_id="vocab_noun", stem_text="Was bedeutet buchen?"), self.settings())
 
-        self.assertIn("direct_vocabulary", prompt.generated_prompt)
+        self.assertIn("answer_concept", prompt.generated_prompt)
         self.assertNotIn("A)", prompt.generated_prompt)
         self.assertNotIn("Option", prompt.generated_prompt)
 
-    def test_grammar_prompt_avoids_exact_answer_text(self) -> None:
+    def test_grammar_prompt_uses_resolved_answer_text(self) -> None:
         item = self.quiz_item(pattern_id="grammar_gap", stem_text="Ich muss morgen einen Termin ___.")
 
         prompt = build_visual_prompt(item, self.settings())
 
         self.assertIn("context_scene", prompt.generated_prompt)
-        self.assertNotIn("buchen", prompt.generated_prompt.lower())
-        self.assertEqual(prompt.answer_leak_risk, "avoid_exact_answer")
+        self.assertIn("Ich muss morgen einen Termin buchen.", prompt.generated_prompt)
+        self.assertIn("without text", prompt.generated_prompt)
+        self.assertEqual(prompt.answer_leak_risk, "answer_grounded_no_text_rendering")
+
+    def test_prompt_strongly_forbids_rendering_text_inside_image(self) -> None:
+        prompt = build_visual_prompt(self.quiz_item(), self.settings())
+
+        self.assertIn("The image must be wordless", prompt.generated_prompt)
+        self.assertIn("Do not copy any word from the semantic brief", prompt.generated_prompt)
+        self.assertIn("no readable text", prompt.generated_prompt)
+        self.assertIn("No embedded text", prompt.negative_prompt)
+        self.assertIn("no signs", prompt.negative_prompt)
 
     def test_branded_prompt_includes_preset_marker_without_private_payload(self) -> None:
         settings = self.settings(
@@ -39,13 +49,13 @@ class VisualPromptBuilderTests(unittest.TestCase):
         self.assertIn("brand_alpha", prompt.generated_prompt)
         self.assertNotIn("secret", prompt.generated_prompt.lower())
 
-    def test_unsupported_abstract_prompt_recommends_text_fallback(self) -> None:
+    def test_abstract_prompt_still_gets_answer_grounded_visualization(self) -> None:
         item = self.quiz_item(pattern_id="abstract_reasoning")
 
         prompt = build_visual_prompt(item, self.settings())
 
-        self.assertEqual(prompt.visualization_type, "unsupported_abstract")
-        self.assertEqual(prompt.fallback_recommendation, "text_only")
+        self.assertIn(prompt.visualization_type, {"answer_concept", "resolved_quiz_scene"})
+        self.assertEqual(prompt.fallback_recommendation, "none")
 
     def test_prompt_builder_is_deterministic_for_same_inputs(self) -> None:
         item = self.quiz_item()
@@ -55,7 +65,7 @@ class VisualPromptBuilderTests(unittest.TestCase):
         second = build_visual_prompt(item, settings)
 
         self.assertEqual(first, second)
-        self.assertEqual(first.prompt_policy_version, "visual_prompt_policy_v1")
+        self.assertEqual(first.prompt_policy_version, "visual_prompt_policy_v2_answer_grounded")
 
     def settings(
         self,

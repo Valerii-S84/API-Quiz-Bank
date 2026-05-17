@@ -87,6 +87,8 @@ class VisualDeliveryTests(unittest.TestCase):
         self.assertEqual(resolution.state, "generated_approved")
         self.assertEqual(len(provider.calls), 1)
         self.assertEqual(asset_status(self, resolution.asset_id), "approved")
+        self.assertEqual(asset_dimensions(self, resolution.asset_id), (1536, 864))
+        self.assertEqual(provider.calls[0].size, "1536x1024")
         self.assertEqual(prompt_audit_count(self), 1)
         self.assertEqual(usage_count(self, "generation_succeeded"), 1)
         self.assertEqual(quota_used(self, "visual_delivery.standard", today_usage_date()), 1)
@@ -265,7 +267,7 @@ def cached_asset_payload(cache_key: str, image_path: Path) -> dict[str, object]:
         "delivery_mode": "image_standard",
         "visual_style": "standard_illustration",
         "branding_preset": "none",
-        "image_version": "v1",
+        "image_version": "v2_16x9",
         "language": "de",
         "cache_key": cache_key,
         "image_path": str(image_path),
@@ -340,6 +342,15 @@ def asset_status(case: VisualDeliveryTests, asset_id: str | None) -> str:
             (asset_id,),
         ).fetchone()
     return str(row["qa_status"])
+
+
+def asset_dimensions(case: VisualDeliveryTests, asset_id: str | None) -> tuple[int, int]:
+    with connect(case.db_path) as connection:
+        row = connection.execute(
+            "SELECT width, height FROM visual_assets WHERE asset_id = ?",
+            (asset_id,),
+        ).fetchone()
+    return (int(row["width"]), int(row["height"]))
 
 
 def prompt_audit_count(case: VisualDeliveryTests) -> int:

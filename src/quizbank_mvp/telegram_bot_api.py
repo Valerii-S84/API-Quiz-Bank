@@ -37,7 +37,17 @@ class TelegramBotApiAdapter:
         self.api_base = api_base.rstrip("/")
 
     def send_quiz_poll(self, payload: dict[str, Any]) -> TelegramSendResult:
-        request = self.json_request("sendPoll", telegram_api_payload(payload))
+        api_payload = telegram_api_payload(payload)
+        if payload.get("poll_media_path"):
+            content_type, body_bytes = telegram_poll_multipart_payload(api_payload, payload)
+            request = urllib.request.Request(
+                self.method_url("sendPoll"),
+                data=body_bytes,
+                headers={"Content-Type": content_type},
+                method="POST",
+            )
+        else:
+            request = self.json_request("sendPoll", api_payload)
         body = execute_telegram_request(request)
         result = body.get("result", {})
         return TelegramSendResult(
@@ -85,17 +95,36 @@ def execute_telegram_request(request: urllib.request.Request) -> dict[str, Any]:
 
 def telegram_api_payload(payload: dict[str, Any]) -> dict[str, Any]:
     correct_option_ids = payload["correct_option_ids"]
-    if not isinstance(correct_option_ids, list) or len(correct_option_ids) != 1:
-        raise TelegramDeliveryError("telegram_bot_api_requires_single_correct_option")
+    if not isinstance(correct_option_ids, list) or not correct_option_ids:
+        raise TelegramDeliveryError("telegram_bot_api_requires_correct_option_ids")
     return {
         "chat_id": payload["chat_id"],
         "question": payload["question"],
         "options": payload["options"],
         "type": payload["type"],
-        "correct_option_id": correct_option_ids[0],
+        "correct_option_ids": correct_option_ids,
         "explanation": payload["explanation"],
         "is_anonymous": payload["is_anonymous"],
     }
+
+
+def telegram_poll_multipart_payload(
+    api_payload: dict[str, Any],
+    delivery_payload: dict[str, Any],
+) -> tuple[str, bytes]:
+    photo_path = Path(str(delivery_payload.get("poll_media_path", "")))
+    if not photo_path.is_file():
+        raise TelegramDeliveryError("telegram_poll_media_file_not_found")
+    fields = multipart_fields(
+        {
+            **api_payload,
+            "media": {"type": "photo", "media": "attach://poll_media"},
+        }
+    )
+    return multipart_form_data(
+        fields,
+        {"poll_media": (photo_path.name, photo_path.read_bytes(), "application/octet-stream")},
+    )
 
 
 def telegram_photo_multipart_payload(payload: dict[str, Any]) -> tuple[str, bytes]:
@@ -106,6 +135,16 @@ def telegram_photo_multipart_payload(payload: dict[str, Any]) -> tuple[str, byte
         {"chat_id": str(payload["chat_id"])},
         {"photo": (photo_path.name, photo_path.read_bytes(), "application/octet-stream")},
     )
+
+
+def multipart_fields(payload: dict[str, Any]) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    for key, value in payload.items():
+        if isinstance(value, (list, dict, bool)):
+            fields[key] = json.dumps(value, ensure_ascii=False)
+        else:
+            fields[key] = str(value)
+    return fields
 
 
 def multipart_form_data(

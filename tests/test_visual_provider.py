@@ -32,6 +32,7 @@ class VisualProviderTests(unittest.TestCase):
 
         self.assertEqual(first.image_bytes, second.image_bytes)
         self.assertEqual(first.provider_name, "fake")
+        self.assertEqual((first.width, first.height), (1536, 1024))
         self.assertEqual(len(provider.calls), 2)
 
     def test_fake_provider_failure_maps_to_structured_exception(self) -> None:
