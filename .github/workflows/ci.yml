@@ -68,5 +68,13 @@ jobs:
             tests.test_pre_pilot_runtime_invariants \
             tests.test_protected_beta \
             tests.test_telegram_shuffle \
+            tests.test_telegram_photo_gate_coverage \
+            tests.test_visual_access_gate_coverage \
+            tests.test_visual_cache \
+            tests.test_visual_prompt_builder \
+            tests.test_visual_provider \
+            tests.test_visual_qa \
+            tests.test_visual_runtime_gate_coverage \
+            tests.test_visual_settings \
             tests.test_website_quiz_teaser_beta
           python3 -m coverage report
