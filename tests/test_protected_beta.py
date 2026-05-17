@@ -16,16 +16,26 @@ from quizbank_mvp.database import (  # noqa: E402
     connect,
     initialize_database,
     seed_control_fixture,
+    utc_now,
 )
 from quizbank_mvp.protected_beta import (  # noqa: E402
     CORE_DEUTSCH_IST_EINFACH_CHANNEL,
     DEUTSCH_IST_EINFACH_CHANNEL,
+    ProtectedBetaDeliveryOptions,
     due_slots,
     run_protected_beta_batch,
     run_protected_beta_slot,
+    run_scheduled_protected_beta_slot,
     seed_protected_beta_channels,
 )
-from quizbank_mvp.telegram_delivery import TelegramDeliveryError, TelegramSendResult  # noqa: E402
+from quizbank_mvp.telegram_delivery import (  # noqa: E402
+    TelegramDeliveryError,
+    TelegramImageSendResult,
+    TelegramSendResult,
+)
+from quizbank_mvp.visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings  # noqa: E402
+from quizbank_mvp.visual_provider import FakeImageProvider  # noqa: E402
+from quizbank_mvp.visual_settings import save_visual_settings  # noqa: E402
 
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
@@ -48,10 +58,31 @@ class FailSecondTelegramAdapter(FakeTelegramAdapter):
         return TelegramSendResult(message_id=f"msg_{len(self.payloads)}")
 
 
+class VisualFailPollAdapter(FakeTelegramAdapter):
+    def __init__(self, fail_poll: bool = False) -> None:
+        super().__init__()
+        self.fail_poll = fail_poll
+        self.events: list[str] = []
+        self.photo_payloads: list[dict[str, object]] = []
+
+    def send_photo(self, payload: dict[str, object]) -> TelegramImageSendResult:
+        self.events.append("photo")
+        self.photo_payloads.append(payload)
+        return TelegramImageSendResult(message_id=f"photo_{len(self.photo_payloads)}")
+
+    def send_quiz_poll(self, payload: dict[str, object]) -> TelegramSendResult:
+        self.events.append("poll")
+        self.payloads.append(payload)
+        if self.fail_poll:
+            raise TelegramDeliveryError("simulated_poll_failure")
+        return TelegramSendResult(message_id=f"msg_{len(self.payloads)}")
+
+
 class ProtectedBetaTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_directory = tempfile.TemporaryDirectory()
         self.db_path = Path(self.temp_directory.name) / "quizbank.sqlite3"
+        self.asset_root = Path(self.temp_directory.name) / "visual-assets"
         initialize_database(self.db_path)
         self.environment_patch = patch.dict(
             os.environ,
@@ -111,6 +142,44 @@ class ProtectedBetaTestCase(unittest.TestCase):
                 (CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,),
             ).fetchone()
         return slot_rows, int(delivery_count["count"])
+
+    def enable_core_visual(self) -> None:
+        save_visual_settings(
+            self.db_path,
+            VisualSettings(
+                consumer_id=CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,
+                delivery_mode=VisualDeliveryMode.IMAGE_STANDARD,
+                visual_style="standard_illustration",
+                branding_preset="none",
+                fallback_policy=VisualFallbackPolicy.TEXT_ONLY,
+                daily_visual_delivery_limit=5,
+                daily_generation_limit=5,
+                monthly_generation_limit=20,
+                is_active=True,
+            ),
+        )
+        self.grant_core_visual_feature("visual_delivery.standard")
+        self.grant_core_visual_feature("visual_generation.standard")
+
+    def grant_core_visual_feature(self, feature: str) -> None:
+        with connect(self.db_path) as connection:
+            connection.execute(
+                """
+                INSERT INTO entitlements (
+                    entitlement_id, consumer_id, feature, status,
+                    allowed_cefr_levels_json, allowed_theme_ids_json,
+                    valid_until, created_at
+                ) VALUES (?, ?, ?, 'active', ?, ?, NULL, ?)
+                """,
+                (
+                    f"ent_core_{feature}",
+                    CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,
+                    feature,
+                    json.dumps(["A2"]),
+                    json.dumps(["T01", "T04"]),
+                    utc_now(),
+                ),
+            )
 
 
 class ProtectedBetaTests(ProtectedBetaTestCase):
@@ -327,6 +396,56 @@ class ProtectedBetaTests(ProtectedBetaTestCase):
         self.assertEqual(no_item["status"], "no_item")
         self.assertIsNone(no_item["delivery_id"])
         self.assertEqual(no_item["failure_reason"], "SELECTION_NO_ELIGIBLE_ITEM")
+
+
+class ProtectedBetaVisualRetryTests(ProtectedBetaTestCase):
+    def test_core_slot_retry_reruns_visual_delivery_for_existing_delivery(self) -> None:
+        self.seed_slot_items("A2", "T01", count=1)
+        seed_protected_beta_channels(self.db_path)
+        self.enable_core_visual()
+        slot = CORE_DEUTSCH_IST_EINFACH_CHANNEL.schedule_slots[0]
+        delivery_options = ProtectedBetaDeliveryOptions(
+            image_provider=FakeImageProvider(),
+            asset_root=self.asset_root,
+        )
+        first_adapter = VisualFailPollAdapter(fail_poll=True)
+
+        first = run_scheduled_protected_beta_slot(
+            self.db_path,
+            CORE_DEUTSCH_IST_EINFACH_CHANNEL,
+            slot,
+            "real",
+            first_adapter,
+            "2026-05-13",
+            delivery_options,
+        )
+        retry_adapter = VisualFailPollAdapter()
+        retry = run_scheduled_protected_beta_slot(
+            self.db_path,
+            CORE_DEUTSCH_IST_EINFACH_CHANNEL,
+            slot,
+            "real",
+            retry_adapter,
+            "2026-05-13",
+            delivery_options,
+        )
+
+        self.assertEqual(first.status, "failed")
+        self.assertEqual(retry.status, "sent")
+        self.assertEqual(first_adapter.events, ["photo", "poll"])
+        self.assertEqual(retry_adapter.events, ["photo", "poll"])
+        with connect(self.db_path) as connection:
+            visual = connection.execute(
+                """
+                SELECT visual_status, telegram_image_message_id
+                FROM visual_delivery_results
+                WHERE delivery_id = ?
+                """,
+                (retry.delivery_id,),
+            ).fetchone()
+        self.assertEqual(visual["visual_status"], "sent")
+        self.assertEqual(visual["telegram_image_message_id"], "photo_1")
+
 
 if __name__ == "__main__":
     unittest.main()

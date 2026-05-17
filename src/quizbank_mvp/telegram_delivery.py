@@ -26,6 +26,7 @@ from .visual_cache import DEFAULT_ASSET_ROOT
 from .visual_delivery import VisualDeliveryResolution, resolve_visual_delivery
 from .visual_models import VisualDeliveryMode
 from .visual_provider import FakeImageProvider, ImageGenerationProvider
+from .visual_provider_openai import OpenAIEnvironmentImageProvider
 
 
 TELEGRAM_QUESTION_LIMIT = 300
@@ -88,6 +89,7 @@ class TelegramDeliveryResult:
             "failure_reason": self.failure_reason,
         }
 
+
 def run_telegram_delivery(
     db_path: Path | None,
     request: TelegramDeliveryRequest,
@@ -100,12 +102,38 @@ def run_telegram_delivery(
     delivery = selection["delivery"]
     delivery_id = str(delivery["delivery_id"])
     item = load_delivery_item(db_path, delivery_id, request.consumer_id)
+    return send_loaded_telegram_delivery(db_path, delivery, item, request, adapter, image_provider, asset_root)
+
+
+def send_existing_telegram_delivery(
+    db_path: Path | None,
+    delivery_id: str,
+    request: TelegramDeliveryRequest,
+    adapter: TelegramAdapter | None = None,
+    image_provider: ImageGenerationProvider | None = None,
+    asset_root: Path = DEFAULT_ASSET_ROOT,
+) -> TelegramDeliveryResult:
+    validate_delivery_mode(request.mode)
+    item = load_delivery_item(db_path, delivery_id, request.consumer_id)
+    return send_loaded_telegram_delivery(db_path, item, item, request, adapter, image_provider, asset_root)
+
+
+def send_loaded_telegram_delivery(
+    db_path: Path | None,
+    delivery: dict[str, Any],
+    item: dict[str, Any],
+    request: TelegramDeliveryRequest,
+    adapter: TelegramAdapter | None,
+    image_provider: ImageGenerationProvider | None,
+    asset_root: Path,
+) -> TelegramDeliveryResult:
+    delivery_id = str(delivery["delivery_id"])
     visual_resolution = resolve_visual_delivery(
         db_path,
         delivery,
         item,
         request.consumer_id,
-        image_provider or FakeImageProvider(),
+        default_image_provider(request.mode, image_provider),
         asset_root,
     )
     if visual_resolution.state == "blocked":
@@ -139,29 +167,15 @@ def run_telegram_delivery(
     return result
 
 
-def send_existing_telegram_delivery(
-    db_path: Path | None,
-    delivery_id: str,
-    request: TelegramDeliveryRequest,
-    adapter: TelegramAdapter | None = None,
-) -> TelegramDeliveryResult:
-    validate_delivery_mode(request.mode)
-    item = load_delivery_item(db_path, delivery_id, request.consumer_id)
-    try:
-        payload = build_telegram_poll_payload(request.chat_id, item)
-        result = handle_telegram_send(request.mode, payload, adapter)
-    except TelegramDeliveryError as error:
-        result = TelegramDeliveryResult(
-            delivery_id=delivery_id,
-            consumer_id=request.consumer_id,
-            quiz_item_id=item["item_id"],
-            mode=request.mode,
-            status="failed",
-            telegram_target_ref=redact_telegram_target(request.chat_id),
-            failure_reason=str(error),
-        )
-    record_telegram_result(db_path, result)
-    return result
+def default_image_provider(
+    mode: str,
+    image_provider: ImageGenerationProvider | None,
+) -> ImageGenerationProvider:
+    if image_provider is not None:
+        return image_provider
+    if mode == "real":
+        return OpenAIEnvironmentImageProvider()
+    return FakeImageProvider()
 
 
 def selection_request_from_telegram(

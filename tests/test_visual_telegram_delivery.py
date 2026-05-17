@@ -28,6 +28,7 @@ from quizbank_mvp.telegram_delivery import (  # noqa: E402
     run_telegram_delivery,
 )
 from quizbank_mvp.visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings  # noqa: E402
+from quizbank_mvp.visual_provider import FakeImageProvider  # noqa: E402
 from quizbank_mvp.visual_settings import save_visual_settings  # noqa: E402
 
 
@@ -96,6 +97,7 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
             self.db_path,
             request(mode="real"),
             adapter=adapter,
+            image_provider=FakeImageProvider(),
             asset_root=self.asset_root,
         )
         visual = visual_result_row(self, result.delivery_id)
@@ -115,6 +117,7 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
             self.db_path,
             request(mode="real"),
             adapter=adapter,
+            image_provider=FakeImageProvider(),
             asset_root=self.asset_root,
         )
         visual = visual_result_row(self, result.delivery_id)
@@ -133,6 +136,7 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
             self.db_path,
             request(mode="real"),
             adapter=adapter,
+            image_provider=FakeImageProvider(),
             asset_root=self.asset_root,
         )
         visual = visual_result_row(self, result.delivery_id)
@@ -152,6 +156,7 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
             self.db_path,
             request(mode="real"),
             adapter=adapter,
+            image_provider=FakeImageProvider(),
             asset_root=self.asset_root,
         )
         with self.assertRaises(QuizBankProblem) as repeat_error:
@@ -159,12 +164,34 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
                 self.db_path,
                 request(consumer_id="consumer_second", mode="real"),
                 adapter=adapter,
+                image_provider=FakeImageProvider(),
                 asset_root=self.asset_root,
             )
 
         self.assertEqual(first.status, "sent")
         self.assertEqual(repeat_error.exception.reason_code, "SELECTION_NO_ELIGIBLE_ITEM")
         self.assertEqual(adapter.events, ["photo", "poll"])
+
+    def test_real_visual_delivery_defaults_to_openai_environment_provider(self) -> None:
+        enable_visual(self, "consumer_visual")
+        adapter = FakeVisualTelegramAdapter()
+        provider = FakeImageProvider()
+
+        with patch(
+            "quizbank_mvp.visual_provider_openai.OpenAIImageProvider.from_environment",
+            return_value=provider,
+        ) as from_environment:
+            result = run_telegram_delivery(
+                self.db_path,
+                request(mode="real"),
+                adapter=adapter,
+                asset_root=self.asset_root,
+            )
+
+        self.assertEqual(result.status, "sent")
+        self.assertEqual(adapter.events, ["photo", "poll"])
+        self.assertEqual(len(provider.calls), 1)
+        from_environment.assert_called_once()
 
     def test_block_visual_delivery_policy_stops_telegram_poll_fallback(self) -> None:
         save_blocking_visual_settings(self, "consumer_visual")
