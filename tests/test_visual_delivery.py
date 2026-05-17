@@ -24,7 +24,7 @@ from quizbank_mvp.selection import QuizBankProblem, SelectionFilters, SelectionR
 from quizbank_mvp.visual_cache import compute_visual_cache_key  # noqa: E402
 from quizbank_mvp.visual_delivery import resolve_visual_delivery  # noqa: E402
 from quizbank_mvp.visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings  # noqa: E402
-from quizbank_mvp.visual_provider import FakeImageProvider  # noqa: E402
+from quizbank_mvp.visual_provider import FakeImageProvider, ImageGenerationError  # noqa: E402
 from quizbank_mvp.visual_settings import save_visual_settings  # noqa: E402
 
 
@@ -106,6 +106,23 @@ class VisualDeliveryTests(unittest.TestCase):
         self.assertEqual(resolution.state, "fallback_used")
         self.assertEqual(resolution.fallback_reason, "GENERATION_FAILED")
         self.assertEqual(usage_count(self, "fallback_used"), 1)
+
+    def test_provider_timeout_failure_falls_back_to_text_only(self) -> None:
+        enable_standard_visual(self)
+        grant_feature(self, "visual_delivery.standard")
+        grant_feature(self, "visual_generation.standard")
+
+        resolution = resolve_visual_delivery(
+            self.db_path,
+            self.delivery,
+            self.quiz_item,
+            "consumer_visual",
+            TimeoutImageProvider(),
+            self.asset_root,
+        )
+
+        self.assertEqual(resolution.state, "fallback_used")
+        self.assertEqual(resolution.fallback_reason, "GENERATION_FAILED")
 
     def test_qa_rejection_falls_back_to_text_only(self) -> None:
         enable_standard_visual(self)
@@ -321,6 +338,11 @@ def usage_count(case: VisualDeliveryTests, event_type: str) -> int:
             (event_type,),
         ).fetchone()
     return int(row["count"])
+
+
+class TimeoutImageProvider:
+    def generate(self, request) -> None:
+        raise ImageGenerationError("openai_image_request_failed:TimeoutError")
 
 
 if __name__ == "__main__":
