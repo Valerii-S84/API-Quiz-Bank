@@ -13,6 +13,13 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
+from .visual_database_metadata import (
+    ensure_visual_metadata_columns,
+    postgresql_visual_metadata_is_ready,
+    sqlite_visual_metadata_is_ready,
+)
+from .visual_asset_repository import insert_visual_asset_record
+
 
 ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS_DIRECTORY = ROOT / "database" / "migrations"
@@ -119,6 +126,7 @@ def initialize_database(db_path: Path | None = None):
     with connect(path) as connection:
         for migration_path in sorted(MIGRATIONS_DIRECTORY.glob("*.sql")):
             connection.executescript(migration_path.read_text(encoding="utf-8"))
+        ensure_visual_metadata_columns(connection)
     return path
 
 
@@ -132,11 +140,15 @@ def database_is_ready(db_path: Path | None = None) -> bool:
 def visual_database_is_ready(db_path: Path | None = None) -> bool:
     if db_path is None and configured_database_url():
         try:
-            return VISUAL_RUNTIME_TABLES.issubset(postgresql_table_names())
+            return VISUAL_RUNTIME_TABLES.issubset(postgresql_table_names()) and postgresql_visual_metadata_is_ready(connect)
         except Exception:
             return False
     path = (db_path or configured_db_path()).resolve()
-    return path.exists() and VISUAL_RUNTIME_TABLES.issubset(sqlite_table_names(path))
+    return (
+        path.exists()
+        and VISUAL_RUNTIME_TABLES.issubset(sqlite_table_names(path))
+        and sqlite_visual_metadata_is_ready(connect, path)
+    )
 
 
 def sqlite_table_names(path: Path) -> set[str]:
@@ -145,6 +157,8 @@ def sqlite_table_names(path: Path) -> set[str]:
             "SELECT name FROM sqlite_master WHERE type = 'table'"
         ).fetchall()
     return {row["name"] for row in rows}
+
+
 
 
 def initialize_postgresql_database() -> None:
@@ -189,6 +203,8 @@ def postgresql_table_names() -> set[str]:
             """
         ).fetchall()
     return {row["name"] for row in rows}
+
+
 
 
 def read_jsonl(path: Path) -> list[dict[str, str]]:
@@ -460,33 +476,7 @@ def upsert_consumer_visual_settings(
 
 
 def insert_visual_asset(db_path: Path | None, asset: dict[str, Any]) -> str:
-    asset_id = str(asset.get("asset_id") or new_id("vasset"))
-    now = utc_now()
-    values = {
-        **asset,
-        "asset_id": asset_id,
-        "created_at": asset.get("created_at", now),
-        "updated_at": asset.get("updated_at", now),
-        "provider_asset_ref": asset.get("provider_asset_ref"),
-    }
-    with connect(db_path) as connection:
-        connection.execute(
-            """
-            INSERT INTO visual_assets (
-                asset_id, quiz_item_id, consumer_id, delivery_mode, visual_style,
-                branding_preset, image_version, language, cache_key, image_path,
-                image_sha256, mime_type, width, height, qa_status, provider_name,
-                provider_model, provider_asset_ref, created_at, updated_at
-            ) VALUES (
-                :asset_id, :quiz_item_id, :consumer_id, :delivery_mode, :visual_style,
-                :branding_preset, :image_version, :language, :cache_key, :image_path,
-                :image_sha256, :mime_type, :width, :height, :qa_status, :provider_name,
-                :provider_model, :provider_asset_ref, :created_at, :updated_at
-            )
-            """,
-            values,
-        )
-    return asset_id
+    return insert_visual_asset_record(db_path, asset, connect, new_id, utc_now)
 
 
 def seed_demo_state(db_path: Path | None, fixture_path: Path) -> None:

@@ -57,6 +57,16 @@ class VisualDatabaseTests(unittest.TestCase):
 
         self.assertTrue(VISUAL_TABLES.issubset(table_names))
         self.assertTrue(visual_database_is_ready(self.db_path))
+        self.assertTrue(
+            {"visual_mode", "visual_target", "visual_context_hint", "visual_prompt_policy_version"}.issubset(
+                table_columns(self.db_path, "visual_assets")
+            )
+        )
+        self.assertTrue(
+            {"visual_mode", "visual_target", "visual_context_hint", "visual_prompt_policy_version"}.issubset(
+                table_columns(self.db_path, "visual_prompt_audit")
+            )
+        )
 
     def test_runtime_readiness_reports_visual_database_check(self) -> None:
         ready = TestClient(create_app(self.db_path)).get("/ready").json()
@@ -155,6 +165,8 @@ class VisualDatabaseTests(unittest.TestCase):
         self.assertEqual(row["consumer_id"], "consumer_visual")
         self.assertIn("consumer_visual", row["cache_key"])
         self.assertEqual(row["qa_status"], "approved")
+        self.assertEqual(row["visual_mode"], "target_object")
+        self.assertEqual(row["visual_target"], "unknown")
 
     def seed_delivery(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
@@ -222,6 +234,11 @@ class VisualDatabaseTests(unittest.TestCase):
             "provider_name": "fake",
             "provider_model": "fake-image-v1",
         }
+
+def table_columns(db_path: Path, table_name: str) -> set[str]:
+    with connect(db_path) as connection:
+        rows = connection.execute(f"PRAGMA table_info({table_name})").fetchall()
+    return {str(row["name"]) for row in rows}
 
 
 if __name__ == "__main__":

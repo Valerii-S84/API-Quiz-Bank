@@ -23,6 +23,9 @@ POSTGRESQL_QUOTA_PERIOD_SQL = (
 POSTGRESQL_IMAGE_QUALITY_SQL = (
     ROOT / "database" / "postgresql" / "009_add_image_quality_policy.sql"
 ).read_text(encoding="utf-8")
+POSTGRESQL_VISUAL_MODE_METADATA_SQL = (
+    ROOT / "database" / "postgresql" / "010_add_visual_mode_policy_metadata.sql"
+).read_text(encoding="utf-8")
 
 
 class PostgreSQLContractTests(unittest.TestCase):
@@ -130,8 +133,24 @@ class PostgreSQLContractTests(unittest.TestCase):
             "qa_status IN ('approved', 'rejected', 'fallback_used', 'needs_review')",
             "visual_status IN ('sent', 'skipped', 'failed', 'fallback_used')",
             "cache_key TEXT NOT NULL UNIQUE CHECK (cache_key <> '')",
+            "visual_mode IN (",
+            "visual_target TEXT NOT NULL DEFAULT 'unknown'",
+            "visual_prompt_policy_version TEXT NOT NULL DEFAULT 'unknown'",
         ]:
             self.assertIn(required_fragment, POSTGRESQL_VISUAL_DELIVERY_SQL)
+
+    def test_visual_mode_metadata_migration_adds_asset_and_audit_columns(self) -> None:
+        for required_fragment in [
+            "ALTER TABLE visual_assets",
+            "ALTER TABLE visual_prompt_audit",
+            "ADD COLUMN IF NOT EXISTS visual_mode",
+            "ADD COLUMN IF NOT EXISTS visual_target",
+            "ADD COLUMN IF NOT EXISTS visual_context_hint",
+            "ADD COLUMN IF NOT EXISTS visual_prompt_policy_version",
+            "'target_action'",
+            "'symbolic_abstract'",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_VISUAL_MODE_METADATA_SQL)
 
     def test_visual_usage_events_include_cost_and_generation_statuses(self) -> None:
         for required_fragment in [

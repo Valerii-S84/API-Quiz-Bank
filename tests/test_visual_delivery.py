@@ -91,6 +91,12 @@ class VisualDeliveryTests(unittest.TestCase):
         self.assertEqual(provider.calls[0].size, "1536x1024")
         self.assertEqual(provider.calls[0].quality, "low")
         self.assertEqual(prompt_audit_count(self), 1)
+        self.assertEqual(visual_asset_metadata(self, resolution.asset_id)["visual_mode"], "target_action")
+        self.assertEqual(prompt_audit_metadata(self)["visual_target"], "buchen")
+        self.assertEqual(
+            prompt_audit_metadata(self)["visual_prompt_policy_version"],
+            "visual_prompt_policy_v4_visual_modes",
+        )
         self.assertEqual(usage_count(self, "generation_succeeded"), 1)
         self.assertEqual(quota_used(self, "visual_delivery.standard", today_usage_date()), 1)
         self.assertEqual(quota_used(self, "visual_generation.standard", today_usage_date()), 1)
@@ -268,7 +274,7 @@ def cached_asset_payload(cache_key: str, image_path: Path) -> dict[str, object]:
         "delivery_mode": "image_standard",
         "visual_style": "standard_illustration",
         "branding_preset": "none",
-        "image_version": "v3_focused_target_extraction_object_only",
+        "image_version": "v4_visual_mode_policy",
         "language": "de",
         "cache_key": cache_key,
         "image_path": str(image_path),
@@ -358,6 +364,31 @@ def prompt_audit_count(case: VisualDeliveryTests) -> int:
     with connect(case.db_path) as connection:
         row = connection.execute("SELECT COUNT(*) AS count FROM visual_prompt_audit").fetchone()
     return int(row["count"])
+
+
+def prompt_audit_metadata(case: VisualDeliveryTests) -> dict[str, str]:
+    with connect(case.db_path) as connection:
+        row = connection.execute(
+            """
+            SELECT visual_mode, visual_target, visual_context_hint, visual_prompt_policy_version
+            FROM visual_prompt_audit
+            LIMIT 1
+            """
+        ).fetchone()
+    return row_to_dict(row)
+
+
+def visual_asset_metadata(case: VisualDeliveryTests, asset_id: str | None) -> dict[str, str]:
+    with connect(case.db_path) as connection:
+        row = connection.execute(
+            """
+            SELECT visual_mode, visual_target, visual_context_hint, visual_prompt_policy_version
+            FROM visual_assets
+            WHERE asset_id = ?
+            """,
+            (asset_id,),
+        ).fetchone()
+    return row_to_dict(row)
 
 
 def usage_count(case: VisualDeliveryTests, event_type: str) -> int:

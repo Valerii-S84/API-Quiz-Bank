@@ -13,7 +13,7 @@ from .visual_provider import ImageGenerationResult
 
 
 DEFAULT_ASSET_ROOT = ROOT / "var" / "visual-assets"
-VISUAL_IMAGE_VERSION = "v3_focused_target_extraction_object_only"
+VISUAL_IMAGE_VERSION = "v4_visual_mode_policy"
 
 
 @dataclass(frozen=True)
@@ -76,13 +76,26 @@ def store_visual_asset_candidate(
     cache_key: str,
     result: ImageGenerationResult,
     asset_root: Path = DEFAULT_ASSET_ROOT,
+    visual_metadata: dict[str, str] | None = None,
 ) -> VisualAssetRecord:
     asset_root.mkdir(parents=True, exist_ok=True)
     asset_id = new_id("vasset")
     image_path = resolve_asset_path(asset_root / f"{asset_id}.{extension_for(result.mime_type)}", asset_root)
     image_path.write_bytes(result.image_bytes)
     image_sha256 = compute_image_sha256(image_path)
-    insert_visual_asset(db_path, asset_payload(asset_id, quiz_item, settings, cache_key, result, image_path, image_sha256))
+    insert_visual_asset(
+        db_path,
+        asset_payload(
+            asset_id,
+            quiz_item,
+            settings,
+            cache_key,
+            result,
+            image_path,
+            image_sha256,
+            visual_metadata,
+        ),
+    )
     return VisualAssetRecord(
         asset_id=asset_id,
         cache_key=cache_key,
@@ -141,7 +154,9 @@ def asset_payload(
     result: ImageGenerationResult,
     image_path: Path,
     image_sha256: str,
+    visual_metadata: dict[str, str] | None = None,
 ) -> dict[str, Any]:
+    metadata = visual_metadata or {}
     return {
         "asset_id": asset_id,
         "quiz_item_id": quiz_item["item_id"],
@@ -161,6 +176,10 @@ def asset_payload(
         "provider_name": result.provider_name,
         "provider_model": result.provider_model,
         "provider_asset_ref": result.provider_response_id,
+        "visual_mode": metadata.get("visual_mode", "target_object"),
+        "visual_target": metadata.get("visual_target", "unknown"),
+        "visual_context_hint": metadata.get("visual_context_hint", ""),
+        "visual_prompt_policy_version": metadata.get("visual_prompt_policy_version", "unknown"),
     }
 
 
