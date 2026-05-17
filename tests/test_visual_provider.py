@@ -91,6 +91,28 @@ class VisualProviderTests(unittest.TestCase):
         self.assertEqual(result.mime_type, "image/webp")
         self.assertEqual((result.width, result.height), (512, 512))
 
+    def test_openai_provider_requests_base64_for_dalle_models(self) -> None:
+        provider = OpenAIImageProvider("test-key", "dall-e-3", True, urlopen=UrlopenSpy(openai_response()))
+
+        request = provider.http_request(ImageGenerationRequest(prompt="x", negative_prompt=""))
+        payload = json.loads(request.data.decode("utf-8"))
+
+        self.assertEqual(payload["response_format"], "b64_json")
+
+    def test_openai_provider_fetches_url_image_payloads(self) -> None:
+        urlopen = UrlopenSequence(
+            [
+                {"data": [{"url": "https://images.test/generated.png", "revised_prompt": "safe prompt"}]},
+                b"\x89PNG\r\n\x1a\nurl-image",
+            ]
+        )
+        provider = OpenAIImageProvider("test-key", "gpt-image-2", True, urlopen=urlopen)
+
+        result = provider.generate(ImageGenerationRequest(prompt="draw a classroom", negative_prompt=""))
+
+        self.assertEqual(result.image_bytes, b"\x89PNG\r\n\x1a\nurl-image")
+        self.assertEqual(urlopen.calls[1].full_url, "https://images.test/generated.png")
+
     def test_openai_provider_loads_secret_from_file_without_printing_it(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             key_file = Path(directory) / "openai.key"
@@ -146,10 +168,20 @@ class UrlopenSpy:
         return OpenAIStubResponse(self.body)
 
 
+class UrlopenSequence:
+    def __init__(self, bodies: list[dict[str, object] | bytes]) -> None:
+        self.bodies = list(bodies)
+        self.calls = []
+
+    def __call__(self, request, timeout: int) -> "OpenAIStubResponse":
+        self.calls.append(request)
+        return OpenAIStubResponse(self.bodies.pop(0))
+
+
 class OpenAIStubResponse:
     headers = {"x-request-id": "req_visual_test"}
 
-    def __init__(self, body: dict[str, object]) -> None:
+    def __init__(self, body: dict[str, object] | bytes) -> None:
         self.body = body
 
     def __enter__(self) -> "OpenAIStubResponse":
@@ -159,6 +191,8 @@ class OpenAIStubResponse:
         return None
 
     def read(self) -> bytes:
+        if isinstance(self.body, bytes):
+            return self.body
         return json.dumps(self.body).encode("utf-8")
 
 

@@ -126,7 +126,7 @@ def valid_asset_record(row: dict[str, Any], asset_root: Path) -> VisualAssetReco
 
 def resolve_asset_path(path: Path, asset_root: Path) -> Path:
     root = asset_root.resolve()
-    candidate = path if path.is_absolute() else (ROOT / path).resolve()
+    candidate = path if path.is_absolute() else (root / path).resolve()
     if not candidate.resolve().is_relative_to(root):
         raise ValueError("visual asset path must stay under asset root")
     return candidate.resolve()

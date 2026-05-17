@@ -63,6 +63,18 @@ class VisualCacheTests(unittest.TestCase):
         self.assertIsNotNone(asset)
         self.assertEqual(asset.cache_key, cache_key)
 
+    def test_relative_asset_path_is_resolved_from_asset_root(self) -> None:
+        cache_key = self.insert_asset(
+            "approved",
+            file_name="relative.png",
+            stored_image_path=Path("relative.png"),
+        )
+
+        asset = find_approved_asset(self.db_path, cache_key, self.asset_root)
+
+        self.assertIsNotNone(asset)
+        self.assertEqual(asset.image_path, (self.asset_root / "relative.png").resolve())
+
     def test_rejected_or_needs_review_asset_is_not_reused(self) -> None:
         rejected_key = self.insert_asset("rejected")
         review_key = self.insert_asset("needs_review", file_name="review.png")
@@ -89,6 +101,7 @@ class VisualCacheTests(unittest.TestCase):
         qa_status: str,
         file_name: str = "asset.png",
         image_path: Path | None = None,
+        stored_image_path: Path | None = None,
     ) -> str:
         path = image_path or self.asset_root / file_name
         path.write_bytes(b"\x89PNG\r\n\x1a\nasset")
@@ -104,7 +117,7 @@ class VisualCacheTests(unittest.TestCase):
                 "image_version": "v1",
                 "language": "de",
                 "cache_key": cache_key,
-                "image_path": str(path),
+                "image_path": str(stored_image_path or path),
                 "image_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                 "mime_type": "image/png",
                 "width": 1024,

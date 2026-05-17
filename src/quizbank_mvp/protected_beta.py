@@ -27,6 +27,8 @@ from .telegram_delivery import (
     run_telegram_delivery,
     send_existing_telegram_delivery,
 )
+from .visual_cache import DEFAULT_ASSET_ROOT
+from .visual_provider import ImageGenerationProvider
 
 
 @dataclass(frozen=True)
@@ -69,6 +71,13 @@ class ProtectedBetaTelegramChannel:
 
     def allowed_theme_ids(self) -> list[str]:
         return sorted({slot.theme_id for slot in self.schedule_slots})
+
+
+@dataclass(frozen=True)
+class ProtectedBetaDeliveryOptions:
+    occurrence: int = 1
+    image_provider: ImageGenerationProvider | None = None
+    asset_root: Path = DEFAULT_ASSET_ROOT
 
 
 DEUTSCH_IST_EINFACH_CHANNEL = ProtectedBetaTelegramChannel(
@@ -127,6 +136,7 @@ PROTECTED_BETA_TELEGRAM_CHANNELS = (
     DEUTSCH_IST_EINFACH_CHANNEL,
     CORE_DEUTSCH_IST_EINFACH_CHANNEL,
 )
+DEFAULT_PROTECTED_BETA_DELIVERY_OPTIONS = ProtectedBetaDeliveryOptions()
 
 
 def seed_protected_beta_channels(
@@ -209,6 +219,7 @@ def run_protected_beta_slot(
     slot: ProtectedBetaScheduleSlot,
     mode: str,
     adapter: TelegramAdapter | None = None,
+    delivery_options: ProtectedBetaDeliveryOptions = DEFAULT_PROTECTED_BETA_DELIVERY_OPTIONS,
 ) -> list[TelegramDeliveryResult]:
     results: list[TelegramDeliveryResult] = []
     excluded_item_ids: list[str] = []
@@ -224,6 +235,8 @@ def run_protected_beta_slot(
                 excluded_item_ids=tuple(excluded_item_ids),
             ),
             adapter=adapter,
+            image_provider=delivery_options.image_provider,
+            asset_root=delivery_options.asset_root,
         )
         results.append(result)
         excluded_item_ids.append(result.quiz_item_id)
@@ -237,6 +250,7 @@ def run_protected_beta_batch(
     mode: str,
     adapter: TelegramAdapter | None = None,
     now: datetime | None = None,
+    delivery_options: ProtectedBetaDeliveryOptions = DEFAULT_PROTECTED_BETA_DELIVERY_OPTIONS,
 ) -> list[TelegramDeliveryResult]:
     delivery_date = delivery_date_for_channel(channel, now)
     results: list[TelegramDeliveryResult] = []
@@ -250,7 +264,7 @@ def run_protected_beta_batch(
                     mode,
                     adapter,
                     delivery_date,
-                    occurrence=index + 1,
+                    delivery_options_for_occurrence(delivery_options, index + 1),
                 )
             )
     return results
@@ -263,11 +277,11 @@ def run_scheduled_protected_beta_slot(
     mode: str,
     adapter: TelegramAdapter | None,
     delivery_date: str,
-    occurrence: int = 1,
+    delivery_options: ProtectedBetaDeliveryOptions = DEFAULT_PROTECTED_BETA_DELIVERY_OPTIONS,
 ) -> TelegramDeliveryResult:
     slot_id = slot.stable_slot_id(channel.consumer_id)
     if slot.quiz_count > 1:
-        slot_id = f"{slot_id}:{occurrence}"
+        slot_id = f"{slot_id}:{delivery_options.occurrence}"
     request = TelegramDeliveryRequest(
         consumer_id=channel.consumer_id,
         chat_id=channel.chat_id,
@@ -284,11 +298,19 @@ def run_scheduled_protected_beta_slot(
             str(slot_run["delivery_id"]),
             request,
             adapter=adapter,
+            image_provider=delivery_options.image_provider,
+            asset_root=delivery_options.asset_root,
         )
         update_slot_run_result(db_path, slot_run["slot_run_id"], result)
         return result
     try:
-        result = run_telegram_delivery(db_path, request, adapter=adapter)
+        result = run_telegram_delivery(
+            db_path,
+            request,
+            adapter=adapter,
+            image_provider=delivery_options.image_provider,
+            asset_root=delivery_options.asset_root,
+        )
     except QuizBankProblem as error:
         if error.reason_code != "SELECTION_NO_ELIGIBLE_ITEM":
             raise
@@ -304,6 +326,17 @@ def run_scheduled_protected_beta_slot(
         )
     update_slot_run_result(db_path, slot_run["slot_run_id"], result)
     return result
+
+
+def delivery_options_for_occurrence(
+    delivery_options: ProtectedBetaDeliveryOptions,
+    occurrence: int,
+) -> ProtectedBetaDeliveryOptions:
+    return ProtectedBetaDeliveryOptions(
+        occurrence=occurrence,
+        image_provider=delivery_options.image_provider,
+        asset_root=delivery_options.asset_root,
+    )
 
 
 def delivery_date_for_channel(

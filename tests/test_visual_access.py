@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 import sys
 import tempfile
+import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -129,6 +131,20 @@ class VisualAccessTests(unittest.TestCase):
         self.assertTrue(second.is_allowed)
         self.assertEqual(self.quota_used("visual_delivery.standard", "2026-05-17"), 2)
 
+    def test_concurrent_visual_delivery_quota_reservation_allows_one_unit(self) -> None:
+        settings = self.settings(VisualDeliveryMode.IMAGE_STANDARD, daily_visual_delivery_limit=1)
+        start = threading.Barrier(2)
+
+        def reserve_one():
+            start.wait()
+            return reserve_visual_delivery_quota(self.db_path, settings, "2026-05-17")
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            decisions = list(executor.map(lambda _index: reserve_one(), range(2)))
+
+        self.assertEqual(sum(decision.is_allowed for decision in decisions), 1)
+        self.assertEqual(self.quota_used("visual_delivery.standard", "2026-05-17"), 1)
+
     def test_visual_generation_quota_reservation_updates_daily_and_monthly_usage(self) -> None:
         settings = self.settings(VisualDeliveryMode.IMAGE_STANDARD)
 
@@ -143,6 +159,7 @@ class VisualAccessTests(unittest.TestCase):
         mode: VisualDeliveryMode,
         active: bool = True,
         fallback_policy: VisualFallbackPolicy = VisualFallbackPolicy.TEXT_ONLY,
+        daily_visual_delivery_limit: int = 3,
     ) -> VisualSettings:
         return VisualSettings(
             consumer_id="consumer_visual",
@@ -150,7 +167,7 @@ class VisualAccessTests(unittest.TestCase):
             visual_style="standard_illustration",
             branding_preset="none",
             fallback_policy=fallback_policy,
-            daily_visual_delivery_limit=3,
+            daily_visual_delivery_limit=daily_visual_delivery_limit,
             daily_generation_limit=2,
             monthly_generation_limit=10,
             is_active=active,

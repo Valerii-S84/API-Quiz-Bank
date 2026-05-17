@@ -7,6 +7,7 @@ import binascii
 import json
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -88,6 +89,8 @@ class OpenAIImageProvider:
             "quality": validated_image_quality(request.quality),
             "output_format": request.output_format,
         }
+        if supports_response_format(self.model):
+            payload["response_format"] = "b64_json"
         return urllib.request.Request(
             self.endpoint,
             data=json.dumps(payload).encode("utf-8"),
@@ -106,7 +109,7 @@ class OpenAIImageProvider:
     ) -> ImageGenerationResult:
         try:
             image = body["data"][0]
-            image_bytes = base64.b64decode(str(image["b64_json"]), validate=True)
+            image_bytes = self.image_bytes_from_payload(image)
             width, height = parse_size(str(body.get("size") or request.size))
         except (KeyError, IndexError, TypeError, ValueError, binascii.Error) as error:
             raise ImageGenerationError("openai_image_payload_missing_b64") from error
@@ -122,6 +125,47 @@ class OpenAIImageProvider:
             height=height,
             usage=dict(body.get("usage") or {}),
         )
+
+    def image_bytes_from_payload(self, image: dict[str, Any]) -> bytes:
+        if not isinstance(image, dict):
+            raise TypeError("image payload must be an object")
+        if image.get("b64_json"):
+            return base64.b64decode(str(image["b64_json"]), validate=True)
+        if image.get("url"):
+            return self.fetch_image_url(str(image["url"]))
+        raise KeyError("b64_json")
+
+    def fetch_image_url(self, image_url: str) -> bytes:
+        parsed = urllib.parse.urlparse(image_url)
+        if parsed.scheme != "https" or not parsed.netloc:
+            raise ImageGenerationError("openai_image_url_invalid")
+        try:
+            with self._urlopen(urllib.request.Request(image_url), timeout=self.timeout_seconds) as response:
+                image_bytes = response.read()
+        except urllib.error.HTTPError as error:
+            raise ImageGenerationError(f"openai_image_url_http_error:{error.code}") from error
+        except urllib.error.URLError as error:
+            raise ImageGenerationError(f"openai_image_url_request_failed:{type(error.reason).__name__}") from error
+        if not image_bytes:
+            raise ImageGenerationError("openai_image_url_empty")
+        return image_bytes
+
+
+class OpenAIEnvironmentImageProvider:
+    def __init__(
+        self,
+        environ: Mapping[str, str] | None = None,
+        urlopen: Callable[..., Any] | None = None,
+    ) -> None:
+        self._environ = environ
+        self._urlopen = urlopen
+
+    def generate(self, request: ImageGenerationRequest) -> ImageGenerationResult:
+        try:
+            provider = OpenAIImageProvider.from_environment(True, self._environ, self._urlopen)
+        except OpenAIProviderConfigurationError as error:
+            raise ImageGenerationError("openai_image_provider_unconfigured") from error
+        return provider.generate(request)
 
 
 def openai_api_key_from_environment(env: Mapping[str, str]) -> str:
@@ -150,6 +194,10 @@ def validated_image_quality(quality: str) -> str:
     if quality not in OPENAI_IMAGE_QUALITY_VALUES:
         raise ImageGenerationError("openai_image_quality_invalid")
     return quality
+
+
+def supports_response_format(model: str) -> bool:
+    return model.startswith("dall-e-")
 
 
 def parse_size(size: str) -> tuple[int, int]:

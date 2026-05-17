@@ -102,9 +102,6 @@ def reserve_visual_delivery_quota(
         return quota_allowed("visual_delivery.none", 0, 0, usage_date or today_usage_date())
     day_key = usage_date or today_usage_date()
     feature = visual_delivery_feature(settings.delivery_mode)
-    allowed = check_quota(db_path, settings.consumer_id, feature, day_key, settings.daily_visual_delivery_limit)
-    if not allowed.is_allowed:
-        return allowed
     return increment_quota_usage(db_path, settings.consumer_id, feature, day_key, settings.daily_visual_delivery_limit)
 
 
@@ -124,8 +121,26 @@ def reserve_visual_generation_quota(
     monthly = check_quota(db_path, settings.consumer_id, feature, month_key, settings.monthly_generation_limit)
     if not monthly.is_allowed:
         return monthly
-    increment_quota_usage(db_path, settings.consumer_id, feature, day_key, settings.daily_generation_limit)
-    return increment_quota_usage(db_path, settings.consumer_id, feature, month_key, settings.monthly_generation_limit)
+    with connect(db_path) as connection:
+        daily_reservation = increment_quota_usage_on_connection(
+            connection,
+            settings.consumer_id,
+            feature,
+            day_key,
+            settings.daily_generation_limit,
+        )
+        if not daily_reservation.is_allowed:
+            return daily_reservation
+        monthly_reservation = increment_quota_usage_on_connection(
+            connection,
+            settings.consumer_id,
+            feature,
+            month_key,
+            settings.monthly_generation_limit,
+        )
+        if not monthly_reservation.is_allowed:
+            connection.rollback()
+        return monthly_reservation
 
 
 def has_active_entitlement(db_path: Path | None, consumer_id: str, feature: str) -> bool:
@@ -172,13 +187,22 @@ def load_quota_used_count(
     period_key: str,
 ) -> int:
     with connect(db_path) as connection:
-        row = connection.execute(
-            """
-            SELECT used_count FROM quota_usage
-            WHERE consumer_id = ? AND feature = ? AND usage_date = ?
-            """,
-            (consumer_id, feature, period_key),
-        ).fetchone()
+        return load_quota_used_count_on_connection(connection, consumer_id, feature, period_key)
+
+
+def load_quota_used_count_on_connection(
+    connection,
+    consumer_id: str,
+    feature: str,
+    period_key: str,
+) -> int:
+    row = connection.execute(
+        """
+        SELECT used_count FROM quota_usage
+        WHERE consumer_id = ? AND feature = ? AND usage_date = ?
+        """,
+        (consumer_id, feature, period_key),
+    ).fetchone()
     return 0 if row is None else int(row["used_count"])
 
 
@@ -189,33 +213,45 @@ def increment_quota_usage(
     period_key: str,
     quota_limit: int,
 ) -> VisualQuotaDecision:
-    used_count = load_quota_used_count(db_path, consumer_id, feature, period_key)
-    if used_count >= quota_limit:
-        return VisualQuotaDecision(False, feature, used_count, quota_limit, period_key, "VISUAL_QUOTA_EXHAUSTED")
-    next_used_count = used_count + 1
     with connect(db_path) as connection:
-        connection.execute(
-            """
-            INSERT INTO quota_usage (
-                quota_usage_id, consumer_id, feature, usage_date, used_count,
-                quota_limit, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(consumer_id, feature, usage_date) DO UPDATE SET
-                used_count = excluded.used_count,
-                quota_limit = excluded.quota_limit,
-                updated_at = excluded.updated_at
-            """,
-            (
-                new_id("quota"),
-                consumer_id,
-                feature,
-                period_key,
-                next_used_count,
-                quota_limit,
-                utc_now(),
-            ),
-        )
-    return quota_allowed(feature, next_used_count, quota_limit, period_key)
+        return increment_quota_usage_on_connection(connection, consumer_id, feature, period_key, quota_limit)
+
+
+def increment_quota_usage_on_connection(
+    connection,
+    consumer_id: str,
+    feature: str,
+    period_key: str,
+    quota_limit: int,
+) -> VisualQuotaDecision:
+    if quota_limit <= 0:
+        used_count = load_quota_used_count_on_connection(connection, consumer_id, feature, period_key)
+        return VisualQuotaDecision(False, feature, used_count, quota_limit, period_key, "VISUAL_QUOTA_EXHAUSTED")
+    cursor = connection.execute(
+        """
+        INSERT INTO quota_usage (
+            quota_usage_id, consumer_id, feature, usage_date, used_count,
+            quota_limit, updated_at
+        ) VALUES (?, ?, ?, ?, 1, ?, ?)
+        ON CONFLICT(consumer_id, feature, usage_date) DO UPDATE SET
+            used_count = quota_usage.used_count + 1,
+            quota_limit = excluded.quota_limit,
+            updated_at = excluded.updated_at
+        WHERE quota_usage.used_count < excluded.quota_limit
+        """,
+        (
+            new_id("quota"),
+            consumer_id,
+            feature,
+            period_key,
+            quota_limit,
+            utc_now(),
+        ),
+    )
+    used_count = load_quota_used_count_on_connection(connection, consumer_id, feature, period_key)
+    if cursor.rowcount == 0:
+        return VisualQuotaDecision(False, feature, used_count, quota_limit, period_key, "VISUAL_QUOTA_EXHAUSTED")
+    return quota_allowed(feature, used_count, quota_limit, period_key)
 
 
 def visual_delivery_feature(mode: VisualDeliveryMode) -> str:
