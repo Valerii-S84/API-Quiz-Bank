@@ -20,6 +20,7 @@ class ImageGenerationError(RuntimeError):
 
 
 DEFAULT_IMAGE_GENERATION_SIZE = "1536x1024"
+DEFAULT_IMAGE_GENERATION_QUALITY = "medium"
 
 
 @dataclass(frozen=True)
@@ -27,7 +28,7 @@ class ImageGenerationRequest:
     prompt: str
     negative_prompt: str
     size: str = DEFAULT_IMAGE_GENERATION_SIZE
-    quality: str = "auto"
+    quality: str = DEFAULT_IMAGE_GENERATION_QUALITY
     output_format: str = "png"
     style_context: str = ""
     idempotency_key: str = ""
