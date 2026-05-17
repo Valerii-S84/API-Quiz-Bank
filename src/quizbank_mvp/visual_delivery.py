@@ -21,6 +21,7 @@ from .visual_cache import (
     mark_visual_asset_qa_status,
     store_visual_asset_candidate,
 )
+from .visual_image_transform import normalize_visual_image
 from .visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings
 from .visual_prompt_builder import VisualPrompt, build_visual_prompt
 from .visual_provider import (
@@ -107,12 +108,17 @@ def qa_store_and_resolve(
     prompt: VisualPrompt,
     result: ImageGenerationResult,
 ) -> VisualDeliveryResolution:
+    feature = f"visual_generation.{settings.delivery_mode.value.removeprefix('image_')}"
+    try:
+        result = normalize_visual_image(result)
+    except ImageGenerationError:
+        record_usage(db_path, delivery, settings.consumer_id, None, "generation_failed", feature)
+        return fallback_with_usage(db_path, delivery, settings, "IMAGE_POSTPROCESS_FAILED", feature)
     qa_decision = evaluate_visual_qa(prompt, result, quiz_item, settings)
     asset = store_after_basic_validation(db_path, quiz_item, settings, cache_key, result, asset_root)
     if asset is not None:
         insert_prompt_audit(db_path, asset, quiz_item, settings, prompt, result)
         mark_visual_asset_qa_status(db_path, asset.asset_id, qa_decision.qa_status)
-    feature = f"visual_generation.{settings.delivery_mode.value.removeprefix('image_')}"
     if qa_decision.qa_status == "approved" and asset is not None:
         record_usage(db_path, delivery, settings.consumer_id, asset, "generation_succeeded", feature)
         record_usage(db_path, delivery, settings.consumer_id, asset, "qa_approved", feature)

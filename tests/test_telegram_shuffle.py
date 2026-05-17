@@ -94,7 +94,7 @@ class TelegramShuffleTests(unittest.TestCase):
         correct_id = payload["correct_option_ids"][0]
         self.assertNotEqual(correct_id, 0)
         self.assertEqual(payload["options"][correct_id], "buchen")
-        self.assertEqual(telegram_api_payload(payload)["correct_option_id"], correct_id)
+        self.assertEqual(telegram_api_payload(payload)["correct_option_ids"], [correct_id])
 
     def test_non_first_source_answer_still_keeps_correct_mapping(self) -> None:
         options = ["falsch 1", "richtig", "falsch 2", "falsch 3"]

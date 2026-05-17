@@ -199,8 +199,8 @@ class MvpCoverageBranchTests(unittest.TestCase):
         for correct_ids in ([], [1, 1], [-1], [2]):
             with self.assertRaises(TelegramDeliveryError):
                 validate_correct_option_ids(list(correct_ids), 2)
-        with self.assertRaisesRegex(TelegramDeliveryError, "requires_single"):
-            telegram_api_payload({**self.telegram_payload(), "correct_option_ids": [0, 1]})
+        api_payload = telegram_api_payload({**self.telegram_payload(), "correct_option_ids": [0, 1]})
+        self.assertEqual(api_payload["correct_option_ids"], [0, 1])
         self.assertEqual(poll_id_from_result({}), None)
         self.assertEqual(poll_id_from_result({"poll": {}}), None)
         self.assertEqual(redact_telegram_target("1234"), "***")

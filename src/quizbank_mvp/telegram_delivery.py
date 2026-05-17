@@ -40,9 +40,6 @@ class TelegramAdapter(Protocol):
     def send_quiz_poll(self, payload: dict[str, Any]) -> "TelegramSendResult":
         """Send a validated Telegram quiz poll payload."""
 
-    def send_photo(self, payload: dict[str, Any]) -> "TelegramImageSendResult":
-        """Send a Telegram photo payload."""
-
 
 @dataclass(frozen=True)
 class TelegramDeliveryRequest:
@@ -147,9 +144,8 @@ def send_loaded_telegram_delivery(
         )
         record_telegram_result(db_path, result)
         return result
-    visual_result = handle_visual_telegram_send(request, item, visual_resolution, adapter)
     try:
-        payload = build_telegram_poll_payload(request.chat_id, item)
+        payload = build_telegram_poll_payload(request.chat_id, item, visual_resolution)
         result = handle_telegram_send(request.mode, payload, adapter)
     except TelegramDeliveryError as error:
         result = TelegramDeliveryResult(
@@ -161,6 +157,7 @@ def send_loaded_telegram_delivery(
             telegram_target_ref=redact_telegram_target(request.chat_id),
             failure_reason=str(error),
         )
+    visual_result = visual_result_from_poll_delivery(request.mode, visual_resolution, result)
     visual_result = visual_result_after_poll(visual_result, result)
     record_visual_result(db_path, delivery_id, request.consumer_id, visual_resolution, visual_result)
     record_telegram_result(db_path, result)
@@ -234,27 +231,24 @@ def handle_telegram_send(
     )
 
 
-def handle_visual_telegram_send(
-    request: TelegramDeliveryRequest,
-    item: dict[str, Any],
+def visual_result_from_poll_delivery(
+    mode: str,
     resolution: VisualDeliveryResolution,
-    adapter: TelegramAdapter | None,
+    poll_result: TelegramDeliveryResult,
 ) -> VisualTelegramResult | None:
     if resolution.requested_mode == VisualDeliveryMode.TEXT_ONLY:
         return None
     if not resolution.asset_id or not resolution.image_path:
         return VisualTelegramResult("fallback_used", True, resolution.fallback_reason)
-    payload = build_telegram_image_payload(request.chat_id, item, resolution)
-    try:
-        return send_visual_image(request.mode, payload, adapter)
-    except TelegramDeliveryError as error:
-        return VisualTelegramResult("failed", True, f"image_send_failed:{error}")
+    if mode == "dry_run":
+        return VisualTelegramResult("skipped", False, "dry_run_no_bot_api_call")
+    return VisualTelegramResult("sent", False, telegram_image_message_id=poll_result.telegram_message_id)
 
 
 def send_visual_image(
     mode: str,
     payload: dict[str, Any],
-    adapter: TelegramAdapter | None,
+    adapter: Any,
 ) -> VisualTelegramResult:
     if mode == "dry_run":
         return VisualTelegramResult("skipped", False, "dry_run_no_bot_api_call")
@@ -290,7 +284,11 @@ def visual_result_after_poll(
     visual_result: VisualTelegramResult | None,
     poll_result: TelegramDeliveryResult,
 ) -> VisualTelegramResult | None:
-    if visual_result is None or poll_result.status != "failed":
+    if visual_result is None:
+        return None
+    if poll_result.status == "skipped":
+        return VisualTelegramResult("skipped", False, poll_result.failure_reason)
+    if poll_result.status != "failed":
         return visual_result
     return VisualTelegramResult(
         "failed",
@@ -334,7 +332,11 @@ def load_delivery_item(
     return row_to_dict(row)
 
 
-def build_telegram_poll_payload(chat_id: str, item: dict[str, Any]) -> dict[str, Any]:
+def build_telegram_poll_payload(
+    chat_id: str,
+    item: dict[str, Any],
+    visual_resolution: VisualDeliveryResolution | None = None,
+) -> dict[str, Any]:
     telegram_quiz = build_telegram_quiz_projection(item)
     question = str(telegram_quiz["question"])
     options, correct_option_ids = shuffled_telegram_options(
@@ -344,7 +346,7 @@ def build_telegram_poll_payload(chat_id: str, item: dict[str, Any]) -> dict[str,
     )
     explanation = build_explanation(item)
     validate_telegram_poll(question, options, correct_option_ids, explanation)
-    return {
+    payload = {
         "delivery_id": item["delivery_id"],
         "consumer_id": item["consumer_id"],
         "quiz_item_id": item["item_id"],
@@ -356,6 +358,21 @@ def build_telegram_poll_payload(chat_id: str, item: dict[str, Any]) -> dict[str,
         "explanation": explanation,
         "is_anonymous": True,
     }
+    attach_visual_poll_media(payload, visual_resolution)
+    return payload
+
+
+def attach_visual_poll_media(
+    payload: dict[str, Any],
+    visual_resolution: VisualDeliveryResolution | None,
+) -> None:
+    if visual_resolution is None:
+        return
+    if visual_resolution.requested_mode == VisualDeliveryMode.TEXT_ONLY:
+        return
+    if not visual_resolution.asset_id or not visual_resolution.image_path:
+        return
+    payload["poll_media_path"] = visual_resolution.image_path
 
 
 def build_explanation(item: dict[str, Any]) -> str:

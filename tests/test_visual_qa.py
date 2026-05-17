@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import replace
 import sys
 import unittest
 from pathlib import Path
@@ -10,16 +9,15 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from quizbank_mvp.visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings
 from quizbank_mvp.visual_prompt_builder import build_visual_prompt
-from quizbank_mvp.visual_provider import FakeImageProvider, ImageGenerationRequest, ImageGenerationResult
+from quizbank_mvp.visual_provider import ImageGenerationResult
 from quizbank_mvp.visual_qa import evaluate_visual_qa
 
 
 class VisualQATests(unittest.TestCase):
     def test_approved_image_passes_deterministic_checks(self) -> None:
         prompt = build_visual_prompt(self.quiz_item(pattern_id="vocab_noun"), self.settings())
-        result = FakeImageProvider().generate(ImageGenerationRequest(prompt.generated_prompt, ""))
 
-        decision = evaluate_visual_qa(prompt, result, self.quiz_item(pattern_id="vocab_noun"), self.settings())
+        decision = evaluate_visual_qa(prompt, self.result(), self.quiz_item(pattern_id="vocab_noun"), self.settings())
 
         self.assertEqual(decision.qa_status, "approved")
         self.assertEqual(decision.reason_code, "QA_APPROVED")
@@ -41,40 +39,37 @@ class VisualQATests(unittest.TestCase):
 
         self.assertEqual(decision.reason_code, "UNSUPPORTED_MIME_TYPE")
 
-    def test_prompt_with_forbidden_exact_answer_text_is_rejected(self) -> None:
+    def test_answer_grounded_prompt_is_allowed_when_image_has_no_text_surface(self) -> None:
         item = self.quiz_item(pattern_id="grammar_gap", stem_text="Ich muss ___.")
         prompt = build_visual_prompt(item, self.settings())
-        leaking_prompt = replace(prompt, generated_prompt=f"{prompt.generated_prompt} buchen")
 
-        decision = evaluate_visual_qa(leaking_prompt, self.result(), item, self.settings())
+        decision = evaluate_visual_qa(prompt, self.result(), item, self.settings())
 
-        self.assertEqual(decision.reason_code, "ANSWER_LEAK_RISK")
+        self.assertEqual(decision.reason_code, "QA_APPROVED")
 
-    def test_revised_prompt_with_forbidden_option_text_is_rejected(self) -> None:
-        item = self.quiz_item(pattern_id="grammar_gap", stem_text="Ich muss ___.")
-        prompt = build_visual_prompt(item, self.settings())
-        result = self.result(revised_prompt="A person will buchen an appointment.")
+    def test_non_16x9_image_is_rejected(self) -> None:
+        prompt = build_visual_prompt(self.quiz_item(), self.settings())
 
-        decision = evaluate_visual_qa(prompt, result, item, self.settings())
+        decision = evaluate_visual_qa(prompt, self.result(width=1024, height=1024), self.quiz_item(), self.settings())
 
-        self.assertEqual(decision.reason_code, "ANSWER_LEAK_RISK")
+        self.assertEqual(decision.reason_code, "IMAGE_ASPECT_RATIO_INVALID")
 
-    def test_uncertain_visualization_becomes_needs_review(self) -> None:
+    def test_resolved_scene_visualization_is_approved(self) -> None:
         item = self.quiz_item(pattern_id="dialogue", prompt="Respond to this situation")
         prompt = build_visual_prompt(item, self.settings())
 
         decision = evaluate_visual_qa(prompt, self.result(), item, self.settings())
 
-        self.assertEqual(decision.qa_status, "needs_review")
-        self.assertEqual(decision.reason_code, "UNCERTAIN_VISUALIZATION")
+        self.assertEqual(decision.qa_status, "approved")
+        self.assertEqual(decision.reason_code, "QA_APPROVED")
 
-    def test_fallback_reason_is_machine_readable(self) -> None:
+    def test_abstract_item_is_approved_after_answer_grounded_prompting(self) -> None:
         prompt = build_visual_prompt(self.quiz_item(pattern_id="abstract_reasoning"), self.settings())
 
         decision = evaluate_visual_qa(prompt, self.result(), self.quiz_item(), self.settings())
 
-        self.assertEqual(decision.qa_status, "needs_review")
-        self.assertTrue(decision.reason_code.isupper())
+        self.assertEqual(decision.qa_status, "approved")
+        self.assertEqual(decision.reason_code, "QA_APPROVED")
 
     def settings(self) -> VisualSettings:
         return VisualSettings(
@@ -115,8 +110,8 @@ class VisualQATests(unittest.TestCase):
             "revised_prompt": "",
             "image_bytes": b"\x89PNG\r\n\x1a\nfake",
             "mime_type": "image/png",
-            "width": 1024,
-            "height": 1024,
+            "width": 1536,
+            "height": 864,
             "usage": {},
         }
         values.update(overrides)

@@ -13,6 +13,7 @@ from .visual_provider import ImageGenerationResult
 
 
 DEFAULT_ASSET_ROOT = ROOT / "var" / "visual-assets"
+VISUAL_IMAGE_VERSION = "v2_16x9"
 
 
 @dataclass(frozen=True)
@@ -32,7 +33,7 @@ class VisualAssetRecord:
 def compute_visual_cache_key(
     quiz_item: dict[str, Any],
     settings: VisualSettings,
-    image_version: str = "v1",
+    image_version: str = VISUAL_IMAGE_VERSION,
 ) -> str:
     language = str(quiz_item.get("language", "de"))
     scope = "global"
@@ -148,7 +149,7 @@ def asset_payload(
         "delivery_mode": settings.delivery_mode.value,
         "visual_style": settings.visual_style,
         "branding_preset": settings.branding_preset,
-        "image_version": "v1",
+        "image_version": VISUAL_IMAGE_VERSION,
         "language": quiz_item.get("language", "de"),
         "cache_key": cache_key,
         "image_path": str(image_path),
