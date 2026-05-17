@@ -403,6 +403,8 @@ def find_eligible_item(
         """
         SELECT qi.*, s.source_type AS resolved_source_type,
                s.provenance_note AS resolved_provenance_note,
+               iq.theme_group, iq.image_quality_recommended,
+               iq.image_quality_source, iq.image_quality_policy_share, iq.image_quality_override,
                (
                    SELECT COUNT(*)
                    FROM deliveries d_all
@@ -422,6 +424,7 @@ def find_eligible_item(
                ) AS cell_delivery_count
         FROM quiz_items qi
         JOIN sources s ON s.source_id = qi.source_id
+        LEFT JOIN quiz_item_image_quality_policy iq ON iq.item_id = qi.item_id
         WHERE qi.status IN (?, ?)
           AND qi.source_id <> ''
           AND s.source_type <> ''

@@ -27,6 +27,12 @@ from quizbank_mvp.database import (  # noqa: E402
     upsert_quiz_item,
     utc_now,
 )
+from quizbank_mvp.image_quality_policy import (  # noqa: E402
+    DEFAULT_THEME_GROUP_CONFIG_PATH,
+    enriched_image_quality_fields,
+    load_theme_groups,
+    validate_theme_group_coverage,
+)
 
 
 DEFAULT_REPORT_PATH = Path("reports/deploy/production_corpus_runtime_import_2026-05-12.json")
@@ -70,9 +76,10 @@ def parse_options(raw_options: str) -> list[object]:
     return parsed
 
 
-def runtime_item(row: dict[str, str]) -> dict[str, str]:
+def runtime_item(row: dict[str, str], theme_groups: dict[str, str]) -> dict[str, object]:
     item = dict(row)
     item["options"] = json.dumps(parse_options(row["options"]), ensure_ascii=False)
+    item.update(enriched_image_quality_fields(row, theme_groups))
     return item
 
 
@@ -84,6 +91,11 @@ def validate_inventory(inventory, expected_rows: int, expected_sources: int) -> 
         raise RuntimeImportError(f"unexpected_active_sources:{len(inventory.active_sources)}")
     if status_counts.get("published", 0) != expected_rows:
         raise RuntimeImportError(f"unexpected_status_counts:{dict(status_counts)}")
+
+
+def validate_image_quality_config(inventory, theme_groups: dict[str, str]) -> None:
+    theme_ids = {row.get("theme_id", "").strip() for row in inventory.rows}
+    validate_theme_group_coverage(theme_ids, theme_groups)
 
 
 def scalar_count(db_path: Path | None, sql: str) -> int:
@@ -119,6 +131,8 @@ def create_temp_id_tables(connection, item_ids: list[str], source_ids: list[str]
 
 def import_sources_and_items(connection, inventory, now: str) -> None:
     source_ids_by_filename = {source.filename: source.source_id for source in inventory.active_sources}
+    load_theme_groups.cache_clear()
+    theme_groups = load_theme_groups(DEFAULT_THEME_GROUP_CONFIG_PATH)
     for source in inventory.active_sources:
         connection.execute(
             """
@@ -142,7 +156,7 @@ def import_sources_and_items(connection, inventory, now: str) -> None:
     for filename, rows in inventory.rows_by_file.items():
         source_id = source_ids_by_filename[filename]
         for row in rows:
-            upsert_quiz_item(connection, runtime_item(row), row["status"], source_id)
+            upsert_quiz_item(connection, runtime_item(row, theme_groups), row["status"], source_id)
 
 
 def retire_non_corpus_rows(connection, now: str) -> None:
@@ -219,6 +233,26 @@ def database_counts(db_path: Path | None) -> dict[str, Any]:
             "SELECT COUNT(*) AS count FROM sources WHERE status = 'inactive'",
         ),
         "status_counts": status_counts(db_path),
+        "image_quality_policy_rows": scalar_count(
+            db_path,
+            "SELECT COUNT(*) AS count FROM quiz_item_image_quality_policy",
+        ),
+        "image_quality_low_items": scalar_count(
+            db_path,
+            """
+            SELECT COUNT(*) AS count
+            FROM quiz_item_image_quality_policy
+            WHERE image_quality_recommended = 'low'
+            """,
+        ),
+        "image_quality_medium_items": scalar_count(
+            db_path,
+            """
+            SELECT COUNT(*) AS count
+            FROM quiz_item_image_quality_policy
+            WHERE image_quality_recommended = 'medium'
+            """,
+        ),
     }
 
 
@@ -231,6 +265,10 @@ def validate_database_counts(
         raise RuntimeImportError(f"unexpected_published_items:{counts['published_items']}")
     if counts["active_sources"] != expected_active_sources:
         raise RuntimeImportError(f"unexpected_active_sources:{counts['active_sources']}")
+    if counts["image_quality_policy_rows"] != expected_published_items:
+        raise RuntimeImportError(
+            f"unexpected_image_quality_policy_rows:{counts['image_quality_policy_rows']}"
+        )
 
 
 def write_report(path: Path, report: dict[str, Any]) -> None:
@@ -243,7 +281,10 @@ def write_report(path: Path, report: dict[str, Any]) -> None:
 
 def run_import(args: argparse.Namespace) -> dict[str, Any]:
     inventory = load_inventory(args.quizbank_dir)
+    load_theme_groups.cache_clear()
+    theme_groups = load_theme_groups(DEFAULT_THEME_GROUP_CONFIG_PATH)
     validate_inventory(inventory, args.expected_published_items, args.expected_active_sources)
+    validate_image_quality_config(inventory, theme_groups)
     before_counts = database_counts(args.db_path) if database_exists(args.db_path) else {}
     if args.dry_run:
         after_counts = before_counts

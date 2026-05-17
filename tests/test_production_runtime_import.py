@@ -35,6 +35,12 @@ class ProductionRuntimeImportTests(unittest.TestCase):
         self.assertEqual(first["after_counts"]["published_items"], 2)
         self.assertEqual(first["after_counts"]["active_sources"], 1)
         self.assertEqual(first["after_counts"]["retired_items"], 1)
+        self.assertEqual(first["after_counts"]["image_quality_policy_rows"], 2)
+        self.assertEqual(
+            first["after_counts"]["image_quality_low_items"]
+            + first["after_counts"]["image_quality_medium_items"],
+            2,
+        )
         self.assertEqual(second["after_counts"], first["after_counts"])
         self.assertEqual(report["decision"], "production_corpus_import_committed")
         self.assertTrue(report["seed_smoke_consumers"])

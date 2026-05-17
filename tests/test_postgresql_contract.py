@@ -20,6 +20,9 @@ POSTGRESQL_VISUAL_DELIVERY_SQL = (
 POSTGRESQL_QUOTA_PERIOD_SQL = (
     ROOT / "database" / "postgresql" / "008_use_text_quota_usage_period_key.sql"
 ).read_text(encoding="utf-8")
+POSTGRESQL_IMAGE_QUALITY_SQL = (
+    ROOT / "database" / "postgresql" / "009_add_image_quality_policy.sql"
+).read_text(encoding="utf-8")
 
 
 class PostgreSQLContractTests(unittest.TestCase):
@@ -143,6 +146,19 @@ class PostgreSQLContractTests(unittest.TestCase):
             "estimated_cost_minor INTEGER NOT NULL CHECK (estimated_cost_minor >= 0)",
         ]:
             self.assertIn(required_fragment, POSTGRESQL_VISUAL_DELIVERY_SQL)
+
+    def test_image_quality_policy_mirror_requires_low_medium_only(self) -> None:
+        for required_fragment in [
+            "CREATE TABLE IF NOT EXISTS quiz_item_image_quality_policy",
+            "item_id TEXT PRIMARY KEY REFERENCES quiz_items(item_id) ON DELETE CASCADE",
+            "theme_group IN ('simple_visual', 'situational', 'abstract_complex')",
+            "image_quality_recommended IN ('low', 'medium')",
+            "image_quality_source IN ('policy', 'override')",
+            "image_quality_override IS NULL OR image_quality_override IN ('low', 'medium')",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_IMAGE_QUALITY_SQL)
+        self.assertNotIn("'high'", POSTGRESQL_IMAGE_QUALITY_SQL)
+        self.assertNotIn("'auto'", POSTGRESQL_IMAGE_QUALITY_SQL)
 
 
 if __name__ == "__main__":

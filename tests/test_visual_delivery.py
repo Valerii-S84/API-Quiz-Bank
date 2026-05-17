@@ -89,6 +89,7 @@ class VisualDeliveryTests(unittest.TestCase):
         self.assertEqual(asset_status(self, resolution.asset_id), "approved")
         self.assertEqual(asset_dimensions(self, resolution.asset_id), (1536, 864))
         self.assertEqual(provider.calls[0].size, "1536x1024")
+        self.assertEqual(provider.calls[0].quality, "low")
         self.assertEqual(prompt_audit_count(self), 1)
         self.assertEqual(usage_count(self, "generation_succeeded"), 1)
         self.assertEqual(quota_used(self, "visual_delivery.standard", today_usage_date()), 1)

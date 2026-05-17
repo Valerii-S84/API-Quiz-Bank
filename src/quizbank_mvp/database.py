@@ -29,14 +29,8 @@ ALLOWED_CONSUMER_TRANSITIONS = {
     "suspended": {"active", "blocked"},
     "blocked": {"active"},
 }
-RUNTIME_TABLES = {
-    "quiz_items", "consumers", "api_credentials", "admin_credentials",
-    "consumer_admin_profiles", "deliveries", "selection_decisions",
-}
-VISUAL_RUNTIME_TABLES = {
-    "consumer_visual_settings", "visual_assets", "visual_prompt_audit",
-    "visual_delivery_results", "visual_usage_events",
-}
+RUNTIME_TABLES = {"quiz_items", "consumers", "api_credentials", "admin_credentials", "consumer_admin_profiles", "deliveries", "selection_decisions", "quiz_item_image_quality_policy"}
+VISUAL_RUNTIME_TABLES = {"consumer_visual_settings", "visual_assets", "visual_prompt_audit", "visual_delivery_results", "visual_usage_events"}
 DEFAULT_VISUAL_SETTINGS = {
     "delivery_mode": "text_only",
     "visual_style": "standard_illustration",
@@ -267,6 +261,9 @@ def upsert_quiz_item(
             "status": item_status,
         },
     )
+    from .image_quality_repository import upsert_quiz_item_image_quality_policy
+
+    upsert_quiz_item_image_quality_policy(connection, item)
 
 
 def seed_consumer(

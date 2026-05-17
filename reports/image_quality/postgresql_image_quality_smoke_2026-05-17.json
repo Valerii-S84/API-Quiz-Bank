@@ -1,0 +1,58 @@
+{
+  "api_smoke": {
+    "cross_consumer_delivery_status": 404,
+    "cross_consumer_reason_code": "DELIVERY_NOT_FOUND",
+    "delivery_read_status": 200,
+    "health_status": 200,
+    "next_item_status": 200,
+    "no_key_status": 401,
+    "quota_reason_code": "QUOTA_EXCEEDED",
+    "quota_status": 429,
+    "ready_status": 200,
+    "repeat_control_repeated_same_item": false,
+    "repeat_control_status": 200,
+    "selected_item_id": "gmb_health_food_care_implicit_paraphrase_bank_c1_300_hfcip_187",
+    "selected_item_status": "published"
+  },
+  "checks": {
+    "deliveries": 2,
+    "image_quality_policy_rows": 30974,
+    "published_items": 30974,
+    "quiz_items": 30974,
+    "selection_decisions": 2,
+    "sources": 115,
+    "status_counts": {
+      "published": 30974
+    }
+  },
+  "database": "postgresql",
+  "decision": "GO PostgreSQL production corpus smoke",
+  "docker_image": "postgres:16-alpine",
+  "executed_at": "2026-05-17T00:00:00Z",
+  "image_quality_checks": {
+    "forbidden_quality_rejections": {
+      "auto": "openai_image_quality_invalid",
+      "high": "openai_image_quality_invalid"
+    },
+    "invalid_quality_rows": 0,
+    "low_rows": 22581,
+    "medium_rows": 8393,
+    "policy_rows": 30974,
+    "policy_rows_equal_quiz_items": true,
+    "quiz_items": 30974,
+    "visual_generation_quality": {
+      "delivery_id": "deliv_589e5778a4e24ceb",
+      "expected_quality": "medium",
+      "item_id": "gmb_workplace_operations_natural_usage_bank_b2_300_wonu_112",
+      "provider_request_quality": "medium",
+      "resolution_state": "generated_approved"
+    }
+  },
+  "migration_backend": "postgresql",
+  "report_type": "production_corpus_postgresql_smoke",
+  "source": {
+    "active_bank_files": 115,
+    "active_rows": 30974,
+    "quizbank_dir": "QuizBank"
+  }
+}
