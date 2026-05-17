@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 import urllib.error
 import urllib.request
 import uuid
@@ -123,7 +124,7 @@ def telegram_poll_multipart_payload(
     )
     return multipart_form_data(
         fields,
-        {"poll_media": (photo_path.name, photo_path.read_bytes(), "application/octet-stream")},
+        {"poll_media": (photo_path.name, photo_path.read_bytes(), upload_content_type(photo_path))},
     )
 
 
@@ -133,8 +134,13 @@ def telegram_photo_multipart_payload(payload: dict[str, Any]) -> tuple[str, byte
         raise TelegramDeliveryError("telegram_photo_file_not_found")
     return multipart_form_data(
         {"chat_id": str(payload["chat_id"])},
-        {"photo": (photo_path.name, photo_path.read_bytes(), "application/octet-stream")},
+        {"photo": (photo_path.name, photo_path.read_bytes(), upload_content_type(photo_path))},
     )
+
+
+def upload_content_type(path: Path) -> str:
+    content_type, _encoding = mimetypes.guess_type(path.name)
+    return content_type or "application/octet-stream"
 
 
 def multipart_fields(payload: dict[str, Any]) -> dict[str, str]:
