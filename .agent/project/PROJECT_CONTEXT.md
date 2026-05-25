@@ -66,4 +66,4 @@
 - Branching strategy: `Use short-lived task/feature branches and merge to main only through PR or equivalent approved change path for production-relevant work`
 - Merge strategy: `No direct pushes to main; merge only through reviewed PR or equivalent approved change path with the repository host's configured method`
 - PR title format: `Conventional Commits style: type(scope): summary`
-- PR requirements: `Relevant checks for changed scope, human review for production-relevant changes, no bypass of protected-branch discipline, and changelog or release-note update when API/schema/import/publication behavior changes`
+- PR requirements: `Small scoped PRs only: one logical area per PR, unrelated refactors split out, relevant checks for changed scope, human review for production-relevant changes, no bypass of protected-branch discipline, and changelog or release-note update when API/schema/import/publication behavior changes`

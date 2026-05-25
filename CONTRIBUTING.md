@@ -8,6 +8,14 @@
 4. Run relevant local checks before commit.
 5. Use Conventional Commits.
 
+## Small PR Discipline
+
+- Keep each PR limited to one logical area, such as docs/governance, database boundary, selection, Telegram delivery, protected beta config, tests, or tooling.
+- Do not combine unrelated refactors, behavior changes, schema changes, dependency changes, CI changes, or production wiring in one PR.
+- Split changes when reviewers would need to reason about unrelated runtime paths to approve the work.
+- If a change must cross module boundaries, explain the coupling and run checks that cover every touched boundary.
+- List intentionally changed files and commands run in the PR description.
+
 ## Local Checks
 
 ```bash
