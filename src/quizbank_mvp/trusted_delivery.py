@@ -7,9 +7,9 @@ from typing import Any
 
 from .database_connection import connect, new_id, row_to_dict, utc_now
 from .database_status import DELIVERABLE_STATUSES
+from .problems import QuizBankProblem
 from .projections import build_learner_quiz_projection
 from .selection import (
-    QuizBankProblem,
     SelectionFilters,
     SelectionRequest,
     answer_feedback,

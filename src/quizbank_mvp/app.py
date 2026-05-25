@@ -14,8 +14,9 @@ from .admin_api import register_admin_routes
 from .auth import authenticate_consumer
 from .database_connection import configured_database_url, configured_db_path
 from .database_runtime import database_is_ready, visual_database_is_ready
+from .problems import QuizBankProblem
 from .rate_limit import FixedWindowRateLimiter, delivery_rate_limit_key
-from .selection import QuizBankProblem, SelectionFilters, SelectionRequest, get_delivery, select_next_item
+from .selection import SelectionFilters, SelectionRequest, get_delivery, select_next_item
 from .taxonomy import level_catalog, topic_catalog
 from .trusted_delivery import (
     is_answer_enabled_consumer,

@@ -21,8 +21,8 @@ from .database_status import (
     transition_consumer_status,
     transition_item_status,
 )
+from .problems import QuizBankProblem
 from .projections import admin_quiz_projection
-from .selection import QuizBankProblem
 from .visual_reporting import visual_metrics_summary
 from .visual_settings import load_visual_settings, save_visual_settings, visual_settings_from_mapping
 

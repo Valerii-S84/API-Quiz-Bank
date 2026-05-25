@@ -21,7 +21,7 @@ from .database_seed import (
     seed_consumer,
     seed_entitlement,
 )
-from .selection import QuizBankProblem
+from .problems import QuizBankProblem
 from .telegram_delivery import (
     TelegramAdapter,
     TelegramDeliveryRequest,

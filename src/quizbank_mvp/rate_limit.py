@@ -7,7 +7,7 @@ import os
 import time
 from dataclasses import dataclass, field
 
-from .selection import QuizBankProblem
+from .problems import QuizBankProblem
 
 
 DEFAULT_WINDOW_SECONDS = 60

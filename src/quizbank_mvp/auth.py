@@ -2,30 +2,19 @@
 
 from __future__ import annotations
 
-import hashlib
 import hmac
 from dataclasses import dataclass
 from pathlib import Path
 
+from .credential_hashing import API_KEY_PREFIX_LENGTH, api_key_prefix, hash_api_key
 from .database_connection import connect
-from .selection import QuizBankProblem
-
-
-API_KEY_PREFIX_LENGTH = 12
+from .problems import QuizBankProblem
 
 
 @dataclass(frozen=True)
 class AuthenticatedConsumer:
     consumer_id: str
     credential_id: str
-
-
-def hash_api_key(raw_key: str) -> str:
-    return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
-
-
-def api_key_prefix(raw_key: str) -> str:
-    return raw_key[:API_KEY_PREFIX_LENGTH]
 
 
 def authenticate_consumer(

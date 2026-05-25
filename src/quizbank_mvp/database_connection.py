@@ -6,10 +6,10 @@ import json
 import os
 import re
 import sqlite3
-import uuid
-from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
+
+from .time_ids import new_id, today_usage_date, utc_now
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,18 +22,6 @@ def configured_db_path() -> Path:
 
 def configured_database_url() -> str | None:
     return os.environ.get("QUIZBANK_DATABASE_URL") or os.environ.get("DATABASE_URL")
-
-
-def utc_now() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def today_usage_date() -> str:
-    return date.today().isoformat()
-
-
-def new_id(prefix: str) -> str:
-    return f"{prefix}_{uuid.uuid4().hex[:16]}"
 
 
 def connect(db_path: Path | None = None):

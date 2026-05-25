@@ -6,9 +6,14 @@ import hmac
 from dataclasses import dataclass
 from pathlib import Path
 
-from .auth import API_KEY_PREFIX_LENGTH, api_key_prefix, hash_api_key
+from .credential_hashing import (
+    API_KEY_PREFIX_LENGTH,
+    admin_key_prefix,
+    api_key_prefix,
+    hash_api_key,
+)
 from .database_connection import connect
-from .selection import QuizBankProblem
+from .problems import QuizBankProblem
 
 
 READ_ROLES = frozenset({"owner", "content_admin", "read_only_reviewer"})
@@ -78,7 +83,3 @@ def admin_auth_problem(reason_code: str, title: str, status: int = 401) -> QuizB
         "Provide active admin credentials with the required role.",
         "https://api.quizbank.example/problems/admin-authentication",
     )
-
-
-def admin_key_prefix(raw_key: str) -> str:
-    return raw_key[:API_KEY_PREFIX_LENGTH]

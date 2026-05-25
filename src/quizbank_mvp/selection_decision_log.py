@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from .database_connection import utc_now
+from .time_ids import utc_now
 
 
 @dataclass(frozen=True)

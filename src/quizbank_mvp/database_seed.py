@@ -9,7 +9,10 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from .database_connection import connect, new_id, utc_now
+from .credential_hashing import admin_key_prefix, api_key_prefix, hash_api_key
+from .database_connection import connect
+from .image_quality_repository import upsert_quiz_item_image_quality_policy
+from .time_ids import new_id, utc_now
 from .visual_asset_repository import insert_visual_asset_record
 
 
@@ -95,8 +98,6 @@ def upsert_quiz_item(
             "status": item_status,
         },
     )
-    from .image_quality_repository import upsert_quiz_item_image_quality_policy
-
     upsert_quiz_item_image_quality_policy(connection, item)
 
 
@@ -137,8 +138,6 @@ def seed_api_credential(
     credential_id: str | None = None,
     status: str = "active",
 ) -> str:
-    from .auth import api_key_prefix, hash_api_key
-
     resolved_credential_id = credential_id or f"cred_{consumer_id}"
     with connect(db_path) as connection:
         connection.execute(
@@ -173,9 +172,6 @@ def seed_admin_credential(
     credential_id: str | None = None,
     status: str = "active",
 ) -> str:
-    from .admin_auth import admin_key_prefix
-    from .auth import hash_api_key
-
     resolved_credential_id = credential_id or f"admin_cred_{actor}"
     with connect(db_path) as connection:
         connection.execute(

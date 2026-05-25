@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 from typing import Any
 
-from .database_connection import utc_now
+from .time_ids import utc_now
 
 
 IMAGE_QUALITY_POLICY_REQUIRED_FIELDS = (
