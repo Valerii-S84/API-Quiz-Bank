@@ -39,6 +39,19 @@ def node_span(node: ast.AST) -> int:
 
 
 class StyleNumericLimitTests(unittest.TestCase):
+    def test_python_sources_keep_basic_whitespace_style(self) -> None:
+        failures = []
+        for path in python_paths():
+            text = path.read_text(encoding="utf-8")
+            if text and not text.endswith("\n"):
+                failures.append(f"{relative_path(path)}:missing-final-newline")
+            for line_number, line in enumerate(text.splitlines(), 1):
+                if line.rstrip(" \t") != line:
+                    failures.append(f"{relative_path(path)}:{line_number}:trailing-whitespace")
+                if line.startswith("\t"):
+                    failures.append(f"{relative_path(path)}:{line_number}:tab-indentation")
+        self.assertEqual(failures, [])
+
     def test_python_modules_stay_below_hard_line_limits(self) -> None:
         failures = []
         for path in python_paths():

@@ -40,6 +40,7 @@ jobs:
           echo "Private corpus-dependent tests are local-only."
           python3 -m unittest \
             tests.test_contract_schema_invariants \
+            tests.test_import_cycle_guard \
             tests.test_import_validation \
             tests.test_mvp_runtime \
             tests.test_mvp_rate_limit \

@@ -14,6 +14,16 @@ from .time_ids import new_id, today_usage_date, utc_now
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DB_PATH = ROOT / "var" / "quizbank_mvp.sqlite3"
+POSTGRESQL_UNSUPPORTED_SQL_PATTERNS = (
+    (re.compile(r"\bPRAGMA\b", re.IGNORECASE), "SQLite PRAGMA statements"),
+    (re.compile(r"\bsqlite_master\b", re.IGNORECASE), "SQLite sqlite_master metadata"),
+    (re.compile(r"\bINSERT\s+OR\s+REPLACE\b", re.IGNORECASE), "SQLite INSERT OR REPLACE"),
+    (re.compile(r"\blast_insert_rowid\s*\(", re.IGNORECASE), "SQLite last_insert_rowid()"),
+)
+
+
+class PostgreSQLUnsupportedSQLError(RuntimeError):
+    """Raised when PostgreSQL runtime receives SQLite-specific SQL."""
 
 
 def configured_db_path() -> Path:
@@ -57,10 +67,12 @@ class PostgreSQLConnection:
         self.connection.close()
 
     def execute(self, sql: str, parameters: Any = None):
+        ensure_postgresql_supported_sql(sql)
         translated_sql = translate_sqlite_placeholders(sql, parameters)
         return self.connection.execute(translated_sql, parameters)
 
     def executescript(self, script: str) -> None:
+        ensure_postgresql_supported_sql(script)
         self.connection.execute(script)
 
     def rollback(self) -> None:
@@ -73,6 +85,14 @@ def translate_sqlite_placeholders(sql: str, parameters: Any = None) -> str:
     if parameters is not None:
         return sql.replace("?", "%s")
     return sql
+
+
+def ensure_postgresql_supported_sql(sql: str) -> None:
+    for pattern, description in POSTGRESQL_UNSUPPORTED_SQL_PATTERNS:
+        if pattern.search(sql):
+            raise PostgreSQLUnsupportedSQLError(
+                f"PostgreSQL runtime does not support {description}"
+            )
 
 
 def row_to_dict(row: sqlite3.Row) -> dict[str, Any]:

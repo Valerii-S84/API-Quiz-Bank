@@ -14,10 +14,26 @@ sys.path.insert(0, str(ROOT / "src"))
 from quizbank_mvp import database_connection, database_runtime  # noqa: E402
 from quizbank_mvp.database_connection import (  # noqa: E402
     PostgreSQLConnection,
+    PostgreSQLUnsupportedSQLError,
     connect_postgresql,
     decode_json_field,
     translate_sqlite_placeholders,
 )
+from quizbank_mvp.selection_decision_log import (  # noqa: E402
+    insert_selection_decision,
+    success_decision,
+)
+from quizbank_mvp.selection_delivery import create_delivery  # noqa: E402
+from quizbank_mvp.selection_diagnostics import candidate_count  # noqa: E402
+from quizbank_mvp.selection_eligibility import find_eligible_item  # noqa: E402
+from quizbank_mvp.selection_models import SelectionFilters, SelectionRequest  # noqa: E402
+from quizbank_mvp.selection_quota import reserve_quota  # noqa: E402
+from quizbank_mvp.selection_scope_enforcement import (  # noqa: E402
+    load_active_consumer,
+    load_active_entitlement,
+)
+from quizbank_mvp import telegram_result_repository  # noqa: E402
+from quizbank_mvp.telegram_models import TelegramDeliveryResult  # noqa: E402
 
 
 class DatabaseBackendContractTests(unittest.TestCase):
@@ -46,6 +62,18 @@ class DatabaseBackendContractTests(unittest.TestCase):
 
     def test_postgresql_adapter_leaves_sql_without_parameters_unchanged(self) -> None:
         self.assertEqual(translate_sqlite_placeholders("SELECT 1"), "SELECT 1")
+
+    def test_postgresql_adapter_rejects_sqlite_only_sql(self) -> None:
+        with PostgreSQLConnection(FakeRawConnection()) as connection:
+            for sql in [
+                "PRAGMA foreign_keys = ON",
+                "SELECT name FROM sqlite_master WHERE type = 'table'",
+                "INSERT OR REPLACE INTO consumers (consumer_id) VALUES (?)",
+                "SELECT last_insert_rowid()",
+            ]:
+                with self.subTest(sql=sql):
+                    with self.assertRaises(PostgreSQLUnsupportedSQLError):
+                        connection.execute(sql, ("value",))
 
     def test_postgresql_connect_wraps_psycopg_connection(self) -> None:
         raw_connection = FakeRawConnection()
@@ -128,6 +156,61 @@ class DatabaseBackendContractTests(unittest.TestCase):
         self.assertEqual(decode_json_field({"status": "ready"}), {"status": "ready"})
         self.assertEqual(decode_json_field(["A2"]), ["A2"])
 
+    def test_postgresql_selection_runtime_paths_use_supported_sql(self) -> None:
+        raw_connection = FakePostgreSQLRuntimeConnection()
+        request = SelectionRequest(
+            "consumer_pg",
+            filters=SelectionFilters(cefr_level="A2", theme_ids=("T10",)),
+            selection_strategy="first_eligible",
+        )
+
+        with PostgreSQLConnection(raw_connection) as connection:
+            consumer = load_active_consumer(connection, request.consumer_id)
+            entitlement = load_active_entitlement(connection, request)
+            quota_usage = reserve_quota(connection, consumer, request)
+            total = candidate_count(connection, request)
+            item, eligible_count = find_eligible_item(connection, request)
+            delivery = create_delivery(connection, request, item, entitlement, quota_usage)
+            decision = success_decision("selreq_pg", request, delivery, item, total, eligible_count, {})
+            insert_selection_decision(connection, decision)
+
+        executed_sql = raw_connection.executed_sql()
+        self.assertNotIn("?", executed_sql)
+        self.assertNotIn(":selection_request_id", executed_sql)
+        self.assertIn("%(selection_request_id)s", executed_sql)
+        self.assertPostgreSQLBoundary(executed_sql)
+
+    def test_postgresql_telegram_result_runtime_path_uses_supported_sql(self) -> None:
+        raw_connection = FakePostgreSQLRuntimeConnection()
+        result = TelegramDeliveryResult(
+            delivery_id="deliv_pg",
+            consumer_id="consumer_pg",
+            quiz_item_id="item_pg",
+            mode="dry_run",
+            status="sent",
+            telegram_target_ref="***1234",
+            telegram_message_id="msg_pg",
+            telegram_poll_id="poll_pg",
+        )
+
+        with mock.patch.object(
+            telegram_result_repository,
+            "connect",
+            return_value=PostgreSQLConnection(raw_connection),
+        ):
+            telegram_result_repository.record_telegram_result(None, result)
+
+        executed_sql = raw_connection.executed_sql()
+        self.assertNotIn("?", executed_sql)
+        self.assertIn("ON CONFLICT(delivery_id) DO UPDATE SET", executed_sql)
+        self.assertPostgreSQLBoundary(executed_sql)
+
+    def assertPostgreSQLBoundary(self, executed_sql: str) -> None:
+        self.assertNotIn("sqlite_master", executed_sql)
+        self.assertNotIn("PRAGMA", executed_sql)
+        self.assertNotIn("INSERT OR REPLACE", executed_sql)
+        self.assertNotIn("last_insert_rowid", executed_sql)
+
 
 class FakeRawConnection:
     def __init__(self) -> None:
@@ -189,6 +272,93 @@ class FakeMigrationConnection:
 
     def executescript(self, script: str) -> None:
         self.scripts.append(script)
+
+
+class FakePostgreSQLRuntimeConnection:
+    def __init__(self) -> None:
+        self.executed: list[tuple[str, object]] = []
+        self.closed = False
+
+    def __enter__(self) -> "FakePostgreSQLRuntimeConnection":
+        return self
+
+    def __exit__(self, _exc_type: object, _exc_value: object, _traceback: object) -> None:
+        return None
+
+    def close(self) -> None:
+        self.closed = True
+
+    def execute(self, sql: str, parameters: object = None) -> FakeResult:
+        self.executed.append((sql, parameters))
+        if "FROM consumers WHERE consumer_id = %s" in sql:
+            return FakeResult(row=postgresql_consumer_row())
+        if "FROM entitlements" in sql:
+            return FakeResult(row=postgresql_entitlement_row())
+        if "INSERT INTO quota_usage" in sql:
+            return FakeResult(row={"quota_usage_id": "quota_pg", "used_count": 1, "quota_limit": 10})
+        if "SELECT COUNT(*) AS count" in sql:
+            return FakeResult(row={"count": 1})
+        if "SELECT qi.*" in sql:
+            return FakeResult(rows=[postgresql_quiz_item_row()])
+        if "SELECT * FROM deliveries WHERE delivery_id = %s" in sql:
+            return FakeResult(row=postgresql_delivery_row())
+        return FakeResult()
+
+    def executed_sql(self) -> str:
+        return "\n".join(sql for sql, _parameters in self.executed)
+
+
+def postgresql_consumer_row() -> dict[str, object]:
+    return {
+        "consumer_id": "consumer_pg",
+        "status": "active",
+        "daily_quota_limit": 10,
+        "allowed_cefr_levels_json": '["A2"]',
+        "allowed_theme_ids_json": '["T10"]',
+    }
+
+
+def postgresql_entitlement_row() -> dict[str, object]:
+    return {
+        "entitlement_id": "entitlement_pg",
+        "consumer_id": "consumer_pg",
+        "feature": "quiz_delivery",
+        "status": "active",
+        "allowed_cefr_levels_json": '["A2"]',
+        "allowed_theme_ids_json": '["T10"]',
+    }
+
+
+def postgresql_quiz_item_row() -> dict[str, object]:
+    return {
+        "item_id": "item_pg",
+        "status": "approved",
+        "source_id": "source_pg",
+        "resolved_source_type": "fixture",
+        "resolved_provenance_note": "contract path",
+        "sublevel": "A2",
+        "theme_id": "T10",
+        "objective_id": "O1",
+        "pattern_id": "P1",
+        "answer_key": "0",
+        "explanation": "Because.",
+        "delivery_count": 0,
+        "last_delivered_at": "",
+        "cell_delivery_count": 0,
+        "quality_score": 1.0,
+    }
+
+
+def postgresql_delivery_row() -> dict[str, object]:
+    return {
+        "delivery_id": "deliv_pg",
+        "consumer_id": "consumer_pg",
+        "quiz_item_id": "item_pg",
+        "item_status": "approved",
+        "delivery_status": "created",
+        "selected_at": "2026-05-25T00:00:00Z",
+        "selection_reason_summary": "eligible_by_status",
+    }
 
 
 class FakeReadyConnection:

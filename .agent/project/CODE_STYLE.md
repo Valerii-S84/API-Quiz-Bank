@@ -17,7 +17,7 @@ fallback: якщо `primary_language` або `active_sections` не
 ## Python
 
 - Formatter: `No committed formatter yet; keep standard-library Python readable and stable.`
-- Linter: `No committed linter yet.`
+- Linter: `Dependency-free unittest gates cover MVP runtime import cycles, numeric limits and basic whitespace style; no external linter package is committed.`
 - Type checker: `No committed type checker yet; use annotations for new tooling where practical.`
 - Import/order rules: `Standard library imports only unless a dependency is explicitly added through change control.`
 - Line length / docstring limits: `Prefer concise lines and short module docstrings; no automated limit is committed yet.`
