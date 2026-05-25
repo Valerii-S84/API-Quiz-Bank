@@ -16,6 +16,7 @@ from quizbank_mvp.database import (  # noqa: E402
     seed_consumer,
     seed_control_fixture,
     seed_entitlement,
+    today_usage_date,
     utc_now,
 )
 from quizbank_mvp.selection import SelectionFilters, SelectionRequest, select_next_item  # noqa: E402
@@ -94,7 +95,7 @@ class VisualRuntimeGateCoverageTests(unittest.TestCase):
         save_visual_settings(self.db_path, visual_settings())
         grant_feature(self.db_path, "visual_delivery.standard")
         grant_feature(self.db_path, "visual_generation.standard")
-        record_quota(self.db_path, "visual_generation.standard", "2026-05-17", 3, 3)
+        record_quota(self.db_path, "visual_generation.standard", today_usage_date(), 3, 3)
 
         resolution = resolve_visual_delivery(
             self.db_path,
