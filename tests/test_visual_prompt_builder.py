@@ -10,7 +10,29 @@ sys.path.insert(0, str(ROOT / "src"))
 from quizbank_mvp import image_quality_policy as policy  # noqa: E402
 from quizbank_mvp.image_quality_repository import upsert_quiz_item_image_quality_policy  # noqa: E402
 from quizbank_mvp.visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings
-from quizbank_mvp.visual_prompt_builder import build_visual_prompt, visual_target_text
+from quizbank_mvp.visual_mode_policy import (  # noqa: E402
+    blank_is_followed_by_noun,
+    grammar_form_answer,
+    strong_document_text,
+    visible_action_answer,
+)
+from quizbank_mvp.visual_prompt_builder import (  # noqa: E402
+    build_visual_prompt,
+    options_from_item,
+    parse_options,
+    replace_blank_with_answer,
+    resolved_question_text,
+    visual_grounding_text,
+    visual_target_text,
+)
+from quizbank_mvp.visual_target_extractor import (  # noqa: E402
+    context_anchor,
+    extract_visual_target,
+    fallback_context_target,
+    first_noun_phrase,
+    last_noun_phrase,
+    option_anchor,
+)
 
 
 class VisualPromptBuilderTests(unittest.TestCase):
@@ -141,6 +163,50 @@ class VisualPromptBuilderTests(unittest.TestCase):
         self.assertEqual(first.prompt_policy_version, "visual_prompt_policy_v4_visual_modes")
         self.assertEqual(first.visual_prompt_policy_version, "visual_prompt_policy_v4_visual_modes")
 
+    def test_prompt_text_helpers_resolve_answers_and_parse_option_variants(self) -> None:
+        blank_item = self.quiz_item(stem_text="Ich muss den Termin ___.")
+        no_blank_item = self.quiz_item(stem_text="Ich muss den Termin planen.")
+        prompt_only_item = self.quiz_item(stem_text="", prompt="Choose the correct action")
+
+        self.assertEqual(resolved_question_text(blank_item), "Ich muss den Termin buchen.")
+        self.assertIn("Correct answer: buchen", resolved_question_text(no_blank_item))
+        self.assertEqual(resolved_question_text(prompt_only_item), "Choose the correct action Correct answer: buchen")
+        self.assertEqual(replace_blank_with_answer("Termin ___", ""), "Termin ___")
+        self.assertEqual(options_from_item({"options": ["eins", 2]}), ["eins", "2"])
+        self.assertEqual(parse_options("['eins', 'zwei']"), ["eins", "zwei"])
+        with self.assertRaises(ValueError):
+            parse_options('{"not": "a list"}')
+
+    def test_visual_target_extractor_covers_fallback_and_option_anchor_routes(self) -> None:
+        option_result = extract_visual_target("___ schnell.", "aus", "context_only", ["das Haus"])
+        symbolic_result = extract_visual_target("", "", "symbolic_abstract", [])
+        default_result = extract_visual_target("", "", "unrecognized_mode", [])
+
+        self.assertEqual(option_result.visual_target, "Haus")
+        self.assertEqual(symbolic_result.visual_target, "abstract context")
+        self.assertEqual(default_result.visual_target, "context")
+        self.assertEqual(context_anchor("ich sehe ___ schnell.", ["die Schule"]), "Schule")
+        self.assertEqual(option_anchor(["der", "die", "das", "das Formular"]), "Formular")
+        self.assertEqual(fallback_context_target("und in"), "context")
+        self.assertEqual(first_noun_phrase("der Antrag liegt bereit"), "Antrag")
+        self.assertEqual(last_noun_phrase("Bitte den Vertrag unterschreiben"), "Vertrag")
+
+    def test_visual_mode_policy_helpers_cover_document_and_grammar_edges(self) -> None:
+        self.assertTrue(strong_document_text("Bitte das Formular unterschreiben."))
+        self.assertFalse(visible_action_answer(""))
+        self.assertFalse(visible_action_answer("analysieren"))
+        self.assertTrue(visible_action_answer("faxen"))
+        self.assertTrue(visible_action_answer("den Vertrag faxen"))
+        self.assertFalse(grammar_form_answer("buchen", "Ich muss ___ Termin."))
+        self.assertTrue(blank_is_followed_by_noun("Ich sehe ___ den Auftrag."))
+        self.assertFalse(blank_is_followed_by_noun("Ich sehe ___ schnell."))
+
+    def test_visual_grounding_text_uses_prompt_target_metadata(self) -> None:
+        grounding = visual_grounding_text(self.quiz_item(), "target_action")
+
+        self.assertIn("Depict", grounding)
+        self.assertIn("target", grounding)
+
     def settings(
         self,
         mode: VisualDeliveryMode = VisualDeliveryMode.IMAGE_STANDARD,
@@ -162,6 +228,7 @@ class VisualPromptBuilderTests(unittest.TestCase):
         self,
         pattern_id: str = "vocab_noun",
         stem_text: str = "Was ist das?",
+        prompt: str = "Choose the correct word",
         options_json: str = "[\"buchen\", \"trinken\", \"lesen\", \"oeffnen\"]",
         answer_key: str = "0",
         theme_id: str = "T10",
@@ -172,7 +239,7 @@ class VisualPromptBuilderTests(unittest.TestCase):
             "sublevel": "A2",
             "theme_id": theme_id,
             "pattern_id": pattern_id,
-            "prompt": "Choose the correct word",
+            "prompt": prompt,
             "stem_text": stem_text,
             "options_json": options_json,
             "answer_key": answer_key,

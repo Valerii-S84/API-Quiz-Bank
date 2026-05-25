@@ -24,6 +24,11 @@ from quizbank_mvp.selection import (  # noqa: E402
     upsert_quota_usage,
 )
 from quizbank_mvp.selection_policy import RepeatPolicy, SelectionPolicy  # noqa: E402
+from quizbank_mvp.selection_scope import (  # noqa: E402
+    SCOPE_CONFLICT_VALUE,
+    bounded_scope_values,
+    effective_scope_replacement,
+)
 
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
@@ -113,6 +118,59 @@ class MvpSelectionPolicyTests(unittest.TestCase):
             [(row["quota_usage_id"], row["used_count"]) for row in rows],
             [("quota_existing", 2)],
         )
+
+    def test_scope_replacement_derives_single_allowed_level_and_themes(self) -> None:
+        request = SelectionRequest(consumer_id="consumer_allowed")
+        consumer = self.scope_row(["A2"], ["T10", "T11"])
+        entitlement = self.scope_row(["A2", "B1"], ["T11", "T10"])
+
+        replacement = effective_scope_replacement(request, consumer, entitlement)
+
+        self.assertEqual(replacement["filters"].cefr_level, "A2")
+        self.assertEqual(replacement["filters"].theme_ids, ("T10", "T11"))
+        self.assertEqual(replacement["cefr_level"], None)
+        self.assertEqual(replacement["theme_ids"], ())
+        self.assertEqual(replacement["excluded_item_ids"], ())
+
+    def test_scope_replacement_marks_empty_intersection_as_conflict(self) -> None:
+        request = SelectionRequest(consumer_id="consumer_allowed")
+        consumer = self.scope_row(["A2"], ["T10"])
+        entitlement = self.scope_row(["B1"], ["T11"])
+
+        replacement = effective_scope_replacement(request, consumer, entitlement)
+
+        self.assertEqual(replacement["filters"].cefr_level, SCOPE_CONFLICT_VALUE)
+        self.assertEqual(replacement["filters"].theme_ids, (SCOPE_CONFLICT_VALUE,))
+
+    def test_scope_replacement_preserves_explicit_filters(self) -> None:
+        request = SelectionRequest(
+            consumer_id="consumer_allowed",
+            filters=SelectionFilters(cefr_level="B1", theme_ids=("T12",)),
+        )
+        unbounded = self.scope_row([], [])
+
+        replacement = effective_scope_replacement(request, unbounded, unbounded)
+
+        self.assertEqual(replacement["filters"].cefr_level, "B1")
+        self.assertEqual(replacement["filters"].theme_ids, ("T12",))
+
+    def test_bounded_scope_values_handles_unbounded_sides_and_ordered_intersection(self) -> None:
+        self.assertIsNone(bounded_scope_values([], []))
+        self.assertEqual(bounded_scope_values([], ["A2"]), ("A2",))
+        self.assertEqual(bounded_scope_values(["A2"], []), ("A2",))
+        self.assertEqual(bounded_scope_values(["B1", "A2"], ["A2", "C1", "B1"]), ("B1", "A2"))
+
+    def scope_row(self, levels: list[str], themes: list[str]) -> dict[str, str]:
+        return {
+            "allowed_cefr_levels_json": json_dumps(levels),
+            "allowed_theme_ids_json": json_dumps(themes),
+        }
+
+
+def json_dumps(values: list[str]) -> str:
+    import json
+
+    return json.dumps(values)
 
 
 if __name__ == "__main__":

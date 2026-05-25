@@ -23,6 +23,8 @@ from quizbank_mvp.database import (  # noqa: E402
     seed_control_fixture,
     seed_entitlement,
 )
+from quizbank_mvp.selection import QuizBankProblem  # noqa: E402
+from quizbank_mvp.trusted_delivery import ensure_delivery_outcome_status  # noqa: E402
 from tools.provision_website_quiz_teaser_consumer import (  # noqa: E402
     CONSUMER_ID,
     report_markdown,
@@ -37,6 +39,7 @@ BASE_ITEM = json.loads(
     .read_text(encoding="utf-8")
     .splitlines()[0]
 )
+APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
 
 
 class WebsiteQuizTeaserBetaTests(unittest.TestCase):
@@ -244,6 +247,101 @@ class WebsiteQuizTeaserBetaTests(unittest.TestCase):
             return consumer, deliveries, active_credentials
         finally:
             connection.close()
+
+
+class WebsiteTrustedDeliveryCoverageTests(unittest.TestCase):
+    def test_trusted_item_lookup_returns_feedback_without_delivery(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "runtime.sqlite3"
+            initialize_database(db_path)
+            seed_control_fixture(db_path, APPROVED_FIXTURE, "approved")
+            self.seed_website_access(db_path)
+
+            response = TestClient(create_app(db_path)).get(
+                "/v1/quiz-items/approved_traceable_001",
+                headers={"X-Consumer-Id": CONSUMER_ID, "X-QuizBank-API-Key": "website_key"},
+            )
+            with sqlite3.connect(db_path) as connection:
+                delivery_count = connection.execute("SELECT COUNT(*) FROM deliveries").fetchone()[0]
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["quiz_item"]["feedback"]["correctAnswerId"], "option_1")
+        self.assertTrue(response.json()["interaction"]["answer_key_included"])
+        self.assertEqual(delivery_count, 0)
+
+    def test_delivery_outcome_records_status_and_rejects_invalid_status(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "runtime.sqlite3"
+            initialize_database(db_path)
+            seed_control_fixture(db_path, APPROVED_FIXTURE, "approved")
+            self.seed_website_access(db_path)
+            client = TestClient(create_app(db_path))
+            delivery_id = self.next_item_for_scope(client, "trusted-outcome").json()["delivery_id"]
+
+            sent = client.post(
+                f"/v1/deliveries/{delivery_id}/outcome",
+                json={"status": "sent", "reason": "published to edge"},
+                headers={"X-Consumer-Id": CONSUMER_ID, "X-QuizBank-API-Key": "website_key"},
+            )
+            missing = client.post(
+                "/v1/deliveries/missing_delivery/outcome",
+                json={"status": "sent"},
+                headers={"X-Consumer-Id": CONSUMER_ID, "X-QuizBank-API-Key": "website_key"},
+            )
+
+        self.assertEqual(sent.status_code, 200)
+        self.assertEqual(sent.json()["status"], "sent")
+        self.assertEqual(missing.status_code, 404)
+        self.assertEqual(missing.json()["reason_code"], "DELIVERY_NOT_FOUND")
+
+        with self.assertRaises(QuizBankProblem) as problem:
+            ensure_delivery_outcome_status("queued")
+        self.assertEqual(problem.exception.reason_code, "DELIVERY_OUTCOME_INVALID")
+
+    def test_trusted_item_lookup_rejects_missing_or_out_of_scope_item(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "runtime.sqlite3"
+            initialize_database(db_path)
+            seed_control_fixture(db_path, APPROVED_FIXTURE, "approved")
+            self.seed_website_access(db_path, themes=["T11"])
+            client = TestClient(create_app(db_path))
+
+            missing = client.get(
+                "/v1/quiz-items/missing_item",
+                headers={"X-Consumer-Id": CONSUMER_ID, "X-QuizBank-API-Key": "website_key"},
+            )
+            denied = client.get(
+                "/v1/quiz-items/approved_traceable_001",
+                headers={"X-Consumer-Id": CONSUMER_ID, "X-QuizBank-API-Key": "website_key"},
+            )
+
+        self.assertEqual(missing.status_code, 404)
+        self.assertEqual(missing.json()["reason_code"], "QUIZ_ITEM_NOT_FOUND")
+        self.assertEqual(denied.status_code, 403)
+        self.assertEqual(denied.json()["reason_code"], "CONSUMER_THEME_NOT_ALLOWED")
+
+    def next_item_for_scope(self, client: TestClient, quota_scope_key: str):
+        return client.post(
+            "/v1/quiz-items/next",
+            json={"consumer_id": CONSUMER_ID, "cefr_level": "A2", "theme_ids": ["T10"]},
+            headers={
+                "X-Consumer-Id": CONSUMER_ID,
+                "X-QuizBank-API-Key": "website_key",
+                "X-QuizBank-Quota-Key": quota_scope_key,
+            },
+        )
+
+    def seed_website_access(
+        self,
+        db_path: Path,
+        levels: list[str] | None = None,
+        themes: list[str] | None = None,
+    ) -> None:
+        resolved_levels = levels or ["A2"]
+        resolved_themes = themes or ["T10"]
+        seed_consumer(db_path, CONSUMER_ID, 5, resolved_levels, resolved_themes)
+        seed_api_credential(db_path, CONSUMER_ID, "website_key")
+        seed_entitlement(db_path, CONSUMER_ID, resolved_levels, resolved_themes)
 
 
 if __name__ == "__main__":

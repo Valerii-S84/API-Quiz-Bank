@@ -13,12 +13,19 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from quizbank_mvp.visual_provider import (
     FakeImageProvider,
+    ImageGenerationProvider,
     ImageGenerationError,
     ImageGenerationRequest,
+    parse_image_size,
 )
 from quizbank_mvp.visual_provider_openai import (  # noqa: E402
+    OpenAIEnvironmentImageProvider,
     OpenAIImageProvider,
     OpenAIProviderConfigurationError,
+    mime_type_for_output,
+    openai_api_key_from_environment,
+    parse_size,
+    timeout_from_environment,
 )
 
 
@@ -49,6 +56,17 @@ class VisualProviderTests(unittest.TestCase):
         self.assertEqual(result.mime_type, "image/gif")
         self.assertTrue(result.image_bytes)
 
+    def test_image_provider_contract_and_size_parser_reject_invalid_sizes(self) -> None:
+        class BareProvider(ImageGenerationProvider):
+            pass
+
+        with self.assertRaises(NotImplementedError):
+            BareProvider().generate(ImageGenerationRequest(prompt="x", negative_prompt=""))
+        for size in ("1024", "widextall", "0x1024", "1024x-1"):
+            with self.subTest(size=size):
+                with self.assertRaises(ImageGenerationError):
+                    parse_image_size(size)
+
     def test_openai_provider_requires_explicit_config_and_approval(self) -> None:
         env = {
             "VISUAL_IMAGE_PROVIDER": "openai",
@@ -62,6 +80,15 @@ class VisualProviderTests(unittest.TestCase):
             OpenAIImageProvider.from_environment(False, env)
         with self.assertRaises(OpenAIProviderConfigurationError):
             OpenAIImageProvider.from_environment(True, {"VISUAL_IMAGE_PROVIDER": "fake"})
+        for kwargs in (
+            {"api_key": "", "model": "gpt-image-2", "endpoint": "https://api.test", "timeout_seconds": 60},
+            {"api_key": "test-key", "model": "", "endpoint": "https://api.test", "timeout_seconds": 60},
+            {"api_key": "test-key", "model": "gpt-image-2", "endpoint": "", "timeout_seconds": 60},
+            {"api_key": "test-key", "model": "gpt-image-2", "endpoint": "https://api.test", "timeout_seconds": 0},
+        ):
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaises(OpenAIProviderConfigurationError):
+                    OpenAIImageProvider(approve_real_generation=True, **kwargs)
 
     def test_openai_provider_uses_mocked_http_client_only(self) -> None:
         spy = UrlopenSpy(openai_response())
@@ -148,6 +175,66 @@ class VisualProviderTests(unittest.TestCase):
 
         self.assertEqual(str(problem.exception), "openai_image_payload_missing_b64")
 
+    def test_openai_provider_invalid_json_and_http_errors_are_structured(self) -> None:
+        invalid_json = OpenAIImageProvider("test-key", "gpt-image-2", True, urlopen=UrlopenBytes(b"{not-json"))
+        http_failure = OpenAIImageProvider(
+            "test-key",
+            "gpt-image-2",
+            True,
+            urlopen=lambda _request, timeout: (_ for _ in ()).throw(
+                urllib.error.HTTPError("https://api.test", 429, "rate limited", {}, None)
+            ),
+        )
+
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_response_invalid"):
+            invalid_json.generate(ImageGenerationRequest(prompt="x", negative_prompt=""))
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_http_error:429"):
+            http_failure.generate(ImageGenerationRequest(prompt="x", negative_prompt=""))
+
+    def test_openai_provider_url_payload_failures_are_structured(self) -> None:
+        provider = OpenAIImageProvider("test-key", "gpt-image-2", True, urlopen=UrlopenBytes(b""))
+        http_provider = OpenAIImageProvider(
+            "test-key",
+            "gpt-image-2",
+            True,
+            urlopen=lambda _request, timeout: (_ for _ in ()).throw(
+                urllib.error.HTTPError("https://images.test/generated.png", 404, "missing", {}, None)
+            ),
+        )
+        url_provider = OpenAIImageProvider(
+            "test-key",
+            "gpt-image-2",
+            True,
+            urlopen=lambda _request, timeout: (_ for _ in ()).throw(urllib.error.URLError("offline")),
+        )
+
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_invalid"):
+            provider.fetch_image_url("http://images.test/generated.png")
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_empty"):
+            provider.fetch_image_url("https://images.test/generated.png")
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_http_error:404"):
+            http_provider.fetch_image_url("https://images.test/generated.png")
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_request_failed:str"):
+            url_provider.fetch_image_url("https://images.test/generated.png")
+
+    def test_openai_environment_provider_maps_configuration_errors_to_generation_errors(self) -> None:
+        provider = OpenAIEnvironmentImageProvider({"VISUAL_IMAGE_PROVIDER": "openai"}, urlopen=UrlopenSpy(openai_response()))
+
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_provider_unconfigured"):
+            provider.generate(ImageGenerationRequest(prompt="x", negative_prompt=""))
+
+    def test_openai_environment_helpers_validate_key_timeout_size_and_mime(self) -> None:
+        self.assertEqual(openai_api_key_from_environment({"OPENAI_API_KEY": " fallback-key "}), "fallback-key")
+        self.assertEqual(timeout_from_environment({}), 60)
+        self.assertEqual(parse_size("not-a-size"), (1024, 1024))
+        self.assertEqual(mime_type_for_output("jpg"), "image/jpeg")
+        self.assertEqual(mime_type_for_output("unknown"), "image/png")
+
+        for env in ({"VISUAL_OPENAI_TIMEOUT_SECONDS": "abc"}, {"VISUAL_OPENAI_TIMEOUT_SECONDS": "0"}):
+            with self.subTest(env=env):
+                with self.assertRaises(OpenAIProviderConfigurationError):
+                    timeout_from_environment(env)
+
     def test_openai_provider_rejects_quality_outside_low_medium_enum(self) -> None:
         provider = OpenAIImageProvider("test-key", "gpt-image-2", True, urlopen=UrlopenSpy(openai_response()))
 
@@ -182,6 +269,14 @@ class UrlopenSequence:
     def __call__(self, request, timeout: int) -> "OpenAIStubResponse":
         self.calls.append(request)
         return OpenAIStubResponse(self.bodies.pop(0))
+
+
+class UrlopenBytes:
+    def __init__(self, body: bytes) -> None:
+        self.body = body
+
+    def __call__(self, request, timeout: int) -> "OpenAIStubResponse":
+        return OpenAIStubResponse(self.body)
 
 
 class OpenAIStubResponse:
