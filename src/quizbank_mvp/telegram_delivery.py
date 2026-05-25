@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
-from .database import connect, row_to_dict, utc_now
+from .database_connection import connect, row_to_dict, utc_now
 from .projections import build_telegram_quiz_projection
 from .selection import SelectionFilters, SelectionRequest, select_next_item
 from .telegram_bot_api import (

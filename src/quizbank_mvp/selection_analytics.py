@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .database import connect, decode_json_field, utc_now
+from .database_connection import connect, decode_json_field, utc_now
 
 
 def selection_analytics_snapshot(db_path: Path | None) -> dict[str, object]:

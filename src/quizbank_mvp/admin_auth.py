@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .auth import API_KEY_PREFIX_LENGTH, api_key_prefix, hash_api_key
-from .database import connect
+from .database_connection import connect
 from .selection import QuizBankProblem
 
 

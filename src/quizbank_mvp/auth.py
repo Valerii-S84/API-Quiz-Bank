@@ -7,7 +7,7 @@ import hmac
 from dataclasses import dataclass
 from pathlib import Path
 
-from .database import connect
+from .database_connection import connect
 from .selection import QuizBankProblem
 
 

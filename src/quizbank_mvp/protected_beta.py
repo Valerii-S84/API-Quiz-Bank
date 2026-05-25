@@ -10,14 +10,16 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from .admin_service import upsert_consumer_profile
-from .database import (
+from .database_connection import (
     connect,
     new_id,
     row_to_dict,
+    utc_now,
+)
+from .database_seed import (
     seed_api_credential,
     seed_consumer,
     seed_entitlement,
-    utc_now,
 )
 from .selection import QuizBankProblem
 from .telegram_delivery import (

@@ -5,7 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .database import connect, row_to_dict, upsert_consumer_visual_settings
+from .database_connection import connect, row_to_dict
+from .database_seed import upsert_consumer_visual_settings
 from .visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings
 
 

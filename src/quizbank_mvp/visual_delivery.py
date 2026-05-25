@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .database import connect, new_id, utc_now
+from .database_connection import connect, new_id, utc_now
 from .image_quality_policy import ALLOWED_IMAGE_QUALITIES
 from .visual_access import (
     check_visual_delivery_access,

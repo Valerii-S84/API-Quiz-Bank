@@ -7,7 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .database import ROOT, connect, insert_visual_asset, new_id, row_to_dict, utc_now
+from .database_connection import ROOT, connect, new_id, row_to_dict, utc_now
+from .database_seed import insert_visual_asset
 from .visual_models import VisualDeliveryMode, VisualSettings
 from .visual_provider import ImageGenerationResult
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .database import DELIVERABLE_STATUSES
+from .database_status import DELIVERABLE_STATUSES
 
 
 def candidate_count(connection, request: Any) -> int:

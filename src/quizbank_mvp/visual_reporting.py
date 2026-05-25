@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .database import connect
+from .database_connection import connect
 
 
 VISUAL_OUTCOME_EVENTS = ("cache_hit", "generation_succeeded", "fallback_used")

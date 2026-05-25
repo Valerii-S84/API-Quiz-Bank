@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .database import connect, new_id, today_usage_date, utc_now
+from .database_connection import connect, new_id, today_usage_date, utc_now
 from .visual_models import (
     VisualAccessDecision,
     VisualDeliveryMode,

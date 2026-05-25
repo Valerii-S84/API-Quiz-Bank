@@ -11,8 +11,8 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from quizbank_mvp import database  # noqa: E402
-from quizbank_mvp.database import (  # noqa: E402
+from quizbank_mvp import database_connection, database_runtime  # noqa: E402
+from quizbank_mvp.database_connection import (  # noqa: E402
     PostgreSQLConnection,
     connect_postgresql,
     decode_json_field,
@@ -80,12 +80,16 @@ class DatabaseBackendContractTests(unittest.TestCase):
 
     def test_environment_database_url_uses_postgresql_runtime_paths(self) -> None:
         with mock.patch.dict(os.environ, {"QUIZBANK_DATABASE_URL": "postgresql://quizbank"}):
-            with mock.patch.object(database, "connect_postgresql", return_value="postgresql_connection"):
-                self.assertEqual(database.connect(), "postgresql_connection")
-            with mock.patch.object(database, "initialize_postgresql_database") as initialize_postgresql:
-                self.assertEqual(database.initialize_database(), "postgresql")
-            with mock.patch.object(database, "postgresql_is_ready", return_value=True):
-                self.assertTrue(database.database_is_ready())
+            with mock.patch.object(
+                database_connection,
+                "connect_postgresql",
+                return_value="postgresql_connection",
+            ):
+                self.assertEqual(database_connection.connect(), "postgresql_connection")
+            with mock.patch.object(database_runtime, "initialize_postgresql_database") as initialize_postgresql:
+                self.assertEqual(database_runtime.initialize_database(), "postgresql")
+            with mock.patch.object(database_runtime, "postgresql_is_ready", return_value=True):
+                self.assertTrue(database_runtime.database_is_ready())
         initialize_postgresql.assert_called_once_with()
 
     def test_initialize_postgresql_database_applies_only_missing_migrations(self) -> None:
@@ -95,9 +99,9 @@ class DatabaseBackendContractTests(unittest.TestCase):
             (migration_directory / "001_seen.sql").write_text("SELECT 'seen';", encoding="utf-8")
             (migration_directory / "002_new.sql").write_text("SELECT 'new';", encoding="utf-8")
 
-            with mock.patch.object(database, "POSTGRESQL_MIGRATIONS_DIRECTORY", migration_directory):
-                with mock.patch.object(database, "connect", return_value=connection):
-                    database.initialize_postgresql_database()
+            with mock.patch.object(database_runtime, "POSTGRESQL_MIGRATIONS_DIRECTORY", migration_directory):
+                with mock.patch.object(database_runtime, "connect", return_value=connection):
+                    database_runtime.initialize_postgresql_database()
 
         self.assertEqual(connection.scripts, ["SELECT 'new';"])
         self.assertIn(("insert_migration", "002_new.sql"), connection.events)
@@ -115,10 +119,10 @@ class DatabaseBackendContractTests(unittest.TestCase):
                 {"name": "quiz_item_image_quality_policy"},
             ]
         )
-        with mock.patch.object(database, "connect", return_value=ready_connection):
-            self.assertTrue(database.postgresql_is_ready())
-        with mock.patch.object(database, "connect", return_value=FailingContext()):
-            self.assertFalse(database.postgresql_is_ready())
+        with mock.patch.object(database_runtime, "connect", return_value=ready_connection):
+            self.assertTrue(database_runtime.postgresql_is_ready())
+        with mock.patch.object(database_runtime, "connect", return_value=FailingContext()):
+            self.assertFalse(database_runtime.postgresql_is_ready())
 
     def test_decode_json_field_accepts_already_decoded_values(self) -> None:
         self.assertEqual(decode_json_field({"status": "ready"}), {"status": "ready"})

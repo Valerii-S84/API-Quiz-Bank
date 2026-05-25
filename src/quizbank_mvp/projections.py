@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .database import decode_json_field
+from .database_connection import decode_json_field
 from .taxonomy import objective_label, pattern_label, theme_label
 
 

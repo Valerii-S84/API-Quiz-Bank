@@ -12,7 +12,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import __version__
 from .admin_api import register_admin_routes
 from .auth import authenticate_consumer
-from .database import configured_database_url, configured_db_path, database_is_ready, visual_database_is_ready
+from .database_connection import configured_database_url, configured_db_path
+from .database_runtime import database_is_ready, visual_database_is_ready
 from .rate_limit import FixedWindowRateLimiter, delivery_rate_limit_key
 from .selection import QuizBankProblem, SelectionFilters, SelectionRequest, get_delivery, select_next_item
 from .taxonomy import level_catalog, topic_catalog

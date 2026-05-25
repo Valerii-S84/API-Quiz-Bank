@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .database import decode_json_field
+from .database_connection import decode_json_field
 
 
 SCOPE_CONFLICT_VALUE = "__scope_conflict__"

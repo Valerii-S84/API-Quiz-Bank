@@ -8,8 +8,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from .database import (
-    DELIVERABLE_STATUSES,
+from .database_connection import (
     connect,
     decode_json_field,
     new_id,
@@ -17,6 +16,7 @@ from .database import (
     today_usage_date,
     utc_now,
 )
+from .database_status import DELIVERABLE_STATUSES
 from .projections import build_learner_quiz_projection
 from .selection_decision_log import (
     insert_selection_decision,
