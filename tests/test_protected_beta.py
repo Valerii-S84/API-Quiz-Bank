@@ -26,6 +26,7 @@ from quizbank_mvp.protected_beta import (  # noqa: E402
     run_protected_beta_slot,
     run_scheduled_protected_beta_slot,
     seed_protected_beta_channels,
+    upsert_pending_slot_run,
 )
 from quizbank_mvp.telegram_delivery import (  # noqa: E402
     TelegramDeliveryError,
@@ -245,6 +246,34 @@ class ProtectedBetaTests(ProtectedBetaTestCase):
         self.assertEqual(visual_settings.fallback_policy, VisualFallbackPolicy.BLOCK_VISUAL_DELIVERY)
         self.assertEqual(visual_settings.daily_visual_delivery_limit, 5)
         self.assertEqual(visual_settings.daily_generation_limit, 5)
+
+    def test_slot_run_upsert_returns_existing_row_on_duplicate_key(self) -> None:
+        seed_protected_beta_channels(self.db_path)
+        slot = CORE_DEUTSCH_IST_EINFACH_CHANNEL.schedule_slots[0]
+        slot_id = slot.stable_slot_id(CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id)
+
+        first = upsert_pending_slot_run(
+            self.db_path,
+            CORE_DEUTSCH_IST_EINFACH_CHANNEL,
+            slot,
+            "2026-05-25",
+            slot_id,
+        )
+        second = upsert_pending_slot_run(
+            self.db_path,
+            CORE_DEUTSCH_IST_EINFACH_CHANNEL,
+            slot,
+            "2026-05-25",
+            slot_id,
+        )
+
+        with connect(self.db_path) as connection:
+            count = connection.execute(
+                "SELECT COUNT(*) AS count FROM scheduled_delivery_slots"
+            ).fetchone()
+
+        self.assertEqual(second["slot_run_id"], first["slot_run_id"])
+        self.assertEqual(count["count"], 1)
 
     def test_core_batch_uses_seeded_image_standard_visual_delivery(self) -> None:
         self.seed_slot_items("A2", "T01", count=1)

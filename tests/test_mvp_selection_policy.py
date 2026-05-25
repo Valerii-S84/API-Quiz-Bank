@@ -9,12 +9,20 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from quizbank_mvp.database import (  # noqa: E402
+    connect,
     initialize_database,
     seed_consumer,
     seed_control_fixture,
     seed_entitlement,
+    today_usage_date,
+    utc_now,
 )
-from quizbank_mvp.selection import SelectionFilters, SelectionRequest, select_next_item  # noqa: E402
+from quizbank_mvp.selection import (  # noqa: E402
+    SelectionFilters,
+    SelectionRequest,
+    select_next_item,
+    upsert_quota_usage,
+)
 from quizbank_mvp.selection_policy import RepeatPolicy, SelectionPolicy  # noqa: E402
 
 
@@ -58,6 +66,53 @@ class MvpSelectionPolicyTests(unittest.TestCase):
         self.assertEqual(first["quiz_item"]["id"], "approved_traceable_001")
         self.assertEqual(second["quiz_item"]["id"], "approved_traceable_001")
         self.assertIn("repeat_policy", second["delivery"]["reason"])
+
+    def test_quota_upsert_returns_existing_row_after_conflict(self) -> None:
+        seed_consumer(self.db_path, "consumer_allowed", 3, ["A2"], ["T10"])
+        usage_date = today_usage_date()
+
+        with connect(self.db_path) as connection:
+            consumer = dict(
+                connection.execute(
+                    "SELECT * FROM consumers WHERE consumer_id = ?",
+                    ("consumer_allowed",),
+                ).fetchone()
+            )
+            connection.execute(
+                """
+                INSERT INTO quota_usage (
+                    quota_usage_id, consumer_id, feature, usage_date, used_count,
+                    quota_limit, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "quota_existing",
+                    "consumer_allowed",
+                    "quiz_delivery",
+                    usage_date,
+                    1,
+                    3,
+                    utc_now(),
+                ),
+            )
+
+            reservation = upsert_quota_usage(
+                connection,
+                consumer,
+                usage_date,
+                "quiz_delivery",
+                "quota_new_racing_insert",
+            )
+            rows = connection.execute(
+                "SELECT quota_usage_id, used_count FROM quota_usage"
+            ).fetchall()
+
+        self.assertEqual(reservation["quota_usage_id"], "quota_existing")
+        self.assertEqual(reservation["used_count"], 2)
+        self.assertEqual(
+            [(row["quota_usage_id"], row["used_count"]) for row in rows],
+            [("quota_existing", 2)],
+        )
 
 
 if __name__ == "__main__":

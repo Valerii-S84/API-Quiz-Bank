@@ -463,12 +463,6 @@ def upsert_pending_slot_run(
         slot.theme_id,
     )
     with connect(db_path) as connection:
-        existing = connection.execute(
-            "SELECT * FROM scheduled_delivery_slots WHERE idempotency_key = ?",
-            (idempotency_key,),
-        ).fetchone()
-        if existing is not None:
-            return row_to_dict(existing)
         now = utc_now()
         slot_run_id = new_id("slotrun")
         connection.execute(
@@ -478,6 +472,7 @@ def upsert_pending_slot_run(
                 delivery_date, slot_id, cefr_level, theme_id, delivery_id,
                 status, failure_reason, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, 'pending', NULL, ?, ?)
+            ON CONFLICT(idempotency_key) DO NOTHING
             """,
             (
                 slot_run_id,
@@ -493,8 +488,8 @@ def upsert_pending_slot_run(
             ),
         )
         row = connection.execute(
-            "SELECT * FROM scheduled_delivery_slots WHERE slot_run_id = ?",
-            (slot_run_id,),
+            "SELECT * FROM scheduled_delivery_slots WHERE idempotency_key = ?",
+            (idempotency_key,),
         ).fetchone()
     return row_to_dict(row)
 
