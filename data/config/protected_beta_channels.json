@@ -1,0 +1,84 @@
+{
+  "channels": [
+    {
+      "consumer_id": "telegram_channel_deutsch_ist_einfach_quiz",
+      "chat_id": "-1003475144955",
+      "display_name": "\ud83c\udde9\ud83c\uddea Deutsch ist einfach! \u2013 Quiz",
+      "timezone": "Europe/Berlin",
+      "daily_quota_limit": 9,
+      "schedule_batches": [
+        {
+          "local_time": "08:22",
+          "slots": [
+            {
+              "local_time": "08:22",
+              "cefr_level": "A2",
+              "theme_id": "T11",
+              "quiz_count": 3
+            }
+          ]
+        },
+        {
+          "local_time": "12:47",
+          "slots": [
+            {
+              "local_time": "12:47",
+              "cefr_level": "B1",
+              "theme_id": "T03",
+              "quiz_count": 3
+            }
+          ]
+        },
+        {
+          "local_time": "20:15",
+          "slots": [
+            {
+              "local_time": "20:15",
+              "cefr_level": "A2",
+              "theme_id": "T10",
+              "quiz_count": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "consumer_id": "core_deutsch_ist_einfach_channel",
+      "chat_id": "-1002987612505",
+      "display_name": "Deutsch ist einfach! Main Channel",
+      "timezone": "Europe/Berlin",
+      "daily_quota_limit": 2,
+      "credential_env": "CORE_DEUTSCH_IST_EINFACH_CHANNEL_API_KEY",
+      "visual_config": {
+        "delivery_mode": "image_standard",
+        "visual_style": "standard_illustration",
+        "branding_preset": "none",
+        "fallback_policy": "block_visual_delivery",
+        "daily_visual_delivery_limit": 5,
+        "daily_generation_limit": 5,
+        "monthly_generation_limit": 70
+      },
+      "schedule_batches": [
+        {
+          "local_time": "12:07",
+          "slots": [
+            {
+              "local_time": "12:07",
+              "cefr_level": "A2",
+              "theme_id": "T01",
+              "quiz_count": 1,
+              "slot_id": "core_deutsch_ist_einfach_channel:T01:12_07"
+            },
+            {
+              "local_time": "12:07",
+              "cefr_level": "A2",
+              "theme_id": "T04",
+              "quiz_count": 1,
+              "slot_id": "core_deutsch_ist_einfach_channel:T04:12_07"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

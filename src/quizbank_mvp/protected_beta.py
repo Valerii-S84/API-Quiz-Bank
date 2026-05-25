@@ -22,6 +22,15 @@ from .database_seed import (
     seed_entitlement,
 )
 from .problems import QuizBankProblem
+from .protected_beta_config import (
+    DEFAULT_PROTECTED_BETA_CONFIG_PATH,
+    ProtectedBetaScheduleBatch,
+    ProtectedBetaScheduleSlot,
+    ProtectedBetaTelegramChannel,
+    ProtectedBetaVisualConfig,
+    load_protected_beta_channels,
+    protected_beta_channel_by_id,
+)
 from .telegram_delivery import (
     TelegramAdapter,
     TelegramDeliveryRequest,
@@ -32,76 +41,9 @@ from .telegram_delivery import (
 )
 from .visual_access import visual_delivery_feature, visual_generation_feature
 from .visual_cache import DEFAULT_ASSET_ROOT
-from .visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings
+from .visual_models import VisualDeliveryMode
 from .visual_provider import ImageGenerationProvider
 from .visual_settings import save_visual_settings
-
-
-@dataclass(frozen=True)
-class ProtectedBetaScheduleSlot:
-    local_time: str
-    cefr_level: str
-    theme_id: str
-    quiz_count: int
-    slot_id: str | None = None
-
-    def stable_slot_id(self, consumer_id: str) -> str:
-        if self.slot_id:
-            return self.slot_id
-        normalized_time = self.local_time.replace(":", "_")
-        return f"{consumer_id}:{self.theme_id}:{normalized_time}"
-
-
-@dataclass(frozen=True)
-class ProtectedBetaScheduleBatch:
-    local_time: str
-    slots: tuple[ProtectedBetaScheduleSlot, ...]
-
-
-@dataclass(frozen=True)
-class ProtectedBetaVisualConfig:
-    delivery_mode: VisualDeliveryMode
-    visual_style: str = "standard_illustration"
-    branding_preset: str = "none"
-    fallback_policy: VisualFallbackPolicy = VisualFallbackPolicy.BLOCK_VISUAL_DELIVERY
-    daily_visual_delivery_limit: int = 5
-    daily_generation_limit: int = 5
-    monthly_generation_limit: int = 70
-
-    def to_settings(self, consumer_id: str) -> VisualSettings:
-        return VisualSettings(
-            consumer_id=consumer_id,
-            delivery_mode=self.delivery_mode,
-            visual_style=self.visual_style,
-            branding_preset=self.branding_preset,
-            fallback_policy=self.fallback_policy,
-            daily_visual_delivery_limit=self.daily_visual_delivery_limit,
-            daily_generation_limit=self.daily_generation_limit,
-            monthly_generation_limit=self.monthly_generation_limit,
-            is_active=True,
-        )
-
-
-@dataclass(frozen=True)
-class ProtectedBetaTelegramChannel:
-    consumer_id: str
-    chat_id: str
-    display_name: str
-    timezone: str
-    daily_quota_limit: int
-    schedule_batches: tuple[ProtectedBetaScheduleBatch, ...]
-    visual_config: ProtectedBetaVisualConfig | None = None
-    credential_env: str | None = None
-
-    @property
-    def schedule_slots(self) -> tuple[ProtectedBetaScheduleSlot, ...]:
-        return tuple(slot for batch in self.schedule_batches for slot in batch.slots)
-
-    def allowed_cefr_levels(self) -> list[str]:
-        return sorted({slot.cefr_level for slot in self.schedule_slots})
-
-    def allowed_theme_ids(self) -> list[str]:
-        return sorted({slot.theme_id for slot in self.schedule_slots})
 
 
 @dataclass(frozen=True)
@@ -111,62 +53,14 @@ class ProtectedBetaDeliveryOptions:
     asset_root: Path = DEFAULT_ASSET_ROOT
 
 
-DEUTSCH_IST_EINFACH_CHANNEL = ProtectedBetaTelegramChannel(
-    consumer_id="telegram_channel_deutsch_ist_einfach_quiz",
-    chat_id="-1003475144955",
-    display_name="🇩🇪 Deutsch ist einfach! – Quiz",
-    timezone="Europe/Berlin",
-    daily_quota_limit=9,
-    schedule_batches=(
-        ProtectedBetaScheduleBatch(
-            "08:22",
-            (ProtectedBetaScheduleSlot("08:22", "A2", "T11", 3),),
-        ),
-        ProtectedBetaScheduleBatch(
-            "12:47",
-            (ProtectedBetaScheduleSlot("12:47", "B1", "T03", 3),),
-        ),
-        ProtectedBetaScheduleBatch(
-            "20:15",
-            (ProtectedBetaScheduleSlot("20:15", "A2", "T10", 3),),
-        ),
-    ),
+PROTECTED_BETA_TELEGRAM_CHANNELS = load_protected_beta_channels()
+DEUTSCH_IST_EINFACH_CHANNEL = protected_beta_channel_by_id(
+    PROTECTED_BETA_TELEGRAM_CHANNELS,
+    "telegram_channel_deutsch_ist_einfach_quiz",
 )
-
-CORE_DEUTSCH_IST_EINFACH_CHANNEL = ProtectedBetaTelegramChannel(
-    consumer_id="core_deutsch_ist_einfach_channel",
-    chat_id="-1002987612505",
-    display_name="Deutsch ist einfach! Main Channel",
-    timezone="Europe/Berlin",
-    daily_quota_limit=2,
-    schedule_batches=(
-        ProtectedBetaScheduleBatch(
-            "12:07",
-            (
-                ProtectedBetaScheduleSlot(
-                    "12:07",
-                    "A2",
-                    "T01",
-                    1,
-                    "core_deutsch_ist_einfach_channel:T01:12_07",
-                ),
-                ProtectedBetaScheduleSlot(
-                    "12:07",
-                    "A2",
-                    "T04",
-                    1,
-                    "core_deutsch_ist_einfach_channel:T04:12_07",
-                ),
-            ),
-        ),
-    ),
-    visual_config=ProtectedBetaVisualConfig(VisualDeliveryMode.IMAGE_STANDARD),
-    credential_env="CORE_DEUTSCH_IST_EINFACH_CHANNEL_API_KEY",
-)
-
-PROTECTED_BETA_TELEGRAM_CHANNELS = (
-    DEUTSCH_IST_EINFACH_CHANNEL,
-    CORE_DEUTSCH_IST_EINFACH_CHANNEL,
+CORE_DEUTSCH_IST_EINFACH_CHANNEL = protected_beta_channel_by_id(
+    PROTECTED_BETA_TELEGRAM_CHANNELS,
+    "core_deutsch_ist_einfach_channel",
 )
 DEFAULT_PROTECTED_BETA_DELIVERY_OPTIONS = ProtectedBetaDeliveryOptions()
 

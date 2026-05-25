@@ -28,6 +28,10 @@ from quizbank_mvp.protected_beta import (  # noqa: E402
     seed_protected_beta_channels,
     upsert_pending_slot_run,
 )
+from quizbank_mvp.protected_beta_config import (  # noqa: E402
+    load_protected_beta_channels,
+    parse_protected_beta_channels,
+)
 from quizbank_mvp.telegram_delivery import (  # noqa: E402
     TelegramDeliveryError,
     TelegramImageSendResult,
@@ -155,6 +159,50 @@ class ProtectedBetaTestCase(unittest.TestCase):
                 (CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,),
             ).fetchall()
         return {row["feature"]: row for row in rows}
+
+
+class ProtectedBetaConfigTests(unittest.TestCase):
+    def test_default_channel_config_loader_matches_runtime_exports(self) -> None:
+        channels = load_protected_beta_channels()
+
+        self.assertEqual(
+            [channel.consumer_id for channel in channels],
+            [
+                DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,
+                CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,
+            ],
+        )
+        self.assertEqual(channels[0].display_name, "🇩🇪 Deutsch ist einfach! – Quiz")
+        self.assertEqual(channels[1].visual_config.delivery_mode, VisualDeliveryMode.IMAGE_STANDARD)
+
+    def test_channel_config_loader_rejects_invalid_schedule_time(self) -> None:
+        raw_config = {
+            "channels": [
+                {
+                    "consumer_id": "invalid_channel",
+                    "chat_id": "@invalid",
+                    "display_name": "Invalid channel",
+                    "timezone": "Europe/Berlin",
+                    "daily_quota_limit": 1,
+                    "schedule_batches": [
+                        {
+                            "local_time": "25:00",
+                            "slots": [
+                                {
+                                    "local_time": "25:00",
+                                    "cefr_level": "A2",
+                                    "theme_id": "T01",
+                                    "quiz_count": 1,
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ]
+        }
+
+        with self.assertRaisesRegex(ValueError, "HH:MM"):
+            parse_protected_beta_channels(raw_config)
 
 
 class ProtectedBetaTests(ProtectedBetaTestCase):

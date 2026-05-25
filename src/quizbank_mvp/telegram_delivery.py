@@ -1,16 +1,10 @@
-"""Telegram delivery worker path for the MVP runtime."""
+"""Telegram delivery orchestration for the MVP runtime."""
 
 from __future__ import annotations
 
-import hashlib
-import json
-import random
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any
 
-from .database_connection import connect, row_to_dict, utc_now
-from .projections import build_telegram_quiz_projection
 from .selection import SelectionFilters, SelectionRequest, select_next_item
 from .telegram_bot_api import (
     TELEGRAM_API_BASE,
@@ -22,69 +16,52 @@ from .telegram_bot_api import (
     read_http_error_description,
     telegram_api_payload,
 )
+from .telegram_models import (
+    TelegramAdapter,
+    TelegramDeliveryRequest,
+    TelegramDeliveryResult,
+    VisualTelegramResult,
+)
+from .telegram_payload import (
+    attach_visual_poll_media,
+    build_explanation,
+    build_telegram_poll_payload,
+    move_correct_option_from_first_position,
+    shuffled_telegram_options,
+    stable_index,
+    stable_shuffle_seed,
+)
+from .telegram_poll_validation import (
+    TELEGRAM_EXPLANATION_LIMIT,
+    TELEGRAM_MAX_OPTIONS,
+    TELEGRAM_MIN_OPTIONS,
+    TELEGRAM_OPTION_LIMIT,
+    TELEGRAM_QUESTION_LIMIT,
+    parse_correct_option_ids,
+    validate_correct_option_ids,
+    validate_delivery_mode,
+    validate_telegram_poll,
+)
+from .telegram_result_repository import (
+    load_delivery_item,
+    record_telegram_result,
+    record_visual_result,
+    redact_telegram_target,
+    sent_item_ids_for_target,
+    telegram_excluded_item_ids,
+)
+from .telegram_visual_integration import (
+    blocked_visual_delivery_result,
+    blocked_visual_telegram_result,
+    build_telegram_image_payload,
+    default_image_provider,
+    send_visual_image,
+    visual_result_after_poll,
+    visual_result_from_poll_delivery,
+)
 from .visual_cache import DEFAULT_ASSET_ROOT
-from .visual_delivery import VisualDeliveryResolution, resolve_visual_delivery
-from .visual_models import VisualDeliveryMode
-from .visual_provider import FakeImageProvider, ImageGenerationProvider
-from .visual_provider_openai import OpenAIEnvironmentImageProvider
-
-
-TELEGRAM_QUESTION_LIMIT = 300
-TELEGRAM_OPTION_LIMIT = 100
-TELEGRAM_EXPLANATION_LIMIT = 200
-TELEGRAM_MIN_OPTIONS = 2
-TELEGRAM_MAX_OPTIONS = 12
-
-
-class TelegramAdapter(Protocol):
-    def send_quiz_poll(self, payload: dict[str, Any]) -> "TelegramSendResult":
-        """Send a validated Telegram quiz poll payload."""
-
-
-@dataclass(frozen=True)
-class TelegramDeliveryRequest:
-    consumer_id: str
-    chat_id: str
-    mode: str = "dry_run"
-    cefr_level: str | None = None
-    theme_ids: tuple[str, ...] = ()
-    objective_ids: tuple[str, ...] = ()
-    pattern_ids: tuple[str, ...] = ()
-    excluded_item_ids: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True)
-class VisualTelegramResult:
-    visual_status: str
-    fallback_used: bool
-    fallback_reason: str | None = None
-    telegram_image_message_id: str | None = None
-
-
-@dataclass(frozen=True)
-class TelegramDeliveryResult:
-    delivery_id: str
-    consumer_id: str
-    quiz_item_id: str
-    mode: str
-    status: str
-    telegram_target_ref: str
-    telegram_message_id: str | None = None
-    telegram_poll_id: str | None = None
-    failure_reason: str | None = None
-
-    def to_public_dict(self) -> dict[str, object]:
-        return {
-            "delivery_id": self.delivery_id,
-            "consumer_id": self.consumer_id,
-            "quiz_item_id": self.quiz_item_id,
-            "mode": self.mode,
-            "status": self.status,
-            "telegram_target_ref": self.telegram_target_ref,
-            "telegram_message_id": self.telegram_message_id,
-            "telegram_poll_id": self.telegram_poll_id,
-            "failure_reason": self.failure_reason,
-        }
+from .visual_delivery import resolve_visual_delivery
+from .visual_provider import ImageGenerationProvider
 
 
 def run_telegram_delivery(
@@ -164,17 +141,6 @@ def send_loaded_telegram_delivery(
     return result
 
 
-def default_image_provider(
-    mode: str,
-    image_provider: ImageGenerationProvider | None,
-) -> ImageGenerationProvider:
-    if image_provider is not None:
-        return image_provider
-    if mode == "real":
-        return OpenAIEnvironmentImageProvider()
-    return FakeImageProvider()
-
-
 def selection_request_from_telegram(
     db_path: Path | None,
     request: TelegramDeliveryRequest,
@@ -190,11 +156,6 @@ def selection_request_from_telegram(
         ),
         delivery_mode="telegram",
     )
-
-
-def validate_delivery_mode(mode: str) -> None:
-    if mode not in {"dry_run", "real"}:
-        raise ValueError("mode must be dry_run or real")
 
 
 def handle_telegram_send(
@@ -229,362 +190,3 @@ def handle_telegram_send(
         telegram_message_id=send_result.message_id,
         telegram_poll_id=send_result.poll_id,
     )
-
-
-def visual_result_from_poll_delivery(
-    mode: str,
-    resolution: VisualDeliveryResolution,
-    poll_result: TelegramDeliveryResult,
-) -> VisualTelegramResult | None:
-    if resolution.requested_mode == VisualDeliveryMode.TEXT_ONLY:
-        return None
-    if not resolution.asset_id or not resolution.image_path:
-        return VisualTelegramResult("fallback_used", True, resolution.fallback_reason)
-    if mode == "dry_run":
-        return VisualTelegramResult("skipped", False, "dry_run_no_bot_api_call")
-    return VisualTelegramResult("sent", False, telegram_image_message_id=poll_result.telegram_message_id)
-
-
-def send_visual_image(
-    mode: str,
-    payload: dict[str, Any],
-    adapter: Any,
-) -> VisualTelegramResult:
-    if mode == "dry_run":
-        return VisualTelegramResult("skipped", False, "dry_run_no_bot_api_call")
-    if adapter is None or not hasattr(adapter, "send_photo"):
-        raise TelegramDeliveryError("real_image_send_requires_adapter")
-    send_result = adapter.send_photo(payload)
-    return VisualTelegramResult("sent", False, telegram_image_message_id=send_result.message_id)
-
-
-def blocked_visual_delivery_result(
-    request: TelegramDeliveryRequest,
-    item: dict[str, Any],
-    resolution: VisualDeliveryResolution,
-) -> TelegramDeliveryResult:
-    reason = resolution.fallback_reason or "VISUAL_DELIVERY_BLOCKED"
-    return TelegramDeliveryResult(
-        delivery_id=str(item["delivery_id"]),
-        consumer_id=request.consumer_id,
-        quiz_item_id=str(item["item_id"]),
-        mode=request.mode,
-        status="failed",
-        telegram_target_ref=redact_telegram_target(request.chat_id),
-        failure_reason=f"visual_delivery_blocked:{reason}",
-    )
-
-
-def blocked_visual_telegram_result(resolution: VisualDeliveryResolution) -> VisualTelegramResult:
-    reason = resolution.fallback_reason or "VISUAL_DELIVERY_BLOCKED"
-    return VisualTelegramResult("failed", False, f"visual_delivery_blocked:{reason}")
-
-
-def visual_result_after_poll(
-    visual_result: VisualTelegramResult | None,
-    poll_result: TelegramDeliveryResult,
-) -> VisualTelegramResult | None:
-    if visual_result is None:
-        return None
-    if poll_result.status == "skipped":
-        return VisualTelegramResult("skipped", False, poll_result.failure_reason)
-    if poll_result.status != "failed":
-        return visual_result
-    return VisualTelegramResult(
-        "failed",
-        True,
-        f"poll_send_failed:{poll_result.failure_reason}",
-        visual_result.telegram_image_message_id,
-    )
-
-
-def build_telegram_image_payload(
-    chat_id: str,
-    item: dict[str, Any],
-    resolution: VisualDeliveryResolution,
-) -> dict[str, Any]:
-    return {
-        "delivery_id": item["delivery_id"],
-        "consumer_id": item["consumer_id"],
-        "quiz_item_id": item["item_id"],
-        "chat_id": chat_id,
-        "photo_path": resolution.image_path,
-    }
-
-
-def load_delivery_item(
-    db_path: Path | None,
-    delivery_id: str,
-    consumer_id: str,
-) -> dict[str, Any]:
-    with connect(db_path) as connection:
-        row = connection.execute(
-            """
-            SELECT qi.*, d.delivery_id, d.consumer_id,
-                   iq.theme_group,
-                   iq.image_quality_recommended,
-                   iq.image_quality_source,
-                   iq.image_quality_policy_share,
-                   iq.image_quality_override
-            FROM deliveries d
-            JOIN quiz_items qi ON qi.item_id = d.quiz_item_id
-            LEFT JOIN quiz_item_image_quality_policy iq ON iq.item_id = qi.item_id
-            WHERE d.delivery_id = ? AND d.consumer_id = ?
-            """,
-            (delivery_id, consumer_id),
-        ).fetchone()
-    if row is None:
-        raise TelegramDeliveryError("delivery_item_not_found")
-    return row_to_dict(row)
-
-
-def build_telegram_poll_payload(
-    chat_id: str,
-    item: dict[str, Any],
-    visual_resolution: VisualDeliveryResolution | None = None,
-) -> dict[str, Any]:
-    telegram_quiz = build_telegram_quiz_projection(item)
-    question = str(telegram_quiz["question"])
-    options, correct_option_ids = shuffled_telegram_options(
-        list(telegram_quiz["options"]),
-        str(item["answer_key"]),
-        str(item["delivery_id"]),
-    )
-    explanation = build_explanation(item)
-    validate_telegram_poll(question, options, correct_option_ids, explanation)
-    payload = {
-        "delivery_id": item["delivery_id"],
-        "consumer_id": item["consumer_id"],
-        "quiz_item_id": item["item_id"],
-        "chat_id": chat_id,
-        "question": question,
-        "options": options,
-        "type": "quiz",
-        "correct_option_ids": correct_option_ids,
-        "explanation": explanation,
-        "is_anonymous": True,
-    }
-    attach_visual_poll_media(payload, visual_resolution)
-    return payload
-
-
-def attach_visual_poll_media(
-    payload: dict[str, Any],
-    visual_resolution: VisualDeliveryResolution | None,
-) -> None:
-    if visual_resolution is None:
-        return
-    if visual_resolution.requested_mode == VisualDeliveryMode.TEXT_ONLY:
-        return
-    if not visual_resolution.asset_id or not visual_resolution.image_path:
-        return
-    payload["poll_media_path"] = visual_resolution.image_path
-
-
-def build_explanation(item: dict[str, Any]) -> str:
-    explanation = str(item["explanation"]).strip()
-    if not explanation:
-        raise TelegramDeliveryError("telegram_explanation_empty")
-    return explanation
-
-
-def parse_correct_option_ids(answer_key: str, option_count: int) -> list[int]:
-    try:
-        correct_option_id = int(answer_key)
-    except ValueError as error:
-        raise TelegramDeliveryError("telegram_answer_key_not_numeric") from error
-    if correct_option_id < 0 or correct_option_id >= option_count:
-        raise TelegramDeliveryError("telegram_answer_key_out_of_range")
-    return [correct_option_id]
-
-
-def shuffled_telegram_options(
-    options: list[str],
-    answer_key: str,
-    salt: str,
-) -> tuple[list[str], list[int]]:
-    correct_option_id = parse_correct_option_ids(answer_key, len(options))[0]
-    indexed_options = list(enumerate(options))
-    rng = random.Random(stable_shuffle_seed(options, answer_key, salt))
-    rng.shuffle(indexed_options)
-    indexed_options = move_correct_option_from_first_position(
-        indexed_options,
-        correct_option_id,
-        salt,
-    )
-    shuffled_options = [option for _, option in indexed_options]
-    shuffled_correct_id = next(
-        index for index, (source_index, _) in enumerate(indexed_options)
-        if source_index == correct_option_id
-    )
-    return shuffled_options, [shuffled_correct_id]
-
-
-def move_correct_option_from_first_position(
-    indexed_options: list[tuple[int, str]],
-    correct_option_id: int,
-    salt: str,
-) -> list[tuple[int, str]]:
-    if len(indexed_options) <= 1 or indexed_options[0][0] != correct_option_id:
-        return indexed_options
-    swap_index = 1 + stable_index(salt, len(indexed_options) - 1)
-    moved_options = list(indexed_options)
-    moved_options[0], moved_options[swap_index] = moved_options[swap_index], moved_options[0]
-    return moved_options
-
-
-def stable_index(salt: str, modulo: int) -> int:
-    digest = hashlib.sha256(salt.encode("utf-8")).digest()
-    return int.from_bytes(digest[:8], "big") % modulo
-
-
-def stable_shuffle_seed(options: list[str], answer_key: str, salt: str) -> int:
-    serialized = json.dumps(
-        {"answer_key": answer_key, "options": options, "salt": salt},
-        ensure_ascii=False,
-        sort_keys=True,
-    )
-    digest = hashlib.sha256(serialized.encode("utf-8")).digest()
-    return int.from_bytes(digest[:8], "big")
-
-
-def validate_telegram_poll(
-    question: str,
-    options: list[str],
-    correct_option_ids: list[int],
-    explanation: str,
-) -> None:
-    if not question:
-        raise TelegramDeliveryError("telegram_question_empty")
-    if len(question) > TELEGRAM_QUESTION_LIMIT:
-        raise TelegramDeliveryError("telegram_question_too_long")
-    if len(explanation) > TELEGRAM_EXPLANATION_LIMIT:
-        raise TelegramDeliveryError("telegram_explanation_too_long")
-    if not TELEGRAM_MIN_OPTIONS <= len(options) <= TELEGRAM_MAX_OPTIONS:
-        raise TelegramDeliveryError("telegram_option_count_invalid")
-    for option in options:
-        if not option or len(option) > TELEGRAM_OPTION_LIMIT:
-            raise TelegramDeliveryError("telegram_option_invalid")
-    validate_correct_option_ids(correct_option_ids, len(options))
-
-
-def validate_correct_option_ids(correct_option_ids: list[int], option_count: int) -> None:
-    if not correct_option_ids:
-        raise TelegramDeliveryError("telegram_correct_option_ids_empty")
-    previous = -1
-    for option_id in correct_option_ids:
-        if option_id <= previous or option_id < 0 or option_id >= option_count:
-            raise TelegramDeliveryError("telegram_correct_option_ids_invalid")
-        previous = option_id
-
-
-def telegram_excluded_item_ids(
-    db_path: Path | None,
-    request: TelegramDeliveryRequest,
-) -> tuple[str, ...]:
-    excluded = [*sent_item_ids_for_target(db_path, request.chat_id), *request.excluded_item_ids]
-    return tuple(dict.fromkeys(excluded))
-
-
-def sent_item_ids_for_target(db_path: Path | None, chat_id: str) -> tuple[str, ...]:
-    target_ref = redact_telegram_target(chat_id)
-    with connect(db_path) as connection:
-        rows = connection.execute(
-            """
-            SELECT d.quiz_item_id
-            FROM telegram_delivery_results t
-            JOIN deliveries d ON d.delivery_id = t.delivery_id
-            WHERE t.telegram_target_ref = ?
-              AND t.status = 'sent'
-            ORDER BY t.recorded_at DESC
-            """,
-            (target_ref,),
-        ).fetchall()
-    return tuple(str(row["quiz_item_id"]) for row in rows)
-
-
-def record_telegram_result(db_path: Path | None, result: TelegramDeliveryResult) -> None:
-    with connect(db_path) as connection:
-        connection.execute(
-            """
-            INSERT INTO telegram_delivery_results (
-                delivery_id, consumer_id, mode, status, telegram_target_ref,
-                telegram_message_id, telegram_poll_id, failure_reason, recorded_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(delivery_id) DO UPDATE SET
-                mode = excluded.mode,
-                status = excluded.status,
-                telegram_target_ref = excluded.telegram_target_ref,
-                telegram_message_id = excluded.telegram_message_id,
-                telegram_poll_id = excluded.telegram_poll_id,
-                failure_reason = excluded.failure_reason,
-                recorded_at = excluded.recorded_at
-            """,
-            (
-                result.delivery_id,
-                result.consumer_id,
-                result.mode,
-                result.status,
-                result.telegram_target_ref,
-                result.telegram_message_id,
-                result.telegram_poll_id,
-                result.failure_reason,
-                utc_now(),
-            ),
-        )
-        connection.execute(
-            """
-            UPDATE deliveries
-            SET delivery_status = ?
-            WHERE delivery_id = ? AND consumer_id = ?
-            """,
-            (result.status, result.delivery_id, result.consumer_id),
-        )
-
-
-def record_visual_result(
-    db_path: Path | None,
-    delivery_id: str,
-    consumer_id: str,
-    resolution: VisualDeliveryResolution,
-    visual_result: VisualTelegramResult | None,
-) -> None:
-    if visual_result is None:
-        return
-    with connect(db_path) as connection:
-        connection.execute(
-            """
-            INSERT INTO visual_delivery_results (
-                delivery_id, consumer_id, asset_id, requested_delivery_mode,
-                resolved_delivery_mode, visual_status, fallback_used,
-                fallback_reason, telegram_image_message_id, recorded_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(delivery_id) DO UPDATE SET
-                asset_id = excluded.asset_id,
-                resolved_delivery_mode = excluded.resolved_delivery_mode,
-                visual_status = excluded.visual_status,
-                fallback_used = excluded.fallback_used,
-                fallback_reason = excluded.fallback_reason,
-                telegram_image_message_id = excluded.telegram_image_message_id,
-                recorded_at = excluded.recorded_at
-            """,
-            (
-                delivery_id,
-                consumer_id,
-                resolution.asset_id,
-                resolution.requested_mode.value,
-                resolution.resolved_mode.value,
-                visual_result.visual_status,
-                int(visual_result.fallback_used),
-                visual_result.fallback_reason,
-                visual_result.telegram_image_message_id,
-                utc_now(),
-            ),
-        )
-
-
-def redact_telegram_target(chat_id: str) -> str:
-    stripped = chat_id.strip()
-    if len(stripped) <= 4:
-        return "***"
-    return f"***{stripped[-4:]}"
