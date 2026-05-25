@@ -204,7 +204,7 @@ class VisualDeliveryTests(unittest.TestCase):
         enable_standard_visual(self)
         grant_feature(self, "visual_delivery.standard")
         grant_feature(self, "visual_generation.standard")
-        record_quota(self, "visual_generation.standard", "2026-05-17", 3, 3)
+        record_quota(self, "visual_generation.standard", today_usage_date(), 3, 3)
 
         resolution = resolve_visual_delivery(
             self.db_path, self.delivery, self.quiz_item, "consumer_visual", FakeImageProvider(), self.asset_root
