@@ -16,7 +16,6 @@ from quizbank_mvp.database import (  # noqa: E402
     connect,
     initialize_database,
     seed_control_fixture,
-    utc_now,
 )
 from quizbank_mvp.protected_beta import (  # noqa: E402
     CORE_DEUTSCH_IST_EINFACH_CHANNEL,
@@ -33,9 +32,9 @@ from quizbank_mvp.telegram_delivery import (  # noqa: E402
     TelegramImageSendResult,
     TelegramSendResult,
 )
-from quizbank_mvp.visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings  # noqa: E402
+from quizbank_mvp.visual_models import VisualDeliveryMode, VisualFallbackPolicy  # noqa: E402
 from quizbank_mvp.visual_provider import FakeImageProvider  # noqa: E402
-from quizbank_mvp.visual_settings import save_visual_settings  # noqa: E402
+from quizbank_mvp.visual_settings import load_visual_settings  # noqa: E402
 
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
@@ -137,43 +136,24 @@ class ProtectedBetaTestCase(unittest.TestCase):
             ).fetchone()
         return slot_rows, int(delivery_count["count"])
 
-    def enable_core_visual(self) -> None:
-        save_visual_settings(
-            self.db_path,
-            VisualSettings(
-                consumer_id=CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,
-                delivery_mode=VisualDeliveryMode.IMAGE_STANDARD,
-                visual_style="standard_illustration",
-                branding_preset="none",
-                fallback_policy=VisualFallbackPolicy.TEXT_ONLY,
-                daily_visual_delivery_limit=5,
-                daily_generation_limit=5,
-                monthly_generation_limit=20,
-                is_active=True,
-            ),
+    def core_visual_delivery_options(self) -> ProtectedBetaDeliveryOptions:
+        return ProtectedBetaDeliveryOptions(
+            image_provider=FakeImageProvider(),
+            asset_root=self.asset_root,
         )
-        self.grant_core_visual_feature("visual_delivery.standard")
-        self.grant_core_visual_feature("visual_generation.standard")
 
-    def grant_core_visual_feature(self, feature: str) -> None:
+    def core_entitlements_by_feature(self):
         with connect(self.db_path) as connection:
-            connection.execute(
+            rows = connection.execute(
                 """
-                INSERT INTO entitlements (
-                    entitlement_id, consumer_id, feature, status,
-                    allowed_cefr_levels_json, allowed_theme_ids_json,
-                    valid_until, created_at
-                ) VALUES (?, ?, ?, 'active', ?, ?, NULL, ?)
+                SELECT feature, allowed_cefr_levels_json, allowed_theme_ids_json
+                FROM entitlements
+                WHERE consumer_id = ?
+                ORDER BY feature
                 """,
-                (
-                    f"ent_core_{feature}",
-                    CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,
-                    feature,
-                    json.dumps(["A2"]),
-                    json.dumps(["T01", "T04"]),
-                    utc_now(),
-                ),
-            )
+                (CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,),
+            ).fetchall()
+        return {row["feature"]: row for row in rows}
 
 
 class ProtectedBetaTests(ProtectedBetaTestCase):
@@ -199,7 +179,7 @@ class ProtectedBetaTests(ProtectedBetaTestCase):
             [
                 ("08:22", "A2", "T11", 3),
                 ("12:47", "B1", "T03", 3),
-                ("20:15", "B2", "T10", 3),
+                ("20:15", "A2", "T10", 3),
             ],
         )
 
@@ -211,10 +191,6 @@ class ProtectedBetaTests(ProtectedBetaTestCase):
                 "SELECT * FROM consumers WHERE consumer_id = ?",
                 (CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,),
             ).fetchone()
-            entitlement = connection.execute(
-                "SELECT * FROM entitlements WHERE consumer_id = ?",
-                (CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,),
-            ).fetchone()
             credential = connection.execute(
                 "SELECT status, LENGTH(key_hash) AS hash_len FROM api_credentials WHERE consumer_id = ?",
                 (CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,),
@@ -224,8 +200,6 @@ class ProtectedBetaTests(ProtectedBetaTestCase):
         self.assertEqual(consumer["daily_quota_limit"], 2)
         self.assertEqual(json.loads(consumer["allowed_cefr_levels_json"]), ["A2"])
         self.assertEqual(json.loads(consumer["allowed_theme_ids_json"]), ["T01", "T04"])
-        self.assertEqual(json.loads(entitlement["allowed_cefr_levels_json"]), ["A2"])
-        self.assertEqual(json.loads(entitlement["allowed_theme_ids_json"]), ["T01", "T04"])
         self.assertEqual(credential["status"], "active")
         self.assertEqual(credential["hash_len"], 64)
         self.assertEqual(
@@ -250,6 +224,66 @@ class ProtectedBetaTests(ProtectedBetaTestCase):
                 ),
             ],
         )
+
+    def test_core_channel_seed_enables_standard_visual_delivery(self) -> None:
+        seed_protected_beta_channels(self.db_path)
+
+        visual_settings = load_visual_settings(
+            self.db_path,
+            CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,
+        )
+        entitlements_by_feature = self.core_entitlements_by_feature()
+
+        self.assertEqual(
+            sorted(entitlements_by_feature),
+            ["quiz_delivery", "visual_delivery.standard", "visual_generation.standard"],
+        )
+        for entitlement in entitlements_by_feature.values():
+            self.assertEqual(json.loads(entitlement["allowed_cefr_levels_json"]), ["A2"])
+            self.assertEqual(json.loads(entitlement["allowed_theme_ids_json"]), ["T01", "T04"])
+        self.assertEqual(visual_settings.delivery_mode, VisualDeliveryMode.IMAGE_STANDARD)
+        self.assertEqual(visual_settings.fallback_policy, VisualFallbackPolicy.BLOCK_VISUAL_DELIVERY)
+        self.assertEqual(visual_settings.daily_visual_delivery_limit, 5)
+        self.assertEqual(visual_settings.daily_generation_limit, 5)
+
+    def test_core_batch_uses_seeded_image_standard_visual_delivery(self) -> None:
+        self.seed_slot_items("A2", "T01", count=1)
+        self.seed_slot_items("A2", "T04", count=1)
+        seed_protected_beta_channels(self.db_path)
+        batch = CORE_DEUTSCH_IST_EINFACH_CHANNEL.schedule_batches[0]
+        adapter = FakeTelegramAdapter()
+
+        results = run_protected_beta_batch(
+            self.db_path,
+            CORE_DEUTSCH_IST_EINFACH_CHANNEL,
+            batch,
+            "real",
+            adapter,
+            datetime(2026, 5, 13, 10, 7, tzinfo=UTC),
+            self.core_visual_delivery_options(),
+        )
+
+        self.assertEqual([result.status for result in results], ["sent", "sent"])
+        self.assertEqual(len(adapter.payloads), 2)
+        self.assertTrue(all(payload.get("poll_media_path") for payload in adapter.payloads))
+        with connect(self.db_path) as connection:
+            visual_rows = connection.execute(
+                """
+                SELECT requested_delivery_mode, resolved_delivery_mode,
+                       visual_status, fallback_used, asset_id
+                FROM visual_delivery_results
+                WHERE consumer_id = ?
+                ORDER BY delivery_id
+                """,
+                (CORE_DEUTSCH_IST_EINFACH_CHANNEL.consumer_id,),
+            ).fetchall()
+        self.assertEqual(len(visual_rows), 2)
+        for row in visual_rows:
+            self.assertEqual(row["requested_delivery_mode"], "image_standard")
+            self.assertEqual(row["resolved_delivery_mode"], "image_standard")
+            self.assertEqual(row["visual_status"], "sent")
+            self.assertEqual(row["fallback_used"], 0)
+            self.assertTrue(row["asset_id"])
 
     def test_due_slots_use_berlin_time(self) -> None:
         slots = due_slots(DEUTSCH_IST_EINFACH_CHANNEL, datetime(2026, 5, 12, 6, 22, tzinfo=UTC))
@@ -287,6 +321,8 @@ class ProtectedBetaTests(ProtectedBetaTestCase):
         self.assertEqual(len({result.quiz_item_id for result in results}), 3)
         self.assertEqual(len(adapter.payloads), 3)
 
+
+class ProtectedBetaCoreBatchRetryTests(ProtectedBetaTestCase):
     def test_core_batch_retry_does_not_duplicate_sent_slot(self) -> None:
         self.seed_slot_items("A2", "T01", count=2)
         self.seed_slot_items("A2", "T04", count=2)
@@ -301,6 +337,7 @@ class ProtectedBetaTests(ProtectedBetaTestCase):
             "real",
             first_adapter,
             datetime(2026, 5, 13, 10, 7, tzinfo=UTC),
+            self.core_visual_delivery_options(),
         )
         retry_adapter = FakeTelegramAdapter()
         retry_results = run_protected_beta_batch(
@@ -310,6 +347,7 @@ class ProtectedBetaTests(ProtectedBetaTestCase):
             "real",
             retry_adapter,
             datetime(2026, 5, 13, 10, 8, tzinfo=UTC),
+            self.core_visual_delivery_options(),
         )
 
         self.assertEqual([result.status for result in first_results], ["sent", "sent"])
@@ -345,6 +383,7 @@ class ProtectedBetaTests(ProtectedBetaTestCase):
             "real",
             adapter,
             datetime(2026, 5, 13, 10, 7, tzinfo=UTC),
+            self.core_visual_delivery_options(),
         )
         retry_adapter = FakeTelegramAdapter()
         retry_results = run_protected_beta_batch(
@@ -354,6 +393,7 @@ class ProtectedBetaTests(ProtectedBetaTestCase):
             "real",
             retry_adapter,
             datetime(2026, 5, 13, 10, 8, tzinfo=UTC),
+            self.core_visual_delivery_options(),
         )
 
         self.assertEqual([result.status for result in first_results], ["sent", "failed"])
@@ -375,6 +415,7 @@ class ProtectedBetaTests(ProtectedBetaTestCase):
             "real",
             adapter,
             datetime(2026, 5, 13, 10, 7, tzinfo=UTC),
+            self.core_visual_delivery_options(),
         )
 
         self.assertEqual([result.status for result in results], ["sent", "no_item"])
@@ -396,7 +437,6 @@ class ProtectedBetaVisualRetryTests(ProtectedBetaTestCase):
     def test_core_slot_retry_reruns_visual_delivery_for_existing_delivery(self) -> None:
         self.seed_slot_items("A2", "T01", count=1)
         seed_protected_beta_channels(self.db_path)
-        self.enable_core_visual()
         slot = CORE_DEUTSCH_IST_EINFACH_CHANNEL.schedule_slots[0]
         delivery_options = ProtectedBetaDeliveryOptions(
             image_provider=FakeImageProvider(),

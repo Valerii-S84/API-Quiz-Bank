@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from datetime import datetime
@@ -27,8 +28,11 @@ from .telegram_delivery import (
     run_telegram_delivery,
     send_existing_telegram_delivery,
 )
+from .visual_access import visual_delivery_feature, visual_generation_feature
 from .visual_cache import DEFAULT_ASSET_ROOT
+from .visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings
 from .visual_provider import ImageGenerationProvider
+from .visual_settings import save_visual_settings
 
 
 @dataclass(frozen=True)
@@ -53,6 +57,30 @@ class ProtectedBetaScheduleBatch:
 
 
 @dataclass(frozen=True)
+class ProtectedBetaVisualConfig:
+    delivery_mode: VisualDeliveryMode
+    visual_style: str = "standard_illustration"
+    branding_preset: str = "none"
+    fallback_policy: VisualFallbackPolicy = VisualFallbackPolicy.BLOCK_VISUAL_DELIVERY
+    daily_visual_delivery_limit: int = 5
+    daily_generation_limit: int = 5
+    monthly_generation_limit: int = 70
+
+    def to_settings(self, consumer_id: str) -> VisualSettings:
+        return VisualSettings(
+            consumer_id=consumer_id,
+            delivery_mode=self.delivery_mode,
+            visual_style=self.visual_style,
+            branding_preset=self.branding_preset,
+            fallback_policy=self.fallback_policy,
+            daily_visual_delivery_limit=self.daily_visual_delivery_limit,
+            daily_generation_limit=self.daily_generation_limit,
+            monthly_generation_limit=self.monthly_generation_limit,
+            is_active=True,
+        )
+
+
+@dataclass(frozen=True)
 class ProtectedBetaTelegramChannel:
     consumer_id: str
     chat_id: str
@@ -60,6 +88,7 @@ class ProtectedBetaTelegramChannel:
     timezone: str
     daily_quota_limit: int
     schedule_batches: tuple[ProtectedBetaScheduleBatch, ...]
+    visual_config: ProtectedBetaVisualConfig | None = None
     credential_env: str | None = None
 
     @property
@@ -97,7 +126,7 @@ DEUTSCH_IST_EINFACH_CHANNEL = ProtectedBetaTelegramChannel(
         ),
         ProtectedBetaScheduleBatch(
             "20:15",
-            (ProtectedBetaScheduleSlot("20:15", "B2", "T10", 3),),
+            (ProtectedBetaScheduleSlot("20:15", "A2", "T10", 3),),
         ),
     ),
 )
@@ -129,6 +158,7 @@ CORE_DEUTSCH_IST_EINFACH_CHANNEL = ProtectedBetaTelegramChannel(
             ),
         ),
     ),
+    visual_config=ProtectedBetaVisualConfig(VisualDeliveryMode.IMAGE_STANDARD),
     credential_env="CORE_DEUTSCH_IST_EINFACH_CHANNEL_API_KEY",
 )
 
@@ -180,6 +210,76 @@ def seed_protected_beta_channel(
         actor,
     )
     seed_channel_credential_from_env(db_path, channel)
+    seed_channel_visual_access(db_path, channel, actor)
+
+
+def seed_channel_visual_access(
+    db_path: Path | None,
+    channel: ProtectedBetaTelegramChannel,
+    actor: str,
+) -> None:
+    if channel.visual_config is None:
+        return
+    save_visual_settings(db_path, channel.visual_config.to_settings(channel.consumer_id))
+    for feature in visual_features(channel.visual_config.delivery_mode):
+        seed_channel_feature_entitlement(db_path, channel, feature, actor)
+
+
+def visual_features(delivery_mode: VisualDeliveryMode) -> tuple[str, ...]:
+    if delivery_mode == VisualDeliveryMode.TEXT_ONLY:
+        return ()
+    return (
+        visual_delivery_feature(delivery_mode),
+        visual_generation_feature(delivery_mode),
+    )
+
+
+def seed_channel_feature_entitlement(
+    db_path: Path | None,
+    channel: ProtectedBetaTelegramChannel,
+    feature: str,
+    actor: str,
+) -> str:
+    entitlement_id = f"ent_{channel.consumer_id}_{feature.replace('.', '_')}"
+    with connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO entitlements (
+                entitlement_id, consumer_id, feature, status,
+                allowed_cefr_levels_json, allowed_theme_ids_json,
+                valid_until, created_at
+            ) VALUES (?, ?, ?, 'active', ?, ?, NULL, ?)
+            ON CONFLICT(entitlement_id) DO UPDATE SET
+                status = excluded.status,
+                allowed_cefr_levels_json = excluded.allowed_cefr_levels_json,
+                allowed_theme_ids_json = excluded.allowed_theme_ids_json,
+                valid_until = excluded.valid_until
+            """,
+            (
+                entitlement_id,
+                channel.consumer_id,
+                feature,
+                json.dumps(channel.allowed_cefr_levels()),
+                json.dumps(channel.allowed_theme_ids()),
+                utc_now(),
+            ),
+        )
+        connection.execute(
+            """
+            INSERT INTO audit_log (
+                audit_id, actor, action, entity_type, entity_id, from_status,
+                to_status, reason, created_at
+            ) VALUES (?, ?, 'entitlement_grant', 'entitlement', ?, '', 'active', ?, ?)
+            """,
+            (
+                new_id("audit"),
+                actor,
+                entitlement_id,
+                f"Protected beta visual access: {channel.display_name}",
+                utc_now(),
+            ),
+        )
+    return entitlement_id
 
 
 def seed_channel_credential_from_env(
