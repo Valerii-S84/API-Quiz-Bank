@@ -318,21 +318,21 @@ def reserve_quota(
 ) -> dict[str, Any]:
     usage_date = today_usage_date()
     feature = quota_feature(request)
-    row = load_quota_usage(connection, consumer["consumer_id"], usage_date, feature)
-    used_count = 0 if row is None else int(row["used_count"])
     quota_limit = int(consumer["daily_quota_limit"])
-    if used_count >= quota_limit:
-        raise quota_exceeded_problem(used_count, quota_limit)
-    quota_usage_id = row["quota_usage_id"] if row else new_id("quota")
-    upsert_quota_usage(
+    if quota_limit <= 0:
+        raise quota_exceeded_problem(0, quota_limit)
+    reservation = upsert_quota_usage(
         connection,
         consumer,
         usage_date,
         feature,
-        quota_usage_id,
-        used_count + 1,
+        new_id("quota"),
     )
-    return {"quota_usage_id": quota_usage_id}
+    if reservation is None:
+        row = load_quota_usage(connection, consumer["consumer_id"], usage_date, feature)
+        used_count = 0 if row is None else int(row["used_count"])
+        raise quota_exceeded_problem(used_count, quota_limit)
+    return {"quota_usage_id": reservation["quota_usage_id"]}
 
 
 def quota_feature(request: SelectionRequest) -> str:
@@ -370,29 +370,30 @@ def upsert_quota_usage(
     usage_date: str,
     feature: str,
     quota_usage_id: str,
-    next_used_count: int,
-) -> None:
-    connection.execute(
+) -> dict[str, Any] | None:
+    row = connection.execute(
         """
         INSERT INTO quota_usage (
             quota_usage_id, consumer_id, feature, usage_date, used_count,
             quota_limit, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, 1, ?, ?)
         ON CONFLICT(consumer_id, feature, usage_date) DO UPDATE SET
-            used_count = excluded.used_count,
+            used_count = quota_usage.used_count + 1,
             quota_limit = excluded.quota_limit,
             updated_at = excluded.updated_at
+        WHERE quota_usage.used_count < excluded.quota_limit
+        RETURNING quota_usage_id, used_count, quota_limit
         """,
         (
             quota_usage_id,
             consumer["consumer_id"],
             feature,
             usage_date,
-            next_used_count,
             int(consumer["daily_quota_limit"]),
             utc_now(),
         ),
-    )
+    ).fetchone()
+    return None if row is None else row_to_dict(row)
 
 
 def find_eligible_item(
