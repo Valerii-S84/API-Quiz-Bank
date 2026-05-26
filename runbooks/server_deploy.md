@@ -160,6 +160,40 @@ Evidence:
 Full evidence is recorded in
 `reports/beta/closed_external_pilot_smoke_2026-05-08.md`.
 
+## Protected Beta Systemd Runtime Templates
+
+The protected beta Telegram service, timer and runtime-user drop-in are tracked
+under `deploy/systemd/`:
+
+- `deploy/systemd/api-quiz-bank-protected-beta-telegram.service`
+- `deploy/systemd/api-quiz-bank-protected-beta-telegram.timer`
+- `deploy/systemd/api-quiz-bank-protected-beta-telegram.service.d/10-runtime-user-and-assets.conf`
+
+The drop-in creates `/var/lib/api-quiz-bank/app-var/visual-assets` with owner
+`65532:65532` and mode `0750`, then runs the scheduler inside the container as
+UID/GID `65532:65532`. Do not replace this with `chmod 777`.
+
+Install or refresh the unit files from `/opt/api-quiz-bank`:
+
+```bash
+install -m 0644 deploy/systemd/api-quiz-bank-protected-beta-telegram.service \
+  /etc/systemd/system/api-quiz-bank-protected-beta-telegram.service
+install -m 0644 deploy/systemd/api-quiz-bank-protected-beta-telegram.timer \
+  /etc/systemd/system/api-quiz-bank-protected-beta-telegram.timer
+install -d -m 0755 \
+  /etc/systemd/system/api-quiz-bank-protected-beta-telegram.service.d
+install -m 0644 \
+  deploy/systemd/api-quiz-bank-protected-beta-telegram.service.d/10-runtime-user-and-assets.conf \
+  /etc/systemd/system/api-quiz-bank-protected-beta-telegram.service.d/10-runtime-user-and-assets.conf
+systemctl daemon-reload
+systemctl enable --now api-quiz-bank-protected-beta-telegram.timer
+```
+
+Recovery dry-runs must use `tools/recover_protected_beta_schedule.py` with
+`--mode dry_run --dry-run --no-duplicate-send`; this path is safe for checking
+that already-sent T01/T04 slots return `already_sent_noop` without a new
+Telegram send.
+
 ## Health Checks
 
 ```bash

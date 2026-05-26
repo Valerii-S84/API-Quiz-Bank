@@ -1,0 +1,9 @@
+[Unit]
+Description=API Quiz Bank protected beta Telegram scheduled delivery
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/api-quiz-bank
+ExecStart=/bin/sh -c '/usr/bin/docker exec --user 65532:65532 api-quiz-bank-pilot python /app/tools/run_protected_beta_schedule.py --mode real --approve-real-send --token-file /run/secrets/api_quiz_bank_telegram_bot_token --slot-time "$(TZ=Europe/Berlin date +%%H:%%M)"'

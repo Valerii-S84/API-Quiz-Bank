@@ -1,0 +1,11 @@
+[Unit]
+Description=Run API Quiz Bank protected beta Telegram scheduler every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=1s
+Persistent=false
+Unit=api-quiz-bank-protected-beta-telegram.service
+
+[Install]
+WantedBy=timers.target
