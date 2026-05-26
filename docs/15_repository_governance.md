@@ -457,6 +457,20 @@ Checks should be relevant to changed scope. However, scope relevance must not be
 
 CI must make quality visible and block unsafe changes before they reach protected branch or release path.
 
+### 11.4. Current committed CI gates
+
+The current GitHub Actions workflow runs:
+
+```text
+no-secrets scan
+public fixture inventory and constitution checks
+public unittest invariant suite
+runtime coverage gate
+runtime import-cycle guard
+numeric limit and basic whitespace style guard
+PostgreSQL backend boundary tests
+```
+
 ---
 
 ## 12. Generated File Policy

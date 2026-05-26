@@ -1746,6 +1746,11 @@ Changes to `main` or release branches SHOULD require passing status checks. Requ
 
 ### 38.5. Illustrative CI workflow
 
+Current committed CI is `.github/workflows/ci.yml`. It uses `unittest`,
+`coverage`, committed public fixtures and dependency-free import/style guards.
+The illustrative workflow below remains a target-pattern example, not the
+source of exact command names.
+
 ```yaml
 name: quality
 
@@ -2263,9 +2268,17 @@ QA-PERF-001   Selection latency measured.
 
 ## 48. Test Command Seeds
 
-These commands are illustrative until implementation chooses exact tool names.
+Current committed commands are listed first. Later examples remain illustrative
+where the exact future tool does not exist yet.
 
 ```bash
+# Current committed MVP gates
+python3 tools/no_secrets_scan.py
+python3 -m unittest discover -s tests -p "test_*.py"
+python3 -m unittest tests.test_import_cycle_guard tests.test_style_numeric_limits tests.test_database_backend_contract
+python3 -m coverage run -m unittest tests.test_database_backend_contract tests.test_mvp_admin tests.test_mvp_coverage_branches tests.test_mvp_projections tests.test_mvp_rate_limit tests.test_mvp_runtime tests.test_mvp_selection_contract tests.test_mvp_selection_decisions tests.test_mvp_selection_policy tests.test_mvp_weighted_selection tests.test_pre_pilot_runtime_invariants tests.test_protected_beta tests.test_telegram_shuffle tests.test_telegram_photo_gate_coverage tests.test_visual_access_gate_coverage tests.test_visual_cache tests.test_visual_prompt_builder tests.test_visual_provider tests.test_visual_qa tests.test_visual_runtime_gate_coverage tests.test_visual_settings tests.test_website_quiz_teaser_beta
+python3 -m coverage report
+
 # Documentation / inventory
 python3 tools/quizbank_readme.py --quizbank-dir QuizBank --out README.md
 python3 tools/quizbank_inventory.py --quizbank-dir QuizBank --format json --out reports/inventory.json

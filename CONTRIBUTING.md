@@ -24,7 +24,11 @@ python3 tools/quizbank_constitution_check.py --quizbank-dir QuizBank
 python3 tools/quizbank_import_sample.py
 python3 tools/quizbank_gap_map.py --quizbank-dir QuizBank --write-artifacts
 python3 tools/quizbank_selection_smoke.py
+python3 tools/no_secrets_scan.py
 python3 -m unittest discover -s tests -p "test_*.py"
+python3 -m unittest tests.test_import_cycle_guard tests.test_style_numeric_limits tests.test_database_backend_contract
+python3 -m coverage run -m unittest tests.test_database_backend_contract tests.test_mvp_admin tests.test_mvp_coverage_branches tests.test_mvp_projections tests.test_mvp_rate_limit tests.test_mvp_runtime tests.test_mvp_selection_contract tests.test_mvp_selection_decisions tests.test_mvp_selection_policy tests.test_mvp_weighted_selection tests.test_pre_pilot_runtime_invariants tests.test_protected_beta tests.test_telegram_shuffle tests.test_telegram_photo_gate_coverage tests.test_visual_access_gate_coverage tests.test_visual_cache tests.test_visual_prompt_builder tests.test_visual_provider tests.test_visual_qa tests.test_visual_runtime_gate_coverage tests.test_visual_settings tests.test_website_quiz_teaser_beta
+python3 -m coverage report
 ```
 
 ## Generated Artifacts

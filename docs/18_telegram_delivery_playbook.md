@@ -465,16 +465,25 @@ If Telegram send happened but the platform cannot later show which item, which v
 The committed MVP worker path is:
 
 ```text
-src/quizbank_mvp/telegram_delivery.py
+src/quizbank_mvp/telegram_delivery.py              orchestration
+src/quizbank_mvp/telegram_payload.py               payload construction
+src/quizbank_mvp/telegram_poll_validation.py       poll constraints
+src/quizbank_mvp/telegram_result_repository.py     result persistence
+src/quizbank_mvp/telegram_visual_integration.py    visual/image integration
+src/quizbank_mvp/telegram_bot_api.py               Bot API adapter
+src/quizbank_mvp/protected_beta_config.py          typed channel/schedule config
+data/config/protected_beta_channels.json           protected beta seed config
 tools/run_telegram_delivery_smoke.py
 database/migrations/003_add_telegram_delivery_results.sql
+database/migrations/008_add_visual_delivery.sql
 ```
 
 The worker requests selection through `select_next_item`, creates the canonical
-delivery id, builds a Telegram quiz-poll payload from the selected runtime item,
-and records `sent`, `failed` or `skipped` in SQLite. Dry-run records `skipped`
-with `dry_run_no_bot_api_call`; real send requires an explicit CLI approval flag
-and a token supplied outside Git.
+delivery id, resolves configured visual delivery when enabled, builds and
+validates the Telegram payload, and records Telegram plus visual delivery
+results in SQLite. Dry-run records `skipped` with `dry_run_no_bot_api_call`;
+real send requires an explicit CLI approval flag and a token supplied outside
+Git.
 
 ---
 

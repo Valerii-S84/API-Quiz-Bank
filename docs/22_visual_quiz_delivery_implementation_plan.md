@@ -130,11 +130,11 @@ consumer/schedule
 | Area | Current files | Current state |
 |---|---|---|
 | FastAPI runtime | `src/quizbank_mvp/app.py` | Versioned `/v1/quiz-items/next`, `/v1/deliveries/{delivery_id}`, trusted item lookup and admin registration exist. |
-| Selection core | `src/quizbank_mvp/selection.py` | Central selection enforces active consumer, `quiz_delivery` entitlement, quota, repeat policy and approved/published status. |
+| Selection core | `src/quizbank_mvp/selection.py`, `selection_quota.py`, `selection_eligibility.py`, `selection_scope_enforcement.py`, `selection_delivery.py` | Central selection enforces active consumer, `quiz_delivery` entitlement, quota, repeat policy and approved/published status through focused modules. |
 | Projections | `src/quizbank_mvp/projections.py` | Public learner and Telegram quiz projections exist; answer key is hidden from public projection. |
-| Telegram worker | `src/quizbank_mvp/telegram_delivery.py` | Sends or dry-runs Telegram quiz poll only; records `telegram_delivery_results`. |
-| Database | `database/migrations/001_create_mvp_runtime.sql` through `007_add_scheduled_delivery_slots.sql` | SQLite MVP schema has `quiz_items`, `consumers`, `entitlements`, `quota_usage`, `deliveries`, `telegram_delivery_results`, `selection_decisions` and schedule slots. |
-| PostgreSQL target | `database/postgresql/*.sql` | Production-oriented schema path exists separately; visual migrations must be mirrored there when runtime implementation reaches DB scope. |
+| Telegram worker | `src/quizbank_mvp/telegram_delivery.py`, `telegram_payload.py`, `telegram_poll_validation.py`, `telegram_result_repository.py`, `telegram_visual_integration.py` | Orchestrates text or visual Telegram delivery; records Telegram and visual delivery results. |
+| Database | `database/migrations/001_create_mvp_runtime.sql` through `009_add_image_quality_policy.sql`; `src/quizbank_mvp/database.py`, `database_connection.py`, `database_runtime.py`, `database_seed.py`, `database_status.py` | SQLite MVP schema and helpers are split by connection/runtime/seed/status responsibility; `database.py` remains a compatibility facade. |
+| PostgreSQL target | `database/postgresql/*.sql` | Production-oriented schema path exists separately with runtime, import, delivery evidence, schedule, visual and image-quality mirror migrations. |
 | Billing catalog | `data/billing/plan_catalog.json` | Seed catalog only includes `quiz_delivery`; no visual feature keys yet. |
 | OpenAPI | `api/openapi.yaml` | Committed contract covers current runtime/admin paths; no visual endpoints yet. |
 | Tests | `tests/test_mvp_runtime.py`, `tests/test_telegram_shuffle.py`, `tests/test_mvp_admin.py`, `tests/test_contract_schema_invariants.py`, others | Runtime, selection, Telegram and governance tests exist and should be extended, not replaced. |
@@ -143,14 +143,6 @@ consumer/schedule
 
 | Gap | Impact |
 |---|---|
-| No visual settings model | Cannot store `delivery_mode`, style, branding preset or fallback policy per consumer. |
-| No visual entitlement feature keys | Cannot distinguish text access from standard/branded visual access. |
-| No visual quota model | Cannot limit image generation or visual deliveries separately from normal quiz delivery. |
-| No visual asset table | Cannot cache or reuse images safely. |
-| No prompt audit table | Cannot trace prompts, model/provider version, revised prompt or QA decisions. |
-| No image provider abstraction | Cannot test generation without network or isolate OpenAI-specific code. |
-| No visual QA service | Cannot block answer leakage, wrong image, poor quality or style mismatch. |
-| No Telegram media send path | Current adapter can only send quiz poll, not image + poll. |
 | No visual OpenAPI/admin contract | Cannot configure visual mode through governed admin/API surfaces. |
 | No visual metrics/reporting | Cannot prove cost control, cache hit rate, fallback rate or quality rate. |
 
@@ -911,35 +903,29 @@ Required tests:
 
 ### 13.1. Current State
 
-Current `src/quizbank_mvp/telegram_delivery.py`:
+Current Telegram delivery modules:
 
 - selects item through `select_next_item`;
-- builds quiz poll payload;
+- builds quiz poll payload through `telegram_payload.py`;
+- validates poll constraints through `telegram_poll_validation.py`;
+- resolves visual/image delivery through `telegram_visual_integration.py`;
 - supports `dry_run` and `real`;
-- adapter sends only `sendPoll`;
-- records `telegram_delivery_results`.
+- adapter supports poll and image send paths;
+- records `telegram_delivery_results` and visual delivery results.
 
-### 13.2. Required Changes
+### 13.2. Implemented Direction
 
-Add:
+The current implementation uses the integrated delivery path:
 
 ```text
 TelegramAdapter.send_photo(payload)
 TelegramImageSendResult
 build_telegram_image_payload(...)
-run_visual_telegram_delivery(...)
 visual_delivery_result recording
 ```
 
-Option A:
-
-- modify `run_telegram_delivery` to always consult visual settings.
-
-Option B:
-
-- create `run_visual_telegram_delivery` and keep existing `run_telegram_delivery` text-only.
-
-Recommended: Option A after visual service is stable, because scheduled Telegram delivery should honor consumer settings automatically.
+`run_telegram_delivery` consults visual settings and keeps `text_only`
+behavior as the default/fallback-compatible path.
 
 ### 13.3. Send Order
 
@@ -1163,6 +1149,9 @@ Files:
 database/migrations/008_add_visual_delivery.sql
 database/postgresql/007_add_visual_delivery.sql
 src/quizbank_mvp/database.py
+src/quizbank_mvp/database_connection.py
+src/quizbank_mvp/database_runtime.py
+src/quizbank_mvp/database_seed.py
 tests/test_visual_database.py
 tests/test_postgresql_contract.py
 ```
@@ -1510,4 +1499,3 @@ First PR done criteria:
 - cache hit prevents second generation;
 - QA rejection and provider failure fall back;
 - no existing MVP runtime tests regress.
-
