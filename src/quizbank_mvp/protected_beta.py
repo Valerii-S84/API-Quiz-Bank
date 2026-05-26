@@ -13,7 +13,6 @@ from .admin_service import upsert_consumer_profile
 from .database_connection import (
     connect,
     new_id,
-    row_to_dict,
     utc_now,
 )
 from .database_seed import (
@@ -31,13 +30,25 @@ from .protected_beta_config import (
     load_protected_beta_channels,
     protected_beta_channel_by_id,
 )
+from .protected_beta_slot_runs import (
+    attach_slot_run_delivery,
+    mark_scheduled_slot_failed_result,
+    mark_slot_run_no_item,
+    scheduled_slot_id,
+    sent_telegram_result_for_slot_run,
+    telegram_result_for_slot_run,
+    update_slot_run_result,
+    upsert_pending_slot_run,
+)
 from .telegram_delivery import (
     TelegramAdapter,
     TelegramDeliveryRequest,
     TelegramDeliveryResult,
+    prepare_telegram_delivery,
     redact_telegram_target,
     run_telegram_delivery,
     send_existing_telegram_delivery,
+    send_loaded_telegram_delivery,
 )
 from .visual_access import visual_delivery_feature, visual_generation_feature
 from .visual_cache import DEFAULT_ASSET_ROOT
@@ -252,17 +263,29 @@ def run_protected_beta_batch(
     results: list[TelegramDeliveryResult] = []
     for slot in batch.slots:
         for index in range(slot.quiz_count):
-            results.append(
-                run_scheduled_protected_beta_slot(
+            slot_options = delivery_options_for_occurrence(delivery_options, index + 1)
+            slot_id = scheduled_slot_id(channel, slot, slot_options)
+            try:
+                result = run_scheduled_protected_beta_slot(
                     db_path,
                     channel,
                     slot,
                     mode,
                     adapter,
                     delivery_date,
-                    delivery_options_for_occurrence(delivery_options, index + 1),
+                    slot_options,
                 )
-            )
+            except Exception as error:
+                result = mark_scheduled_slot_failed_result(
+                    db_path,
+                    channel,
+                    slot,
+                    mode,
+                    delivery_date,
+                    slot_id,
+                    error,
+                )
+            results.append(result)
     return results
 
 
@@ -275,9 +298,7 @@ def run_scheduled_protected_beta_slot(
     delivery_date: str,
     delivery_options: ProtectedBetaDeliveryOptions = DEFAULT_PROTECTED_BETA_DELIVERY_OPTIONS,
 ) -> TelegramDeliveryResult:
-    slot_id = slot.stable_slot_id(channel.consumer_id)
-    if slot.quiz_count > 1:
-        slot_id = f"{slot_id}:{delivery_options.occurrence}"
+    slot_id = scheduled_slot_id(channel, slot, delivery_options)
     request = TelegramDeliveryRequest(
         consumer_id=channel.consumer_id,
         chat_id=channel.chat_id,
@@ -289,19 +310,16 @@ def run_scheduled_protected_beta_slot(
     if mode == "real" and slot_run["status"] == "sent":
         return telegram_result_for_slot_run(db_path, slot_run, channel, mode)
     if mode == "real" and slot_run["delivery_id"]:
-        result = send_existing_telegram_delivery(
-            db_path,
-            str(slot_run["delivery_id"]),
-            request,
-            adapter=adapter,
-            image_provider=delivery_options.image_provider,
-            asset_root=delivery_options.asset_root,
+        return send_slot_run_existing_delivery(
+            db_path, slot_run, channel, mode, request, adapter, delivery_options
         )
-        update_slot_run_result(db_path, slot_run["slot_run_id"], result)
-        return result
     try:
-        result = run_telegram_delivery(
+        delivery, item = prepare_telegram_delivery(db_path, request)
+        attach_slot_run_delivery(db_path, str(slot_run["slot_run_id"]), str(delivery["delivery_id"]))
+        result = send_loaded_telegram_delivery(
             db_path,
+            delivery,
+            item,
             request,
             adapter=adapter,
             image_provider=delivery_options.image_provider,
@@ -324,6 +342,31 @@ def run_scheduled_protected_beta_slot(
     return result
 
 
+def send_slot_run_existing_delivery(
+    db_path: Path | None,
+    slot_run: dict[str, object],
+    channel: ProtectedBetaTelegramChannel,
+    mode: str,
+    request: TelegramDeliveryRequest,
+    adapter: TelegramAdapter | None,
+    delivery_options: ProtectedBetaDeliveryOptions,
+) -> TelegramDeliveryResult:
+    sent_result = sent_telegram_result_for_slot_run(db_path, slot_run, channel, mode)
+    if sent_result is not None:
+        update_slot_run_result(db_path, str(slot_run["slot_run_id"]), sent_result)
+        return sent_result
+    result = send_existing_telegram_delivery(
+        db_path,
+        str(slot_run["delivery_id"]),
+        request,
+        adapter=adapter,
+        image_provider=delivery_options.image_provider,
+        asset_root=delivery_options.asset_root,
+    )
+    update_slot_run_result(db_path, str(slot_run["slot_run_id"]), result)
+    return result
+
+
 def delivery_options_for_occurrence(
     delivery_options: ProtectedBetaDeliveryOptions,
     occurrence: int,
@@ -341,143 +384,3 @@ def delivery_date_for_channel(
 ) -> str:
     resolved_now = now or datetime.now(ZoneInfo(channel.timezone))
     return resolved_now.astimezone(ZoneInfo(channel.timezone)).date().isoformat()
-
-
-def upsert_pending_slot_run(
-    db_path: Path | None,
-    channel: ProtectedBetaTelegramChannel,
-    slot: ProtectedBetaScheduleSlot,
-    delivery_date: str,
-    slot_id: str,
-) -> dict[str, object]:
-    idempotency_key = scheduled_slot_idempotency_key(
-        channel.consumer_id,
-        channel.chat_id,
-        delivery_date,
-        slot_id,
-        slot.cefr_level,
-        slot.theme_id,
-    )
-    with connect(db_path) as connection:
-        now = utc_now()
-        slot_run_id = new_id("slotrun")
-        connection.execute(
-            """
-            INSERT INTO scheduled_delivery_slots (
-                slot_run_id, idempotency_key, consumer_id, channel_id,
-                delivery_date, slot_id, cefr_level, theme_id, delivery_id,
-                status, failure_reason, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, 'pending', NULL, ?, ?)
-            ON CONFLICT(idempotency_key) DO NOTHING
-            """,
-            (
-                slot_run_id,
-                idempotency_key,
-                channel.consumer_id,
-                channel.chat_id,
-                delivery_date,
-                slot_id,
-                slot.cefr_level,
-                slot.theme_id,
-                now,
-                now,
-            ),
-        )
-        row = connection.execute(
-            "SELECT * FROM scheduled_delivery_slots WHERE idempotency_key = ?",
-            (idempotency_key,),
-        ).fetchone()
-    return row_to_dict(row)
-
-
-def scheduled_slot_idempotency_key(
-    consumer_id: str,
-    channel_id: str,
-    delivery_date: str,
-    slot_id: str,
-    cefr_level: str,
-    theme_id: str,
-) -> str:
-    return "|".join((consumer_id, channel_id, delivery_date, slot_id, cefr_level, theme_id))
-
-
-def update_slot_run_result(
-    db_path: Path | None,
-    slot_run_id: str,
-    result: TelegramDeliveryResult,
-) -> None:
-    with connect(db_path) as connection:
-        connection.execute(
-            """
-            UPDATE scheduled_delivery_slots
-            SET delivery_id = ?, status = ?, failure_reason = ?, updated_at = ?
-            WHERE slot_run_id = ?
-            """,
-            (
-                result.delivery_id,
-                result.status,
-                result.failure_reason,
-                utc_now(),
-                slot_run_id,
-            ),
-        )
-
-
-def mark_slot_run_no_item(
-    db_path: Path | None,
-    slot_run_id: str,
-    failure_reason: str,
-) -> None:
-    with connect(db_path) as connection:
-        connection.execute(
-            """
-            UPDATE scheduled_delivery_slots
-            SET status = 'no_item', failure_reason = ?, updated_at = ?
-            WHERE slot_run_id = ?
-            """,
-            (failure_reason, utc_now(), slot_run_id),
-        )
-
-
-def telegram_result_for_slot_run(
-    db_path: Path | None,
-    slot_run: dict[str, object],
-    channel: ProtectedBetaTelegramChannel,
-    mode: str,
-) -> TelegramDeliveryResult:
-    with connect(db_path) as connection:
-        row = connection.execute(
-            """
-            SELECT d.delivery_id, d.consumer_id, d.quiz_item_id,
-                   t.status, t.telegram_target_ref, t.telegram_message_id,
-                   t.telegram_poll_id, t.failure_reason
-            FROM deliveries d
-            LEFT JOIN telegram_delivery_results t ON t.delivery_id = d.delivery_id
-            WHERE d.delivery_id = ? AND d.consumer_id = ?
-            """,
-            (slot_run["delivery_id"], channel.consumer_id),
-        ).fetchone()
-    if row is None:
-        return TelegramDeliveryResult(
-            delivery_id=str(slot_run["delivery_id"] or ""),
-            consumer_id=channel.consumer_id,
-            quiz_item_id="",
-            mode=mode,
-            status="sent",
-            telegram_target_ref=redact_telegram_target(channel.chat_id),
-            failure_reason="sent_slot_delivery_missing",
-        )
-    record = row_to_dict(row)
-    return TelegramDeliveryResult(
-        delivery_id=str(record["delivery_id"]),
-        consumer_id=str(record["consumer_id"]),
-        quiz_item_id=str(record["quiz_item_id"]),
-        mode=mode,
-        status=str(record["status"] or "sent"),
-        telegram_target_ref=str(
-            record["telegram_target_ref"] or redact_telegram_target(channel.chat_id)
-        ),
-        telegram_message_id=record["telegram_message_id"],
-        telegram_poll_id=record["telegram_poll_id"],
-        failure_reason=record["failure_reason"],
-    )

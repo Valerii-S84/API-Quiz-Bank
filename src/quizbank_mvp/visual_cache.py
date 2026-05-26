@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,6 +16,15 @@ from .visual_provider import ImageGenerationResult
 
 DEFAULT_ASSET_ROOT = ROOT / "var" / "visual-assets"
 VISUAL_IMAGE_VERSION = "v4_visual_mode_policy"
+
+
+class VisualAssetStorageError(RuntimeError):
+    """Controlled visual asset filesystem failure without secret values."""
+
+    def __init__(self, reason_code: str, path: Path, detail: str) -> None:
+        self.reason_code = reason_code
+        self.path = path
+        super().__init__(f"{reason_code}: path={path} detail={detail}")
 
 
 @dataclass(frozen=True)
@@ -79,10 +89,10 @@ def store_visual_asset_candidate(
     asset_root: Path = DEFAULT_ASSET_ROOT,
     visual_metadata: dict[str, str] | None = None,
 ) -> VisualAssetRecord:
-    asset_root.mkdir(parents=True, exist_ok=True)
+    asset_root = ensure_asset_root(asset_root)
     asset_id = new_id("vasset")
     image_path = resolve_asset_path(asset_root / f"{asset_id}.{extension_for(result.mime_type)}", asset_root)
-    image_path.write_bytes(result.image_bytes)
+    write_image_bytes_atomically(image_path, result.image_bytes, asset_root)
     image_sha256 = compute_image_sha256(image_path)
     insert_visual_asset(
         db_path,
@@ -145,6 +155,58 @@ def resolve_asset_path(path: Path, asset_root: Path) -> Path:
     if not candidate.resolve().is_relative_to(root):
         raise ValueError("visual asset path must stay under asset root")
     return candidate.resolve()
+
+
+def ensure_asset_root(asset_root: Path) -> Path:
+    try:
+        asset_root.mkdir(parents=True, exist_ok=True)
+    except PermissionError as error:
+        raise storage_error("VISUAL_ASSET_PERMISSION_DENIED", asset_root, error) from error
+    except OSError as error:
+        raise storage_error(storage_reason_code(error), asset_root, error) from error
+    if not asset_root.exists():
+        raise VisualAssetStorageError(
+            "VISUAL_ASSET_DIRECTORY_MISSING",
+            asset_root,
+            "asset root does not exist after mkdir",
+        )
+    if not asset_root.is_dir():
+        raise VisualAssetStorageError(
+            "VISUAL_ASSET_DIRECTORY_INVALID",
+            asset_root,
+            "asset root is not a directory",
+        )
+    return asset_root
+
+
+def write_image_bytes_atomically(image_path: Path, image_bytes: bytes, asset_root: Path) -> None:
+    temp_path = resolve_asset_path(
+        image_path.with_name(f".{image_path.name}.{new_id('tmp')}.tmp"),
+        asset_root,
+    )
+    try:
+        temp_path.write_bytes(image_bytes)
+        temp_path.replace(image_path)
+    except PermissionError as error:
+        raise storage_error("VISUAL_ASSET_PERMISSION_DENIED", image_path, error) from error
+    except OSError as error:
+        raise storage_error(storage_reason_code(error), image_path, error) from error
+    finally:
+        if temp_path.exists():
+            temp_path.unlink()
+
+
+def storage_reason_code(error: OSError) -> str:
+    if error.errno == errno.EROFS:
+        return "VISUAL_ASSET_READ_ONLY_MOUNT"
+    if error.errno == errno.ENOENT:
+        return "VISUAL_ASSET_DIRECTORY_MISSING"
+    return "VISUAL_ASSET_WRITE_FAILED"
+
+
+def storage_error(reason_code: str, path: Path, error: OSError) -> VisualAssetStorageError:
+    detail = error.strerror or type(error).__name__
+    return VisualAssetStorageError(reason_code, path, detail)
 
 
 def asset_payload(

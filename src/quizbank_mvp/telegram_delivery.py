@@ -71,12 +71,20 @@ def run_telegram_delivery(
     image_provider: ImageGenerationProvider | None = None,
     asset_root: Path = DEFAULT_ASSET_ROOT,
 ) -> TelegramDeliveryResult:
+    delivery, item = prepare_telegram_delivery(db_path, request)
+    return send_loaded_telegram_delivery(db_path, delivery, item, request, adapter, image_provider, asset_root)
+
+
+def prepare_telegram_delivery(
+    db_path: Path | None,
+    request: TelegramDeliveryRequest,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     validate_delivery_mode(request.mode)
     selection = select_next_item(db_path, selection_request_from_telegram(db_path, request))
     delivery = selection["delivery"]
     delivery_id = str(delivery["delivery_id"])
     item = load_delivery_item(db_path, delivery_id, request.consumer_id)
-    return send_loaded_telegram_delivery(db_path, delivery, item, request, adapter, image_provider, asset_root)
+    return delivery, item
 
 
 def send_existing_telegram_delivery(
