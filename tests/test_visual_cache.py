@@ -5,18 +5,26 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from quizbank_mvp.database import (  # noqa: E402
+    connect,
     initialize_database,
     insert_visual_asset,
     seed_consumer,
     seed_control_fixture,
 )
-from quizbank_mvp.visual_cache import compute_visual_cache_key, find_approved_asset  # noqa: E402
+from quizbank_mvp.visual_cache import (  # noqa: E402
+    VisualAssetStorageError,
+    compute_visual_cache_key,
+    find_approved_asset,
+    store_visual_asset_candidate,
+)
 from quizbank_mvp.visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings  # noqa: E402
+from quizbank_mvp.visual_provider import ImageGenerationResult  # noqa: E402
 
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
@@ -93,6 +101,44 @@ class VisualCacheTests(unittest.TestCase):
 
         self.assertIsNone(find_approved_asset(self.db_path, cache_key, self.asset_root))
 
+    def test_visual_asset_candidate_write_succeeds_in_writable_directory(self) -> None:
+        result = self.image_result()
+
+        asset = store_visual_asset_candidate(
+            self.db_path,
+            self.quiz_item(),
+            self.settings(),
+            "cache:writable",
+            result,
+            self.asset_root,
+        )
+
+        self.assertTrue(asset.image_path.exists())
+        self.assertEqual(asset.image_sha256, hashlib.sha256(result.image_bytes).hexdigest())
+        with connect(self.db_path) as connection:
+            row = connection.execute(
+                "SELECT image_path, qa_status FROM visual_assets WHERE asset_id = ?",
+                (asset.asset_id,),
+            ).fetchone()
+        self.assertEqual(row["image_path"], str(asset.image_path))
+        self.assertEqual(row["qa_status"], "needs_review")
+
+    def test_visual_asset_candidate_permission_denied_is_controlled(self) -> None:
+        with patch(
+            "quizbank_mvp.visual_cache.Path.write_bytes",
+            side_effect=PermissionError(13, "Permission denied"),
+        ), self.assertRaises(VisualAssetStorageError) as raised:
+            store_visual_asset_candidate(
+                self.db_path,
+                self.quiz_item(),
+                self.settings(),
+                "cache:blocked",
+                self.image_result(),
+                self.asset_root,
+            )
+
+        self.assertEqual(raised.exception.reason_code, "VISUAL_ASSET_PERMISSION_DENIED")
+
     def test_image_path_outside_asset_root_is_rejected(self) -> None:
         outside_path = Path(self.temp_directory.name) / "outside.png"
         outside_path.write_bytes(b"outside")
@@ -156,6 +202,18 @@ class VisualCacheTests(unittest.TestCase):
             "item_id": "approved_traceable_001",
             "language": "de",
         }
+
+    def image_result(self) -> ImageGenerationResult:
+        return ImageGenerationResult(
+            provider_name="fake",
+            provider_model="fake-image-v1",
+            provider_response_id="fake_response",
+            revised_prompt="fake prompt",
+            image_bytes=b"\x89PNG\r\n\x1a\ncandidate",
+            mime_type="image/png",
+            width=1,
+            height=1,
+        )
 
 
 if __name__ == "__main__":

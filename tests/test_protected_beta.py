@@ -446,6 +446,44 @@ class ProtectedBetaCoreBatchRetryTests(ProtectedBetaTestCase):
             ],
         )
 
+    def test_core_batch_retry_does_not_resend_when_telegram_result_is_sent(self) -> None:
+        self.seed_slot_items("A2", "T01", count=1)
+        self.seed_slot_items("A2", "T04", count=1)
+        seed_protected_beta_channels(self.db_path)
+        batch = CORE_DEUTSCH_IST_EINFACH_CHANNEL.schedule_batches[0]
+        first_results = run_protected_beta_batch(
+            self.db_path,
+            CORE_DEUTSCH_IST_EINFACH_CHANNEL,
+            batch,
+            "real",
+            FakeTelegramAdapter(),
+            datetime(2026, 5, 13, 10, 7, tzinfo=UTC),
+            self.core_visual_delivery_options(),
+        )
+        with connect(self.db_path) as connection:
+            connection.execute(
+                """
+                UPDATE scheduled_delivery_slots
+                SET status = 'failed'
+                WHERE delivery_id = ?
+                """,
+                (first_results[0].delivery_id,),
+            )
+        retry_adapter = FakeTelegramAdapter()
+
+        retry_results = run_protected_beta_batch(
+            self.db_path,
+            CORE_DEUTSCH_IST_EINFACH_CHANNEL,
+            batch,
+            "real",
+            retry_adapter,
+            datetime(2026, 5, 13, 10, 8, tzinfo=UTC),
+            self.core_visual_delivery_options(),
+        )
+
+        self.assertEqual(len(retry_adapter.payloads), 0)
+        self.assertEqual([result.status for result in retry_results], ["sent", "sent"])
+
     def test_core_batch_retry_only_resends_failed_slot(self) -> None:
         self.seed_slot_items("A2", "T01", count=2)
         self.seed_slot_items("A2", "T04", count=2)
