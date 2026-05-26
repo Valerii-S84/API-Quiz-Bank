@@ -136,6 +136,19 @@ Expected mode:
 Secret wiring evidence is recorded in
 `reports/pre_pilot/telegram_secret_wiring_2026-05-08.md`.
 
+## Protected Runtime Database Wiring
+
+The protected production scheduler must use the PostgreSQL runtime through
+`QUIZBANK_DATABASE_URL` in the server-only compose override
+`/opt/api-quiz-bank/docker-compose.api-quiz-bank.secrets.yml`. The committed
+`docker-compose.api-quiz-bank.secrets.example.yml` shows the required key with a
+placeholder value only. Do not commit the real database URL.
+
+Post-deploy recovery checks for `2026-05-26` T01/T04 are valid only when the
+running container has `QUIZBANK_DATABASE_URL` set. If this variable is absent,
+the app falls back to `/data/quizbank_mvp.sqlite3`, and protected production
+sent-state/idempotency evidence will not be read from PostgreSQL.
+
 ## Public MVP / Protected Beta Telegram Worker Evidence
 
 Date: 2026-05-08.
