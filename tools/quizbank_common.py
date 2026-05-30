@@ -9,7 +9,7 @@ import hashlib
 import json
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from datetime import date
+from datetime import date as date_type
 from pathlib import Path
 from typing import Iterable
 
@@ -80,6 +80,7 @@ ITEM_STATUSES = (
 NORMAL_DELIVERY_STATUSES = ("approved", "published")
 TEMPLATE_FILENAMES = {"logik_luecke_sheet_template.csv"}
 PARSER_PROFILE_ID = "csv_quiz_bank_v1"
+SNAPSHOT_DATE_FIELDS = ("updated_at", "reviewed_at", "created_at", "locked_at")
 
 
 @dataclass(frozen=True)
@@ -213,9 +214,29 @@ def nested_level_counts(rows: Iterable[dict[str, str]], key_field: str) -> dict[
     }
 
 
-def inventory_summary(inventory: CorpusInventory) -> dict[str, object]:
+def inventory_snapshot_date(inventory: CorpusInventory) -> str:
+    dates = [
+        value[:10]
+        for row in inventory.rows
+        for field in SNAPSHOT_DATE_FIELDS
+        if is_iso_date(value := row.get(field, "").strip())
+    ]
+    return max(dates) if dates else "unknown"
+
+
+def is_iso_date(value: str) -> bool:
+    if len(value) < 10:
+        return False
+    try:
+        date_type.fromisoformat(value[:10])
+    except ValueError:
+        return False
+    return True
+
+
+def inventory_summary(inventory: CorpusInventory, snapshot_date: str | None = None) -> dict[str, object]:
     return {
-        "snapshot_date": date.today().isoformat(),
+        "snapshot_date": snapshot_date or inventory_snapshot_date(inventory),
         "top_level_file_count": len([p for p in inventory.quizbank_dir.iterdir() if p.is_file()]),
         "top_level_directory_count": len([p for p in inventory.quizbank_dir.iterdir() if p.is_dir()]),
         "top_level_csv_count": len(inventory.source_files),

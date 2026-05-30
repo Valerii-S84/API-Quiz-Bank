@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
 from tests.repository_test_support import ROOT, run_command
+from tools import no_secrets_scan
 
 
 SECURITY_REVIEW_PATH = ROOT / "reports" / "security" / "production_hardening_review_2026-05-10.md"
@@ -57,6 +59,20 @@ class ProductionSecurityHardeningTests(unittest.TestCase):
         result = run_command("python3", "tools/no_secrets_scan.py")
 
         self.assertIn("No committed secrets detected.", result.stdout)
+
+    def test_no_secrets_scan_classifies_env_filenames(self) -> None:
+        for filename in (".env", ".env.local", ".env.production"):
+            with self.subTest(filename=filename):
+                self.assertTrue(no_secrets_scan.is_sensitive_filename(Path(filename)))
+
+        self.assertFalse(no_secrets_scan.is_sensitive_filename(Path(".env.example")))
+        self.assertFalse(no_secrets_scan.is_sensitive_filename(Path(".env.api-quiz-bank.example")))
+
+    def test_no_secrets_scan_scans_tracked_files(self) -> None:
+        tracked_paths = {path.relative_to(ROOT).as_posix() for path in no_secrets_scan.tracked_files()}
+
+        self.assertIn("tools/no_secrets_scan.py", tracked_paths)
+        self.assertNotIn(".git/config", tracked_paths)
 
 
 if __name__ == "__main__":

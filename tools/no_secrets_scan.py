@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKIPPED_DIRECTORIES = {".git", ".mypy_cache", ".pytest_cache", "__pycache__", "var"}
 SENSITIVE_FILE_PATTERNS = [
-    re.compile(r"^\.env($|\.)"),
+    re.compile(r"^\.env(?:$|\..+)(?<!\.example)$"),
     re.compile(r"^(\.npmrc|\.pypirc|\.netrc)$"),
     re.compile(r"^id_rsa.*"),
     re.compile(r".*\.(pem|key|p12|pfx)$", re.IGNORECASE),
@@ -50,10 +51,24 @@ def scan_text(path: Path) -> list[str]:
     return findings
 
 
+def tracked_files() -> list[Path]:
+    result = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+    )
+    return [
+        ROOT / path
+        for raw_path in result.stdout.split(b"\0")
+        if (path := raw_path.decode("utf-8"))
+    ]
+
+
 def scan_repository() -> list[str]:
     findings = []
-    for path in sorted(ROOT.rglob("*")):
-        if path.is_dir() or should_skip(path):
+    for path in sorted(tracked_files()):
+        if not path.is_file() or should_skip(path):
             continue
         relative_path = path.relative_to(ROOT)
         if is_sensitive_filename(path):

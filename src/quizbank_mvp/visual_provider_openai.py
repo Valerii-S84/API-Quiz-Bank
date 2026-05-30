@@ -9,7 +9,7 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +18,8 @@ from .visual_provider import ImageGenerationError, ImageGenerationRequest, Image
 
 OPENAI_IMAGE_ENDPOINT = "https://api.openai.com/v1/images/generations"
 OPENAI_IMAGE_QUALITY_VALUES = frozenset({"low", "medium"})
+OPENAI_IMAGE_URL_ALLOWED_HOSTS = frozenset({"oaidalleapiprodscus.blob.core.windows.net"})
+OPENAI_IMAGE_URL_MAX_BYTES = 10 * 1024 * 1024
 
 
 class OpenAIProviderConfigurationError(RuntimeError):
@@ -33,6 +35,8 @@ class OpenAIImageProvider:
         endpoint: str = OPENAI_IMAGE_ENDPOINT,
         timeout_seconds: int = 60,
         urlopen: Callable[..., Any] | None = None,
+        allowed_url_hosts: Iterable[str] = OPENAI_IMAGE_URL_ALLOWED_HOSTS,
+        max_url_image_bytes: int = OPENAI_IMAGE_URL_MAX_BYTES,
     ) -> None:
         if not approve_real_generation:
             raise OpenAIProviderConfigurationError("real OpenAI generation requires explicit approval")
@@ -44,11 +48,15 @@ class OpenAIImageProvider:
             raise OpenAIProviderConfigurationError("OpenAI image endpoint is required")
         if timeout_seconds <= 0:
             raise OpenAIProviderConfigurationError("OpenAI image timeout must be positive")
+        if max_url_image_bytes <= 0:
+            raise OpenAIProviderConfigurationError("OpenAI image URL byte limit must be positive")
         self._api_key = api_key.strip()
         self.model = model.strip()
         self.endpoint = endpoint.strip()
         self.timeout_seconds = timeout_seconds
         self._urlopen = urlopen or urllib.request.urlopen
+        self._allowed_url_hosts = normalized_hosts(allowed_url_hosts)
+        self._max_url_image_bytes = max_url_image_bytes
 
     @classmethod
     def from_environment(
@@ -136,19 +144,28 @@ class OpenAIImageProvider:
         raise KeyError("b64_json")
 
     def fetch_image_url(self, image_url: str) -> bytes:
-        parsed = urllib.parse.urlparse(image_url)
-        if parsed.scheme != "https" or not parsed.netloc:
-            raise ImageGenerationError("openai_image_url_invalid")
+        self.validate_image_url(image_url)
         try:
             with self._urlopen(urllib.request.Request(image_url), timeout=self.timeout_seconds) as response:
-                image_bytes = response.read()
+                self.validate_image_url(final_response_url(response, image_url))
+                image_bytes = response.read(self._max_url_image_bytes + 1)
         except urllib.error.HTTPError as error:
             raise ImageGenerationError(f"openai_image_url_http_error:{error.code}") from error
         except urllib.error.URLError as error:
             raise ImageGenerationError(f"openai_image_url_request_failed:{type(error.reason).__name__}") from error
         if not image_bytes:
             raise ImageGenerationError("openai_image_url_empty")
+        if len(image_bytes) > self._max_url_image_bytes:
+            raise ImageGenerationError("openai_image_url_too_large")
         return image_bytes
+
+    def validate_image_url(self, image_url: str) -> None:
+        parsed = urllib.parse.urlparse(image_url)
+        hostname = parsed.hostname or ""
+        if parsed.scheme != "https" or not hostname or parsed.username or parsed.password:
+            raise ImageGenerationError("openai_image_url_invalid")
+        if hostname.lower() not in self._allowed_url_hosts:
+            raise ImageGenerationError("openai_image_url_host_not_allowed")
 
 
 class OpenAIEnvironmentImageProvider:
@@ -188,6 +205,17 @@ def timeout_from_environment(env: Mapping[str, str]) -> int:
     if timeout <= 0:
         raise OpenAIProviderConfigurationError("VISUAL_OPENAI_TIMEOUT_SECONDS must be positive")
     return timeout
+
+
+def final_response_url(response: Any, fallback_url: str) -> str:
+    geturl = getattr(response, "geturl", None)
+    if geturl is None:
+        return fallback_url
+    return str(geturl())
+
+
+def normalized_hosts(hosts: Iterable[str]) -> frozenset[str]:
+    return frozenset(host.strip().lower() for host in hosts if host.strip())
 
 
 def validated_image_quality(quality: str) -> str:

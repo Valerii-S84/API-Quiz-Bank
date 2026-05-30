@@ -172,7 +172,7 @@ def load_delivery(db_path: Path) -> dict[str, object]:
 def load_quiz_item(db_path: Path) -> dict[str, object]:
     with connect(db_path) as connection:
         row = connection.execute("SELECT * FROM quiz_items WHERE item_id = ?", ("approved_traceable_001",)).fetchone()
-    return row_to_dict(row)
+    return {**row_to_dict(row), "image_quality_recommended": "low"}
 
 
 def count_events(db_path: Path, event_type: str) -> int:

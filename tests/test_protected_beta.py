@@ -122,6 +122,10 @@ class ProtectedBetaTestCase(unittest.TestCase):
             "theme_id": theme_id,
             "coverage_cell_id": f"{level}::{theme_id}::O02::P01",
             "tags": f"theme:{theme_id.lower()};level:{level.lower()};objective:o02;pattern:p01",
+            "theme_group": "simple_visual",
+            "image_quality_recommended": "low",
+            "image_quality_source": "policy",
+            "image_quality_policy_share": "0",
         }
 
     def core_slot_rows_and_delivery_count(self):

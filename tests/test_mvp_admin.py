@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import sys
 import tempfile
 import unittest
@@ -170,7 +171,7 @@ class MvpAdminEndpointTests(MvpAdminCase):
     def test_cli_owner_password_setup_allows_only_one_configured_admin(self) -> None:
         first_args = AdminSeedArgs(self.db_path, reset=False)
         with mock.patch("quizbank_mvp.cli.prompt_admin_password", return_value="owner_password"):
-            seed_owner_password(first_args)
+            run_seed_owner_password(first_args)
 
         response = self.client.get(
             "/v1/admin/dashboard",
@@ -179,13 +180,13 @@ class MvpAdminEndpointTests(MvpAdminCase):
         self.assertEqual(response.status_code, 200)
         with self.assertRaises(SystemExit):
             with mock.patch("quizbank_mvp.cli.prompt_admin_password", return_value="second_password"):
-                seed_owner_password(AdminSeedArgs(self.db_path, reset=False))
+                run_seed_owner_password(AdminSeedArgs(self.db_path, reset=False))
 
     def test_cli_owner_password_reset_replaces_existing_admin_credentials(self) -> None:
         seed_admin_credential(self.db_path, "old_admin", "owner", "old_password")
 
         with mock.patch("quizbank_mvp.cli.prompt_admin_password", return_value="new_password"):
-            seed_owner_password(AdminSeedArgs(self.db_path, reset=True))
+            run_seed_owner_password(AdminSeedArgs(self.db_path, reset=True))
 
         old_response = self.client.get("/v1/admin/dashboard", headers=self.admin_headers("old_password"))
         new_response = self.client.get("/v1/admin/dashboard", headers=self.admin_headers("new_password"))
@@ -445,6 +446,11 @@ class AdminSeedArgs:
     def __init__(self, db_path: Path, reset: bool) -> None:
         self.db_path = db_path
         self.reset = reset
+
+
+def run_seed_owner_password(args: AdminSeedArgs) -> int:
+    with mock.patch("sys.stdout", new_callable=io.StringIO):
+        return seed_owner_password(args)
 
 
 if __name__ == "__main__":

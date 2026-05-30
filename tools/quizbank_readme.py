@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
+import argparse
 import json
-from datetime import date
 from pathlib import Path
 
 from quizbank_common import inventory_summary, load_inventory
@@ -43,7 +43,7 @@ def readme_intro_lines(summary: dict[str, object]) -> list[str]:
             "",
             "## Поточний склад",
             "",
-            f"- Snapshot date: `{date.today().isoformat()}`",
+            f"- Snapshot date: `{summary['snapshot_date']}`",
             f"- Файли на верхньому рівні `QuizBank/`: `{summary['top_level_file_count']}`",
             f"- Директорії на верхньому рівні `QuizBank/`: `{summary['top_level_directory_count']}`",
             f"- CSV на верхньому рівні: `{summary['top_level_csv_count']}`",
@@ -127,9 +127,9 @@ def local_check_lines() -> list[str]:
     ]
 
 
-def build_readme(quizbank_dir: Path) -> str:
+def build_readme(quizbank_dir: Path, snapshot_date: str | None = None) -> str:
     inventory = load_inventory(quizbank_dir)
-    summary = inventory_summary(inventory)
+    summary = inventory_summary(inventory, snapshot_date)
     violations = check_inventory(inventory)
 
     lines = readme_intro_lines(summary)
@@ -144,11 +144,23 @@ def build_readme(quizbank_dir: Path) -> str:
 
 
 def main() -> int:
-    quizbank_dir = Path("QuizBank")
+    parser = build_arg_parser()
+    args = parser.parse_args()
+    quizbank_dir = args.quizbank_dir
     readme_path = quizbank_dir / "README.md"
-    readme_path.write_text(build_readme(quizbank_dir), encoding="utf-8")
+    readme_path.write_text(build_readme(quizbank_dir, args.snapshot_date), encoding="utf-8")
     print(f"wrote {readme_path}")
     return 0
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Generate QuizBank/README.md.")
+    parser.add_argument("--quizbank-dir", default=Path("QuizBank"), type=Path)
+    parser.add_argument(
+        "--snapshot-date",
+        help="Override the deterministic corpus-derived snapshot date.",
+    )
+    return parser
 
 
 if __name__ == "__main__":

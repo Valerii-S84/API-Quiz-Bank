@@ -19,6 +19,7 @@ from quizbank_mvp.visual_provider import (
     parse_image_size,
 )
 from quizbank_mvp.visual_provider_openai import (  # noqa: E402
+    OPENAI_IMAGE_URL_ALLOWED_HOSTS,
     OpenAIEnvironmentImageProvider,
     OpenAIImageProvider,
     OpenAIProviderConfigurationError,
@@ -128,9 +129,10 @@ class VisualProviderTests(unittest.TestCase):
         self.assertEqual(payload["response_format"], "b64_json")
 
     def test_openai_provider_fetches_url_image_payloads(self) -> None:
+        image_url = openai_image_url("generated.png")
         urlopen = UrlopenSequence(
             [
-                {"data": [{"url": "https://images.test/generated.png", "revised_prompt": "safe prompt"}]},
+                {"data": [{"url": image_url, "revised_prompt": "safe prompt"}]},
                 b"\x89PNG\r\n\x1a\nurl-image",
             ]
         )
@@ -139,7 +141,7 @@ class VisualProviderTests(unittest.TestCase):
         result = provider.generate(ImageGenerationRequest(prompt="draw a classroom", negative_prompt=""))
 
         self.assertEqual(result.image_bytes, b"\x89PNG\r\n\x1a\nurl-image")
-        self.assertEqual(urlopen.calls[1].full_url, "https://images.test/generated.png")
+        self.assertEqual(urlopen.calls[1].full_url, image_url)
 
     def test_openai_provider_loads_secret_from_file_without_printing_it(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -191,32 +193,6 @@ class VisualProviderTests(unittest.TestCase):
         with self.assertRaisesRegex(ImageGenerationError, "openai_image_http_error:429"):
             http_failure.generate(ImageGenerationRequest(prompt="x", negative_prompt=""))
 
-    def test_openai_provider_url_payload_failures_are_structured(self) -> None:
-        provider = OpenAIImageProvider("test-key", "gpt-image-2", True, urlopen=UrlopenBytes(b""))
-        http_provider = OpenAIImageProvider(
-            "test-key",
-            "gpt-image-2",
-            True,
-            urlopen=lambda _request, timeout: (_ for _ in ()).throw(
-                urllib.error.HTTPError("https://images.test/generated.png", 404, "missing", {}, None)
-            ),
-        )
-        url_provider = OpenAIImageProvider(
-            "test-key",
-            "gpt-image-2",
-            True,
-            urlopen=lambda _request, timeout: (_ for _ in ()).throw(urllib.error.URLError("offline")),
-        )
-
-        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_invalid"):
-            provider.fetch_image_url("http://images.test/generated.png")
-        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_empty"):
-            provider.fetch_image_url("https://images.test/generated.png")
-        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_http_error:404"):
-            http_provider.fetch_image_url("https://images.test/generated.png")
-        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_request_failed:str"):
-            url_provider.fetch_image_url("https://images.test/generated.png")
-
     def test_openai_environment_provider_maps_configuration_errors_to_generation_errors(self) -> None:
         provider = OpenAIEnvironmentImageProvider({"VISUAL_IMAGE_PROVIDER": "openai"}, urlopen=UrlopenSpy(openai_response()))
 
@@ -247,6 +223,48 @@ class VisualProviderTests(unittest.TestCase):
             provider.generate(ImageGenerationRequest(prompt="x", negative_prompt="", quality="high"))
         with self.assertRaises(ImageGenerationError):
             provider.generate(ImageGenerationRequest(prompt="x", negative_prompt="", quality="auto"))
+
+
+class OpenAIProviderUrlBoundaryTests(unittest.TestCase):
+    def test_openai_provider_url_payload_failures_are_structured(self) -> None:
+        provider = OpenAIImageProvider("test-key", "gpt-image-2", True, urlopen=UrlopenBytes(b""))
+        http_provider = OpenAIImageProvider(
+            "test-key",
+            "gpt-image-2",
+            True,
+            urlopen=lambda _request, timeout: (_ for _ in ()).throw(
+                urllib.error.HTTPError("https://images.test/generated.png", 404, "missing", {}, None)
+            ),
+        )
+        url_provider = OpenAIImageProvider(
+            "test-key",
+            "gpt-image-2",
+            True,
+            urlopen=lambda _request, timeout: (_ for _ in ()).throw(urllib.error.URLError("offline")),
+        )
+
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_invalid"):
+            provider.fetch_image_url(openai_image_url("generated.png").replace("https://", "http://", 1))
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_host_not_allowed"):
+            provider.fetch_image_url("https://images.test/generated.png")
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_empty"):
+            provider.fetch_image_url(openai_image_url("generated.png"))
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_http_error:404"):
+            http_provider.fetch_image_url(openai_image_url("generated.png"))
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_request_failed:str"):
+            url_provider.fetch_image_url(openai_image_url("generated.png"))
+
+    def test_openai_provider_rejects_oversized_url_image_payloads(self) -> None:
+        provider = OpenAIImageProvider(
+            "test-key",
+            "gpt-image-2",
+            True,
+            urlopen=UrlopenBytes(b"12345"),
+            max_url_image_bytes=4,
+        )
+
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_too_large"):
+            provider.fetch_image_url(openai_image_url("generated.png"))
 
 
 class UrlopenSpy:
@@ -291,10 +309,11 @@ class OpenAIStubResponse:
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         return None
 
-    def read(self) -> bytes:
+    def read(self, size: int = -1) -> bytes:
         if isinstance(self.body, bytes):
-            return self.body
-        return json.dumps(self.body).encode("utf-8")
+            return self.body if size < 0 else self.body[:size]
+        encoded = json.dumps(self.body).encode("utf-8")
+        return encoded if size < 0 else encoded[:size]
 
 
 def openai_env() -> dict[str, str]:
@@ -316,6 +335,11 @@ def openai_response() -> dict[str, object]:
         ],
         "usage": {"total_tokens": 0},
     }
+
+
+def openai_image_url(filename: str) -> str:
+    host = sorted(OPENAI_IMAGE_URL_ALLOWED_HOSTS)[0]
+    return f"https://{host}/{filename}"
 
 
 if __name__ == "__main__":
