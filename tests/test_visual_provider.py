@@ -226,6 +226,25 @@ class VisualProviderTests(unittest.TestCase):
 
 
 class OpenAIProviderUrlBoundaryTests(unittest.TestCase):
+    def test_openai_provider_rejects_non_positive_url_byte_limit(self) -> None:
+        with self.assertRaisesRegex(OpenAIProviderConfigurationError, "URL byte limit"):
+            OpenAIImageProvider(
+                "test-key",
+                "gpt-image-2",
+                True,
+                max_url_image_bytes=0,
+            )
+
+    def test_openai_provider_rejects_non_object_image_payload(self) -> None:
+        provider = OpenAIImageProvider("test-key", "gpt-image-2", True)
+
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_payload_missing_b64"):
+            provider.result_from_body(
+                {"data": [[]]},
+                ImageGenerationRequest(prompt="x", negative_prompt=""),
+                "req_bad_payload",
+            )
+
     def test_openai_provider_url_payload_failures_are_structured(self) -> None:
         provider = OpenAIImageProvider("test-key", "gpt-image-2", True, urlopen=UrlopenBytes(b""))
         http_provider = OpenAIImageProvider(
@@ -266,6 +285,17 @@ class OpenAIProviderUrlBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_too_large"):
             provider.fetch_image_url(openai_image_url("generated.png"))
 
+    def test_openai_provider_rejects_redirect_to_untrusted_url_host(self) -> None:
+        provider = OpenAIImageProvider(
+            "test-key",
+            "gpt-image-2",
+            True,
+            urlopen=UrlopenRedirect("https://images.test/generated.png"),
+        )
+
+        with self.assertRaisesRegex(ImageGenerationError, "openai_image_url_host_not_allowed"):
+            provider.fetch_image_url(openai_image_url("generated.png"))
+
 
 class UrlopenSpy:
     def __init__(self, body: dict[str, object]) -> None:
@@ -297,6 +327,14 @@ class UrlopenBytes:
         return OpenAIStubResponse(self.body)
 
 
+class UrlopenRedirect:
+    def __init__(self, final_url: str) -> None:
+        self.final_url = final_url
+
+    def __call__(self, request, timeout: int) -> "OpenAIStubResponse":
+        return OpenAIRedirectResponse(b"redirected-image", self.final_url)
+
+
 class OpenAIStubResponse:
     headers = {"x-request-id": "req_visual_test"}
 
@@ -314,6 +352,15 @@ class OpenAIStubResponse:
             return self.body if size < 0 else self.body[:size]
         encoded = json.dumps(self.body).encode("utf-8")
         return encoded if size < 0 else encoded[:size]
+
+
+class OpenAIRedirectResponse(OpenAIStubResponse):
+    def __init__(self, body: bytes, final_url: str) -> None:
+        super().__init__(body)
+        self.final_url = final_url
+
+    def geturl(self) -> str:
+        return self.final_url
 
 
 def openai_env() -> dict[str, str]:
