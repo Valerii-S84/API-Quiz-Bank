@@ -6,7 +6,7 @@ import hmac
 from dataclasses import dataclass
 from pathlib import Path
 
-from .credential_hashing import API_KEY_PREFIX_LENGTH, api_key_prefix, hash_api_key
+from .credential_hashing import api_key_prefix, hash_api_key
 from .database_connection import connect
 from .problems import QuizBankProblem
 

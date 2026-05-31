@@ -332,7 +332,7 @@ def load_quiz_item(case: VisualDeliveryTests) -> dict[str, object]:
         row = connection.execute(
             "SELECT * FROM quiz_items WHERE item_id = 'approved_traceable_001'"
         ).fetchone()
-    return row_to_dict(row)
+    return {**row_to_dict(row), "image_quality_recommended": "low"}
 
 
 def selection_request() -> SelectionRequest:

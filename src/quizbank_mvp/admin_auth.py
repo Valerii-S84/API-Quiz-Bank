@@ -7,8 +7,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .credential_hashing import (
-    API_KEY_PREFIX_LENGTH,
-    admin_key_prefix,
     api_key_prefix,
     hash_api_key,
 )

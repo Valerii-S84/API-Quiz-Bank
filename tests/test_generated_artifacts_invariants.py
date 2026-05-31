@@ -13,6 +13,7 @@ from tests.repository_test_support import (
     read_csv_dicts,
     run_command,
 )
+from quizbank_readme import build_readme  # noqa: E402
 
 
 class GeneratedArtifactsInvariantTests(unittest.TestCase):
@@ -21,6 +22,11 @@ class GeneratedArtifactsInvariantTests(unittest.TestCase):
         run_command(sys.executable, "tools/quizbank_readme.py")
         after = (ROOT / "QuizBank" / "README.md").read_text(encoding="utf-8")
         self.assertEqual(after, before)
+
+    def test_generated_readme_snapshot_date_can_be_controlled(self) -> None:
+        readme = build_readme(ROOT / "QuizBank", snapshot_date="2099-01-02")
+
+        self.assertIn("- Snapshot date: `2099-01-02`", readme)
 
     def test_generated_inventory_artifacts_are_current(self) -> None:
         artifact_paths = [

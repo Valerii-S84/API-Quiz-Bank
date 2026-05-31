@@ -64,6 +64,7 @@ class VisualTelegramDeliveryTests(unittest.TestCase):
         self.asset_root = Path(self.temp_directory.name) / "visual-assets"
         initialize_database(self.db_path)
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        seed_image_quality_policy(self)
         seed_consumer(self.db_path, "consumer_visual", 5, ["A2"], ["T10"])
         seed_entitlement(self.db_path, "consumer_visual", ["A2"], ["T10"])
 
@@ -327,6 +328,24 @@ def grant_feature(case: VisualTelegramDeliveryTests, consumer_id: str, feature: 
                 json.dumps(["T10"]),
                 utc_now(),
             ),
+        )
+
+
+def seed_image_quality_policy(case: VisualTelegramDeliveryTests) -> None:
+    now = utc_now()
+    with connect(case.db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO quiz_item_image_quality_policy (
+                item_id, theme_group, image_quality_recommended,
+                image_quality_source, image_quality_policy_share,
+                image_quality_override, created_at, updated_at
+            ) VALUES (
+                'approved_traceable_001', 'simple_visual', 'low',
+                'policy', 0, NULL, ?, ?
+            )
+            """,
+            (now, now),
         )
 
 
