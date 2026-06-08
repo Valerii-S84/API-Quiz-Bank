@@ -22,7 +22,12 @@ from .selection import (
 
 
 SHORTS_FACTORY_BACKEND_CONSUMER_ID = "shorts_factory_backend"
-ANSWER_ENABLED_CONSUMERS = {"website_quiz_teaser", SHORTS_FACTORY_BACKEND_CONSUMER_ID}
+DEUTSCH_TRAINER_BOT_CONSUMER_ID = "deutsch_trainer_bot"
+ANSWER_ENABLED_CONSUMERS = {
+    "website_quiz_teaser",
+    DEUTSCH_TRAINER_BOT_CONSUMER_ID,
+    SHORTS_FACTORY_BACKEND_CONSUMER_ID,
+}
 DELIVERY_OUTCOME_STATUSES = {"sent", "failed", "cancelled"}
 
 

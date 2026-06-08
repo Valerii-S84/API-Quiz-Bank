@@ -23,6 +23,7 @@ from quizbank_mvp.database import (  # noqa: E402
     seed_entitlement,
 )
 from quizbank_mvp.trusted_delivery import SHORTS_FACTORY_BACKEND_CONSUMER_ID  # noqa: E402
+from quizbank_mvp.trusted_delivery import DEUTSCH_TRAINER_BOT_CONSUMER_ID  # noqa: E402
 from tools.provision_shorts_factory_backend_consumer import (  # noqa: E402
     provision_shorts_factory_backend,
     write_secret_env,
@@ -31,6 +32,7 @@ from tools.provision_shorts_factory_backend_consumer import (  # noqa: E402
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
 TRUSTED_CONSUMER_ID = SHORTS_FACTORY_BACKEND_CONSUMER_ID
+DEUTSCH_TRAINER_CONSUMER_ID = DEUTSCH_TRAINER_BOT_CONSUMER_ID
 REGULAR_CONSUMER_ID = "regular_video_probe"
 
 
@@ -58,6 +60,17 @@ class ShortsFactoryBackendTests(unittest.TestCase):
             quiz["feedback"]["explanation"],
             "Internal answer explanation is retained in canonical data only.",
         )
+        self.assertTrue(response.json()["interaction"]["answer_key_included"])
+        self.assertNotIn("answer_key", quiz)
+
+    def test_deutsch_trainer_bot_receives_answer_enabled_projection(self) -> None:
+        self.seed_access(DEUTSCH_TRAINER_CONSUMER_ID, "trainer_key")
+
+        response = self.next_item(DEUTSCH_TRAINER_CONSUMER_ID, "trainer_key")
+
+        self.assertEqual(response.status_code, 200)
+        quiz = response.json()["quiz_item"]
+        self.assertEqual(quiz["feedback"]["correctAnswerId"], "option_1")
         self.assertTrue(response.json()["interaction"]["answer_key_included"])
         self.assertNotIn("answer_key", quiz)
 
