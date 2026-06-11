@@ -17,6 +17,19 @@
     "release tag must be created only at release time"
   ],
   "release_tag_policy": "annotated tag after release approval",
+  "remote_branch_protection_verification": {
+    "attempted_at": "2026-06-11T00:00:00+00:00",
+    "commands": [
+      "gh auth status",
+      "gh api repos/Valerii-S84/API-Quiz-Bank/branches/main/protection"
+    ],
+    "conclusion": "remote branch protection is not confirmed or enabled by this report",
+    "observed_results": [
+      "gh auth status: not logged into any GitHub hosts",
+      "gh api branch protection: requires gh auth login or GH_TOKEN"
+    ],
+    "status": "blocked_by_missing_github_cli_auth"
+  },
   "report_type": "release_governance_gate",
   "required_ci_check": "repository-invariants"
 }

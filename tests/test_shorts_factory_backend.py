@@ -23,6 +23,7 @@ from quizbank_mvp.database import (  # noqa: E402
     seed_entitlement,
 )
 from quizbank_mvp.trusted_delivery import SHORTS_FACTORY_BACKEND_CONSUMER_ID  # noqa: E402
+from quizbank_mvp.trusted_delivery import DEUTSCH_TRAINER_BOT_CONSUMER_ID  # noqa: E402
 from tools.provision_shorts_factory_backend_consumer import (  # noqa: E402
     provision_shorts_factory_backend,
     write_secret_env,
@@ -31,6 +32,7 @@ from tools.provision_shorts_factory_backend_consumer import (  # noqa: E402
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
 TRUSTED_CONSUMER_ID = SHORTS_FACTORY_BACKEND_CONSUMER_ID
+DEUTSCH_TRAINER_CONSUMER_ID = DEUTSCH_TRAINER_BOT_CONSUMER_ID
 REGULAR_CONSUMER_ID = "regular_video_probe"
 
 
@@ -60,6 +62,48 @@ class ShortsFactoryBackendTests(unittest.TestCase):
         )
         self.assertTrue(response.json()["interaction"]["answer_key_included"])
         self.assertNotIn("answer_key", quiz)
+
+    def test_deutsch_trainer_bot_receives_answer_enabled_projection(self) -> None:
+        self.seed_access(DEUTSCH_TRAINER_CONSUMER_ID, "trainer_key")
+
+        response = self.next_item(DEUTSCH_TRAINER_CONSUMER_ID, "trainer_key")
+
+        self.assertEqual(response.status_code, 200)
+        quiz = response.json()["quiz_item"]
+        self.assertEqual(quiz["feedback"]["correctAnswerId"], "option_1")
+        self.assertTrue(response.json()["interaction"]["answer_key_included"])
+        self.assertNotIn("answer_key", quiz)
+
+    def test_deutsch_trainer_bot_cannot_use_trusted_item_lookup(self) -> None:
+        self.seed_access(DEUTSCH_TRAINER_CONSUMER_ID, "trainer_key")
+
+        response = self.client.get(
+            "/v1/quiz-items/approved_traceable_001",
+            headers={
+                "X-Consumer-Id": DEUTSCH_TRAINER_CONSUMER_ID,
+                "X-QuizBank-API-Key": "trainer_key",
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["reason_code"], "TRUSTED_CONSUMER_REQUIRED")
+
+    def test_deutsch_trainer_bot_cannot_record_delivery_outcome(self) -> None:
+        self.seed_access(TRUSTED_CONSUMER_ID, "trusted_key")
+        self.seed_access(DEUTSCH_TRAINER_CONSUMER_ID, "trainer_key")
+        delivery_id = self.next_item(DEUTSCH_TRAINER_CONSUMER_ID, "trainer_key").json()["delivery_id"]
+
+        response = self.client.post(
+            f"/v1/deliveries/{delivery_id}/outcome",
+            json={"status": "sent"},
+            headers={
+                "X-Consumer-Id": DEUTSCH_TRAINER_CONSUMER_ID,
+                "X-QuizBank-API-Key": "trainer_key",
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["reason_code"], "TRUSTED_CONSUMER_REQUIRED")
 
     def test_trusted_consumer_scope_limits_selection_when_filters_are_omitted(self) -> None:
         self.seed_access(TRUSTED_CONSUMER_ID, "trusted_key")
@@ -185,6 +229,38 @@ class ShortsFactoryBackendTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json()["reason_code"], "TRUSTED_CONSUMER_REQUIRED")
 
+    def seed_access(self, consumer_id: str, api_key: str, quota: int = 5) -> None:
+        seed_consumer(self.db_path, consumer_id, quota, ["A2"], ["T10"])
+        seed_api_credential(self.db_path, consumer_id, api_key)
+        seed_entitlement(self.db_path, consumer_id, ["A2"], ["T10"])
+
+    def next_item(
+        self,
+        consumer_id: str,
+        api_key: str,
+        cefr_level: str = "A2",
+        theme_id: str = "T10",
+    ):
+        return self.client.post(
+            "/v1/quiz-items/next",
+            json={"consumer_id": consumer_id, "cefr_level": cefr_level, "theme_ids": [theme_id]},
+            headers={"X-Consumer-Id": consumer_id, "X-QuizBank-API-Key": api_key},
+        )
+
+    def delivery_count(self) -> int:
+        with sqlite3.connect(self.db_path) as connection:
+            return int(connection.execute("SELECT COUNT(*) FROM deliveries").fetchone()[0])
+
+
+class ShortsFactoryProvisioningTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_directory = tempfile.TemporaryDirectory()
+        self.db_path = Path(self.temp_directory.name) / "runtime.sqlite3"
+        initialize_database(self.db_path)
+
+    def tearDown(self) -> None:
+        self.temp_directory.cleanup()
+
     def test_provisioning_creates_active_consumer_without_reported_secret(self) -> None:
         secret_env_path = Path(self.temp_directory.name) / "shorts.env"
         args = argparse.Namespace(
@@ -212,28 +288,6 @@ class ShortsFactoryBackendTests(unittest.TestCase):
         self.assertNotEqual(raw_key, evidence["credential_masked"])
         self.assertNotIn(raw_key, str(evidence["env_handoff"]["masked"]))
         self.assertIn("...", evidence["credential_masked"])
-
-    def seed_access(self, consumer_id: str, api_key: str, quota: int = 5) -> None:
-        seed_consumer(self.db_path, consumer_id, quota, ["A2"], ["T10"])
-        seed_api_credential(self.db_path, consumer_id, api_key)
-        seed_entitlement(self.db_path, consumer_id, ["A2"], ["T10"])
-
-    def next_item(
-        self,
-        consumer_id: str,
-        api_key: str,
-        cefr_level: str = "A2",
-        theme_id: str = "T10",
-    ):
-        return self.client.post(
-            "/v1/quiz-items/next",
-            json={"consumer_id": consumer_id, "cefr_level": cefr_level, "theme_ids": [theme_id]},
-            headers={"X-Consumer-Id": consumer_id, "X-QuizBank-API-Key": api_key},
-        )
-
-    def delivery_count(self) -> int:
-        with sqlite3.connect(self.db_path) as connection:
-            return int(connection.execute("SELECT COUNT(*) FROM deliveries").fetchone()[0])
 
     def consumer_row(self, consumer_id: str) -> sqlite3.Row:
         connection = sqlite3.connect(self.db_path)

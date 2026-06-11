@@ -2,8 +2,8 @@
 
 Updated: 2026-05-08
 
-Status: go for local-only/internal closed pilot and protected public route
-smoke; no-go for public beta, production or deployed Telegram worker real send.
+Status: go for local-only/internal closed pilot and Public MVP / Protected
+Beta; no-go for production, broad public, school or paid launch.
 
 ## Decision Matrix
 
@@ -13,7 +13,7 @@ smoke; no-go for public beta, production or deployed Telegram worker real send.
 | Runtime readiness | VPS and protected public health/ready passed | go for protected route smoke | Beta/prod readiness remains out of scope. |
 | Consumer lifecycle | VPS lifecycle evidence passed | go-local-only | Public/beta/prod execution remains out of scope. |
 | Delivery behavior | VPS delivery/repeat/quota evidence passed | go-local-only | Public/beta/prod traffic remains out of scope. |
-| Telegram | VPS dry-run passed, token secret wired, direct controlled send succeeded, local worker path added | go-local-only worker dry-run; no-go for deployed worker real send | Controlled worker send evidence only if explicitly approved later. |
+| Telegram | VPS dry-run passed, token secret wired, direct controlled send succeeded, local worker path added, deployed worker real-send proven for Public MVP / Protected Beta | go for protected beta; production monitoring remains separate | Production Telegram monitoring and incident evidence. |
 | Backup/restore | VPS backup and restore drill passed | go-local-only | Automated/public beta backup remains out of scope. |
 | Monitoring/alerts | owner-review cadence recorded | go-local-only | Dashboard or alert evidence remains required for broader launch. |
 | Support/security | runbooks exist | no-go | Reachable support/security path and owner. |
@@ -23,13 +23,13 @@ smoke; no-go for public beta, production or deployed Telegram worker real send.
 ## Current Decision
 
 ```text
-GO for local-only/internal closed pilot.
-NO-GO for public beta, production or deployed Telegram worker real send.
+GO for local-only/internal closed pilot and Public MVP / Protected Beta.
+NO-GO for production, broad public, school or paid launch.
 Reason: local-only VPS environment, health/readiness, smoke, backup, restore
 drill, lifecycle, delivery, repeat guard, quota denial, Telegram dry-run,
 Telegram token secret wiring, protected public route smoke and ops cadence are
 recorded; direct Telegram real send succeeded separately; deployed worker
-real-send remains not executed/proven.
+real-send is recorded for Public MVP / Protected Beta.
 ```
 
 ## Change Rule
