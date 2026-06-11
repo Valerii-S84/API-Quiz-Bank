@@ -1,0 +1,105 @@
+{
+  "baseline": {
+    "old_micro_probe_max_ms": 9810.686,
+    "old_micro_probe_p50_ms": 9290.937,
+    "old_micro_probe_p95_ms": 9727.744,
+    "old_postgresql_eligible_select_total_cost": 31963340.72,
+    "source": "reports/scale/next_route_db_profile_2026-06-11.md"
+  },
+  "candidate_pool": {
+    "decision_count": 100,
+    "limit": 300,
+    "max_candidate_count_recorded": 300,
+    "min_candidate_count_recorded": 300,
+    "scored_full_30k_bank": false
+  },
+  "dataset": {
+    "levels": [
+      "A2"
+    ],
+    "quiz_content_in_report": false,
+    "synthetic_published_items": 30000,
+    "themes": [
+      "T10"
+    ]
+  },
+  "decision": "GO local remediation proof",
+  "environment": "local_sqlite_testclient_synthetic_30k",
+  "explain": {
+    "after_local_sqlite_candidate_query_plan": [
+      "12 | 0 | 0 | SEARCH qi USING INDEX idx_quiz_items_selection_pool (status=? AND sublevel=? AND theme_id=?)",
+      "37 | 0 | 0 | SEARCH s USING INDEX sqlite_autoindex_sources_1 (source_id=?)",
+      "46 | 0 | 0 | SEARCH iq USING INDEX sqlite_autoindex_quiz_item_image_quality_policy_1 (item_id=?) LEFT-JOIN",
+      "54 | 0 | 0 | SEARCH d_repeat USING COVERING INDEX idx_deliveries_consumer_status_item (consumer_id=? AND delivery_status=? AND quiz_item_id=?) LEFT-JOIN"
+    ],
+    "after_local_sqlite_cell_metrics_query_plan": [
+      "7 | 0 | 0 | SEARCH qi USING COVERING INDEX idx_quiz_items_cell_lookup (theme_id=? AND pattern_id=?)",
+      "15 | 0 | 0 | SEARCH d USING COVERING INDEX idx_deliveries_item (quiz_item_id=?)"
+    ],
+    "after_local_sqlite_item_metrics_query_plan": [
+      "6 | 0 | 0 | SEARCH deliveries USING COVERING INDEX idx_deliveries_item_selected_at (quiz_item_id=?)"
+    ],
+    "after_postgresql_cost_note": "Docker/PostgreSQL was unavailable in this WSL environment; production was not touched.",
+    "after_postgresql_total_cost": null,
+    "before_local_sqlite_has_correlated_delivery_aggregates": true,
+    "before_local_sqlite_query_plan": [
+      "8 | 0 | 0 | SEARCH qi USING INDEX idx_quiz_items_delivery_filter (status=? AND sublevel=? AND theme_id=?)",
+      "33 | 0 | 0 | SEARCH s USING INDEX sqlite_autoindex_sources_1 (source_id=?)",
+      "42 | 0 | 0 | SEARCH iq USING INDEX sqlite_autoindex_quiz_item_image_quality_policy_1 (item_id=?) LEFT-JOIN",
+      "82 | 0 | 0 | CORRELATED SCALAR SUBQUERY 1",
+      "87 | 82 | 0 | SEARCH d_all USING COVERING INDEX idx_deliveries_item (quiz_item_id=?)",
+      "100 | 0 | 0 | CORRELATED SCALAR SUBQUERY 2",
+      "105 | 100 | 0 | SEARCH d_last USING COVERING INDEX idx_deliveries_item_selected_at (quiz_item_id=?)",
+      "124 | 0 | 0 | CORRELATED SCALAR SUBQUERY 3",
+      "130 | 124 | 0 | SEARCH qi_cell USING COVERING INDEX idx_quiz_items_cell_lookup (theme_id=? AND pattern_id=?)",
+      "135 | 124 | 0 | SEARCH d_cell USING COVERING INDEX idx_deliveries_item (quiz_item_id=?)",
+      "158 | 0 | 0 | USE TEMP B-TREE FOR ORDER BY"
+    ]
+  },
+  "explicit_non_claims": {
+    "not_broad_scale_approval": true,
+    "not_paid_pilot_readiness": true,
+    "not_production_deploy": true,
+    "not_production_smoke_or_load": true
+  },
+  "generated_at": "2026-06-11T20:15:33Z",
+  "production_load_test_performed": false,
+  "production_redeploy_performed": false,
+  "production_touched": false,
+  "repeat_policy": {
+    "distinct_selected_count": 100,
+    "recent_duplicate_protection_preserved": true,
+    "selected_count": 100
+  },
+  "report_type": "next_route_perf_after_fix",
+  "requests": {
+    "five_xx_count": 0,
+    "max_ms": 192.371,
+    "mean_ms": 145.225,
+    "p50_ms": 143.57,
+    "p95_ms": 160.956,
+    "p99_ms": 181.6,
+    "sequential_requests": 100,
+    "status_counts": {
+      "200": 100
+    },
+    "thresholds": {
+      "p50_ms": 300,
+      "p95_ms": 800,
+      "p99_ms": 1500
+    },
+    "thresholds_met": true,
+    "timeout_count": 0
+  },
+  "secret_or_quiz_content_printed": false,
+  "writes": {
+    "deliveries_for_test_consumer": 100,
+    "quota_used_count": 100,
+    "selection_decisions_for_test_consumer": 100,
+    "synchronous_writes_per_successful_next": [
+      "quota_usage upsert",
+      "deliveries insert",
+      "selection_decisions insert"
+    ]
+  }
+}

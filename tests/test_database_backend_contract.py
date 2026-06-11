@@ -178,6 +178,12 @@ class DatabaseBackendContractTests(unittest.TestCase):
         self.assertNotIn("?", executed_sql)
         self.assertNotIn(":selection_request_id", executed_sql)
         self.assertIn("%(selection_request_id)s", executed_sql)
+        self.assertIn("LEFT JOIN deliveries d_repeat", executed_sql)
+        self.assertIn("LIMIT %s", executed_sql)
+        self.assertIn("GROUP BY quiz_item_id", executed_sql)
+        self.assertNotIn("d_all", executed_sql)
+        self.assertNotIn("d_last", executed_sql)
+        self.assertNotIn("d_cell", executed_sql)
         self.assertPostgreSQLBoundary(executed_sql)
 
     def test_postgresql_telegram_result_runtime_path_uses_supported_sql(self) -> None:

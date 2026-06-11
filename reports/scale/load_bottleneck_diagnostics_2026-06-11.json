@@ -1,0 +1,328 @@
+{
+  "report_type": "load_bottleneck_diagnostics",
+  "generated_at": "2026-06-11T19:55:00Z",
+  "status": "Done",
+  "route": "/v1/quiz-items/next",
+  "scope_guardrails": {
+    "strong_load_test_ran": false,
+    "stage_1_to_5_ran": false,
+    "rate_limit_bypassed_with_many_keys": false,
+    "mass_test_consumers_created": false,
+    "restart_redeploy_rebuild_migrations_schema_changes": false,
+    "real_consumers_touched": false,
+    "raw_secrets_printed": false,
+    "quiz_content_printed": false
+  },
+  "local_context": {
+    "hostname": "DESKTOP-LLPPQ70",
+    "user": "serputko",
+    "path": "/mnt/c/Users/User/Desktop/API Quiz Bank",
+    "git_sha": "de2438f7ee79cb11eaa257279979b6c3ade37b27"
+  },
+  "server_context": {
+    "hostname": "ubuntu-8gb-nbg1-1",
+    "user": "root",
+    "path": "/opt/api-quiz-bank",
+    "git_sha": "904babbd998adcf43cfbc7945d5f24d499ec47c4",
+    "git_status_short": [
+      "M src/quizbank_mvp/trusted_delivery.py",
+      " M tests/test_shorts_factory_backend.py"
+    ]
+  },
+  "production_health": {
+    "before": {
+      "public_health_status": 200,
+      "public_ready_status": 200,
+      "container_health": [
+        "/api-quiz-bank-pilot running healthy restart=0 started=2026-06-08T12:28:26.861683099Z",
+        "/api-quiz-bank-postgres running healthy restart=0 started=2026-05-11T15:22:22.710037082Z"
+      ],
+      "docker_stats": [
+        "api-quiz-bank-pilot\t0.19%\t179.2MiB / 512MiB\t35.01%",
+        "api-quiz-bank-postgres\t10.54%\t144.4MiB / 512MiB\t28.20%"
+      ]
+    },
+    "after": {
+      "public_health_status": 200,
+      "public_ready_status": 200,
+      "container_health": [
+        "/api-quiz-bank-pilot running healthy restart=0",
+        "/api-quiz-bank-postgres running healthy restart=0"
+      ],
+      "docker_stats_immediate": [
+        "api-quiz-bank-pilot\t33.23%\t192.3MiB / 512MiB\t37.55%",
+        "api-quiz-bank-postgres\t5.56%\t144.5MiB / 512MiB\t28.22%"
+      ],
+      "docker_stats_delayed": [
+        "api-quiz-bank-pilot\t20.02%\t192.3MiB / 512MiB\t37.55%",
+        "api-quiz-bank-postgres\t0.00%\t144.5MiB / 512MiB\t28.22%"
+      ],
+      "host_load_delayed": "1.25, 0.83, 0.59"
+    }
+  },
+  "route_db_profile_static": {
+    "successful_request_db_executes": 11,
+    "reads": [
+      "auth credential lookup",
+      "active consumer lookup",
+      "active entitlement lookup",
+      "candidate_count",
+      "eligible candidate fetch",
+      "non_deliverable_status_count",
+      "repeat_policy_block_count",
+      "delivery row reload after insert"
+    ],
+    "writes": [
+      "quota_usage upsert",
+      "deliveries insert",
+      "selection_decisions insert"
+    ],
+    "hot_path_observations": [
+      "eligible candidate fetch uses fetchall and scores candidates in Python",
+      "candidate_count and blocked_reason_counts run additional reads before/after candidate fetch",
+      "eligible candidate fetch includes three correlated delivery-history subqueries per candidate",
+      "no ORDER BY RANDOM() was found in route selection code"
+    ]
+  },
+  "postgres_diagnostics": {
+    "pg_stat_statements_available": false,
+    "pg_stat_statements_blocker": "extension not installed/enabled; not enabled because that would require production config/restart work outside this task",
+    "table_counts": {
+      "quiz_items_total": 30975,
+      "quiz_items_deliverable": 30975,
+      "deliveries_total_before_microprobe": 551,
+      "selection_decisions_total_before_microprobe": 549,
+      "quota_usage_total_before_microprobe": 161,
+      "load_test_deliveries_before_microprobe": 84
+    },
+    "table_size_summary": {
+      "quiz_items_total_size": "54 MB",
+      "quiz_item_image_quality_policy_total_size": "14 MB",
+      "deliveries_total_size": "464 kB",
+      "selection_decisions_total_size": "1144 kB"
+    },
+    "index_findings": {
+      "present": [
+        "quiz_items(status, sublevel, theme_id, objective_id, pattern_id)",
+        "deliveries(consumer_id, quiz_item_id)",
+        "api_credentials(consumer_id, key_prefix)",
+        "quota_usage unique(consumer_id, feature, usage_date)",
+        "selection_decisions(consumer_id, created_at)",
+        "quiz_item_image_quality_policy(item_id)"
+      ],
+      "missing_or_suspect": [
+        "deliveries(quiz_item_id) for per-item delivery_count correlated subquery",
+        "deliveries(quiz_item_id, selected_at DESC) for last_delivered_at correlated subquery",
+        "deliveries(consumer_id, delivery_status, quiz_item_id) for repeat-policy filtering",
+        "pre-aggregated delivery stats by item and theme/pattern cell"
+      ]
+    },
+    "locks_before_microprobe": [
+      {
+        "mode": "AccessShareLock",
+        "granted": true,
+        "count": 5
+      }
+    ],
+    "locks_during_microprobe": {
+      "blocked_or_ungranted_locks_observed": false,
+      "observed_granted_modes": [
+        "AccessShareLock",
+        "RowExclusiveLock",
+        "RowShareLock"
+      ]
+    },
+    "active_connections_during_microprobe": {
+      "max_observed_count": 2,
+      "wait_event_type": "none_or_client",
+      "long_running_query_observed": false
+    }
+  },
+  "explain_without_analyze": {
+    "candidate_count_unfiltered": {
+      "total_cost": 6847.79,
+      "plan_rows": 1,
+      "notable_nodes": [
+        "Hash Join",
+        "Seq Scan quiz_items plan_rows=30900",
+        "Seq Scan sources plan_rows=114"
+      ]
+    },
+    "eligible_select_unfiltered": {
+      "total_cost": 31963340.72,
+      "plan_rows": 30366,
+      "notable_nodes": [
+        "Merge Join left",
+        "Merge Join anti",
+        "Index Scan quiz_items_pkey plan_rows=30900",
+        "Index Scan idx_deliveries_consumer_item",
+        "three correlated aggregate subplans",
+        "Seq Scan deliveries in delivery_count/last_delivered/cell_delivery_count subplans",
+        "Index Scan idx_quiz_items_delivery_filter inside cell_delivery_count subplan"
+      ]
+    },
+    "repeat_count_unfiltered": {
+      "total_cost": 16.91,
+      "plan_rows": 1,
+      "notable_nodes": [
+        "Index Scan idx_deliveries_consumer_item",
+        "Index Scan quiz_items_pkey",
+        "Index Scan sources_pkey"
+      ]
+    }
+  },
+  "micro_probe": {
+    "consumer_id": "load-diagnostic-2026-06-11",
+    "consumer_created": true,
+    "non_test_consumers_before": 19,
+    "non_test_consumers_after": 19,
+    "key_hash_prefix": "e05c8072ddd59613",
+    "key_fingerprint": "e05c8072ddd59613c40b2297",
+    "raw_key_printed": false,
+    "raw_key_file_removed_after": true,
+    "credential_revoked_after": true,
+    "payload_profile": "consumer_id_only_unfiltered",
+    "total_requests": 20,
+    "total_status_counts": {
+      "200": 20
+    },
+    "total_latency_ms": {
+      "min": 9103.984,
+      "avg": 9395.591,
+      "p50": 9290.937,
+      "p90": 9708.471,
+      "p95": 9727.744,
+      "p99": 9727.744,
+      "max": 9810.686
+    },
+    "stages": [
+      {
+        "name": "diag_5",
+        "requests": 5,
+        "status_counts": {
+          "200": 5
+        },
+        "latency_ms": {
+          "min": 9103.984,
+          "avg": 9377.274,
+          "p50": 9273.96,
+          "p90": 9435.122,
+          "p95": 9435.122,
+          "p99": 9435.122,
+          "max": 9810.686
+        },
+        "delivery_count_after": 5,
+        "quota_used_after": 5
+      },
+      {
+        "name": "diag_10",
+        "requests": 10,
+        "status_counts": {
+          "200": 10
+        },
+        "latency_ms": {
+          "min": 9164.922,
+          "avg": 9441.71,
+          "p50": 9381.716,
+          "p90": 9708.471,
+          "p95": 9708.471,
+          "p99": 9708.471,
+          "max": 9727.744
+        },
+        "delivery_count_after": 15,
+        "quota_used_after": 15
+      },
+      {
+        "name": "diag_5_to_20_total",
+        "requests": 5,
+        "status_counts": {
+          "200": 5
+        },
+        "latency_ms": {
+          "min": 9185.931,
+          "avg": 9321.672,
+          "p50": 9290.116,
+          "p90": 9290.937,
+          "p95": 9290.937,
+          "p99": 9290.937,
+          "max": 9645.745
+        },
+        "delivery_count_after": 20,
+        "quota_used_after": 20
+      }
+    ],
+    "writes_after": {
+      "deliveries": 20,
+      "selection_decisions": 20,
+      "quota_used_total": 20
+    },
+    "resource_observations": {
+      "postgres_cpu_max_observed_percent": 101.41,
+      "api_cpu_max_observed_percent": 53.59,
+      "postgres_cpu_recovered_after_pause": true,
+      "api_cpu_recovered_after_pause": true,
+      "blocked_locks_observed": false
+    }
+  },
+  "rate_limit_analysis": {
+    "effective_delivery_rate_limit": "120 requests / 60 seconds per credential",
+    "single_credential_full_profile_status": "cannot prove requested staged profile safely; would hit 429 or require a much longer rate-limited profile",
+    "multi_key_simulation_status": "not appropriate before DB bottleneck remediation; would hide the single-route DB CPU bottleneck rather than fix it"
+  },
+  "root_cause": {
+    "confirmed": true,
+    "summary": "The CPU spike is caused by the unfiltered selection query path, especially fetching and scoring about 30k eligible quiz rows while running correlated delivery-history aggregates per candidate. Postgres CPU reaches about 100% during each request, then recovers after the request/pause, so the spike is real but bursty rather than a persistent stuck query.",
+    "primary_bottleneck": "eligible_select_unfiltered",
+    "secondary_bottlenecks": [
+      "candidate_count and blocked_reason_counts add extra reads per request",
+      "Python-side scoring of all candidates adds API CPU/memory pressure",
+      "quota_usage upsert is a future concurrency serialization point, but not the root cause in this sequential probe"
+    ],
+    "not_supported_as_root_cause": [
+      "lock contention",
+      "connection exhaustion",
+      "Postgres crash/unhealthy state",
+      "rate limit itself",
+      "large writes per request"
+    ]
+  },
+  "remediation_plan": [
+    {
+      "priority": "P0",
+      "item": "Remove correlated delivery-history aggregates from the hot candidate SELECT.",
+      "details": "Add indexed/precomputed delivery stats by quiz_item_id and by theme_id/pattern_id cell, or join against a compact aggregate table updated on delivery creation."
+    },
+    {
+      "priority": "P0",
+      "item": "Add missing delivery-history indexes.",
+      "details": "Candidate indexes: deliveries(quiz_item_id), deliveries(quiz_item_id, selected_at DESC), deliveries(consumer_id, delivery_status, quiz_item_id). Validate with EXPLAIN before load."
+    },
+    {
+      "priority": "P0",
+      "item": "Limit candidate fetch size before Python scoring.",
+      "details": "Use SQL-side preselection/ranking or a bounded candidate pool; avoid fetchall of all 30k deliverable rows for every request."
+    },
+    {
+      "priority": "P1",
+      "item": "Move diagnostic blocked_reason_counts off the synchronous hot path.",
+      "details": "Keep response-critical selection lean; log analytics asynchronously or sample it."
+    },
+    {
+      "priority": "P1",
+      "item": "Review write path for concurrent load.",
+      "details": "Quota upsert on one row per consumer/day will serialize under concurrency; consider scoped quota buckets or async quota accounting only after preserving correctness."
+    },
+    {
+      "priority": "P1",
+      "item": "Repeat micro-probe after remediation before staged load.",
+      "details": "Target p95 well below 1500 ms at concurrency 1 and no Postgres CPU saturation before any Stage 1-5 test."
+    }
+  ],
+  "conclusion": {
+    "full_load_passed": false,
+    "paid_pilot_ready": false,
+    "can_repeat_staged_load_after_fix": true,
+    "condition": "repeat only after hot query/index/code remediation and a passing micro-probe"
+  },
+  "secrets_scan_result": "passed_no_committed_secrets_detected_and_targeted_rg_clean"
+}

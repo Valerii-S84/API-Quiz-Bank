@@ -1,0 +1,62 @@
+{
+  "report_type": "protected_business_route_full_load_server_sanity",
+  "generated_at": "2026-06-11T19:37:45Z",
+  "server": {
+    "hostname": "ubuntu-8gb-nbg1-1",
+    "user": "root",
+    "path": "/opt/api-quiz-bank",
+    "git_sha": "904babbd998adcf43cfbc7945d5f24d499ec47c4",
+    "git_status_short": [
+      "M src/quizbank_mvp/trusted_delivery.py",
+      " M tests/test_shorts_factory_backend.py"
+    ]
+  },
+  "docker_ps": [
+    "api-quiz-bank-pilot\tapi-quiz-bank:pilot\tUp 3 days (healthy)\t127.0.0.1:8010->8000/tcp",
+    "api-quiz-bank-postgres\tpostgres:16-alpine\tUp 4 weeks (healthy)\t5432/tcp"
+  ],
+  "container_health": [
+    "/api-quiz-bank-pilot running healthy restart=0 started=2026-06-08T12:28:26.861683099Z",
+    "/api-quiz-bank-postgres running healthy restart=0 started=2026-05-11T15:22:22.710037082Z"
+  ],
+  "docker_stats_post_stop": [
+    "api-quiz-bank-pilot\t0.16%\t180.2MiB / 512MiB\t35.20%",
+    "api-quiz-bank-postgres\t0.00%\t144.4MiB / 512MiB\t28.20%"
+  ],
+  "public_health": {
+    "status": 200,
+    "timeout": false,
+    "network_error": false
+  },
+  "public_ready": {
+    "status": 200,
+    "timeout": false,
+    "network_error": false
+  },
+  "db_sanity": {
+    "consumer_exists": true,
+    "consumer_status": "active",
+    "daily_quota_limit": 30000,
+    "credential_count": 1,
+    "active_credential_count": 0,
+    "revoked_credential_count": 1,
+    "entitlement_count": 1,
+    "delivery_count": 20,
+    "quota_used_total": 20,
+    "quota_limit_seen": 30000,
+    "non_test_consumer_count": 19,
+    "load_test_consumer_count": 2,
+    "approved_or_published_total": 30975
+  },
+  "logs": {
+    "api_log_match_count_30m": 0,
+    "postgres_log_match_count_30m": 1,
+    "postgres_log_match_classification": "single agent diagnostic quoting probe, not repeated runtime load failure"
+  },
+  "cleanup": {
+    "test_credential_deactivated": true,
+    "raw_test_key_file_exists": false,
+    "restart_redeploy_rebuild_migration_schema_change": false
+  },
+  "secret_printed": false
+}

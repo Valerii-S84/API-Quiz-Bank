@@ -20,7 +20,11 @@ from .selection_delivery import (
     delivery_projection,
     get_delivery,
 )
-from .selection_diagnostics import blocked_reason_counts, candidate_count
+from .selection_diagnostics import (
+    blocked_reason_counts,
+    candidate_count,
+    success_blocked_reason_counts,
+)
 from .selection_eligibility import (
     append_filter,
     append_in_filter,
@@ -63,10 +67,10 @@ def select_next_item(db_path: Path | None, request: SelectionRequest) -> dict[st
         enforce_consumer_scope(consumer, request)
         enforce_entitlement_scope(entitlement, request)
         quota_usage = reserve_quota(connection, consumer, request)
-        candidate_total = candidate_count(connection, request)
         item, eligible_count = find_eligible_item(connection, request)
-        blocked_counts = blocked_reason_counts(connection, request)
         if item is None:
+            candidate_total = candidate_count(connection, request)
+            blocked_counts = blocked_reason_counts(connection, request)
             decision = no_candidate_decision(
                 selection_request_id,
                 request,
@@ -76,13 +80,14 @@ def select_next_item(db_path: Path | None, request: SelectionRequest) -> dict[st
             connection.rollback()
             persist_no_candidate_decision(db_path, decision)
             raise no_eligible_problem(request, decision.to_context())
+        blocked_counts = success_blocked_reason_counts(request)
         delivery = create_delivery(connection, request, item, entitlement, quota_usage)
         decision = success_decision(
             selection_request_id,
             request,
             delivery,
             item,
-            candidate_total,
+            eligible_count,
             eligible_count,
             blocked_counts,
         )
