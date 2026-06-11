@@ -198,6 +198,38 @@ class ShortsFactoryBackendTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json()["reason_code"], "TRUSTED_CONSUMER_REQUIRED")
 
+    def seed_access(self, consumer_id: str, api_key: str, quota: int = 5) -> None:
+        seed_consumer(self.db_path, consumer_id, quota, ["A2"], ["T10"])
+        seed_api_credential(self.db_path, consumer_id, api_key)
+        seed_entitlement(self.db_path, consumer_id, ["A2"], ["T10"])
+
+    def next_item(
+        self,
+        consumer_id: str,
+        api_key: str,
+        cefr_level: str = "A2",
+        theme_id: str = "T10",
+    ):
+        return self.client.post(
+            "/v1/quiz-items/next",
+            json={"consumer_id": consumer_id, "cefr_level": cefr_level, "theme_ids": [theme_id]},
+            headers={"X-Consumer-Id": consumer_id, "X-QuizBank-API-Key": api_key},
+        )
+
+    def delivery_count(self) -> int:
+        with sqlite3.connect(self.db_path) as connection:
+            return int(connection.execute("SELECT COUNT(*) FROM deliveries").fetchone()[0])
+
+
+class ShortsFactoryProvisioningTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_directory = tempfile.TemporaryDirectory()
+        self.db_path = Path(self.temp_directory.name) / "runtime.sqlite3"
+        initialize_database(self.db_path)
+
+    def tearDown(self) -> None:
+        self.temp_directory.cleanup()
+
     def test_provisioning_creates_active_consumer_without_reported_secret(self) -> None:
         secret_env_path = Path(self.temp_directory.name) / "shorts.env"
         args = argparse.Namespace(
@@ -225,28 +257,6 @@ class ShortsFactoryBackendTests(unittest.TestCase):
         self.assertNotEqual(raw_key, evidence["credential_masked"])
         self.assertNotIn(raw_key, str(evidence["env_handoff"]["masked"]))
         self.assertIn("...", evidence["credential_masked"])
-
-    def seed_access(self, consumer_id: str, api_key: str, quota: int = 5) -> None:
-        seed_consumer(self.db_path, consumer_id, quota, ["A2"], ["T10"])
-        seed_api_credential(self.db_path, consumer_id, api_key)
-        seed_entitlement(self.db_path, consumer_id, ["A2"], ["T10"])
-
-    def next_item(
-        self,
-        consumer_id: str,
-        api_key: str,
-        cefr_level: str = "A2",
-        theme_id: str = "T10",
-    ):
-        return self.client.post(
-            "/v1/quiz-items/next",
-            json={"consumer_id": consumer_id, "cefr_level": cefr_level, "theme_ids": [theme_id]},
-            headers={"X-Consumer-Id": consumer_id, "X-QuizBank-API-Key": api_key},
-        )
-
-    def delivery_count(self) -> int:
-        with sqlite3.connect(self.db_path) as connection:
-            return int(connection.execute("SELECT COUNT(*) FROM deliveries").fetchone()[0])
 
     def consumer_row(self, consumer_id: str) -> sqlite3.Row:
         connection = sqlite3.connect(self.db_path)

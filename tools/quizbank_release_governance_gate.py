@@ -15,6 +15,7 @@ PR_TEMPLATE_PATH = ROOT / ".github/pull_request_template.md"
 MIGRATION_CHECKLIST_PATH = ROOT / "runbooks/migration_approval_checklist.md"
 CHANGELOG_PATH = ROOT / "CHANGELOG.md"
 GENERATED_AT = "2026-05-10T00:00:00+00:00"
+REMOTE_VERIFICATION_ATTEMPTED_AT = "2026-06-11T00:00:00+00:00"
 
 
 def read(path: Path) -> str:
@@ -50,6 +51,19 @@ def build_report() -> dict[str, object]:
         "required_ci_check": "repository-invariants",
         "protected_branch": "main",
         "release_tag_policy": "annotated tag after release approval",
+        "remote_branch_protection_verification": {
+            "attempted_at": REMOTE_VERIFICATION_ATTEMPTED_AT,
+            "status": "blocked_by_missing_github_cli_auth",
+            "commands": [
+                "gh auth status",
+                "gh api repos/Valerii-S84/API-Quiz-Bank/branches/main/protection",
+            ],
+            "observed_results": [
+                "gh auth status: not logged into any GitHub hosts",
+                "gh api branch protection: requires gh auth login or GH_TOKEN",
+            ],
+            "conclusion": "remote branch protection is not confirmed or enabled by this report",
+        },
         "release_governance_blockers": blockers,
     }
 
