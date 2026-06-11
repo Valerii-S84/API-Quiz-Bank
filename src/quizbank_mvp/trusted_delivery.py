@@ -28,6 +28,10 @@ ANSWER_ENABLED_CONSUMERS = {
     DEUTSCH_TRAINER_BOT_CONSUMER_ID,
     SHORTS_FACTORY_BACKEND_CONSUMER_ID,
 }
+TRUSTED_ROUTE_CONSUMERS = {
+    "website_quiz_teaser",
+    SHORTS_FACTORY_BACKEND_CONSUMER_ID,
+}
 DELIVERY_OUTCOME_STATUSES = {"sent", "failed", "cancelled"}
 
 
@@ -35,12 +39,16 @@ def is_answer_enabled_consumer(consumer_id: str) -> bool:
     return consumer_id in ANSWER_ENABLED_CONSUMERS
 
 
+def is_trusted_route_consumer(consumer_id: str) -> bool:
+    return consumer_id in TRUSTED_ROUTE_CONSUMERS
+
+
 def lookup_trusted_quiz_item(
     db_path: Path | None,
     item_id: str,
     consumer_id: str,
 ) -> dict[str, object]:
-    ensure_answer_enabled_consumer(consumer_id)
+    ensure_trusted_route_consumer(consumer_id)
     with connect(db_path) as connection:
         consumer = load_active_consumer(connection, consumer_id)
         item = load_deliverable_item(connection, item_id)
@@ -61,7 +69,7 @@ def record_delivery_outcome(
     status: str,
     reason: str | None = None,
 ) -> dict[str, object]:
-    ensure_answer_enabled_consumer(consumer_id)
+    ensure_trusted_route_consumer(consumer_id)
     ensure_delivery_outcome_status(status)
     with connect(db_path) as connection:
         delivery = load_consumer_delivery(connection, delivery_id, consumer_id)
@@ -154,14 +162,14 @@ def load_consumer_delivery(connection, delivery_id: str, consumer_id: str) -> di
     return row_to_dict(row)
 
 
-def ensure_answer_enabled_consumer(consumer_id: str) -> None:
-    if is_answer_enabled_consumer(consumer_id):
+def ensure_trusted_route_consumer(consumer_id: str) -> None:
+    if is_trusted_route_consumer(consumer_id):
         return
     raise trusted_problem(
         403,
         "TRUSTED_CONSUMER_REQUIRED",
         "Trusted consumer required",
-        "This endpoint is available only to answer-enabled trusted consumers.",
+        "This endpoint is available only to trusted route consumers.",
     )
 
 

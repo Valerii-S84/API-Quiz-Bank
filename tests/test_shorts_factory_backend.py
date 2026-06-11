@@ -74,6 +74,37 @@ class ShortsFactoryBackendTests(unittest.TestCase):
         self.assertTrue(response.json()["interaction"]["answer_key_included"])
         self.assertNotIn("answer_key", quiz)
 
+    def test_deutsch_trainer_bot_cannot_use_trusted_item_lookup(self) -> None:
+        self.seed_access(DEUTSCH_TRAINER_CONSUMER_ID, "trainer_key")
+
+        response = self.client.get(
+            "/v1/quiz-items/approved_traceable_001",
+            headers={
+                "X-Consumer-Id": DEUTSCH_TRAINER_CONSUMER_ID,
+                "X-QuizBank-API-Key": "trainer_key",
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["reason_code"], "TRUSTED_CONSUMER_REQUIRED")
+
+    def test_deutsch_trainer_bot_cannot_record_delivery_outcome(self) -> None:
+        self.seed_access(TRUSTED_CONSUMER_ID, "trusted_key")
+        self.seed_access(DEUTSCH_TRAINER_CONSUMER_ID, "trainer_key")
+        delivery_id = self.next_item(DEUTSCH_TRAINER_CONSUMER_ID, "trainer_key").json()["delivery_id"]
+
+        response = self.client.post(
+            f"/v1/deliveries/{delivery_id}/outcome",
+            json={"status": "sent"},
+            headers={
+                "X-Consumer-Id": DEUTSCH_TRAINER_CONSUMER_ID,
+                "X-QuizBank-API-Key": "trainer_key",
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["reason_code"], "TRUSTED_CONSUMER_REQUIRED")
+
     def test_trusted_consumer_scope_limits_selection_when_filters_are_omitted(self) -> None:
         self.seed_access(TRUSTED_CONSUMER_ID, "trusted_key")
 
