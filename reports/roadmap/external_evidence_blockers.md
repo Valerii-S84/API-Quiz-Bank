@@ -1,6 +1,6 @@
 # Phase 7-9 External Evidence Blockers
 
-Updated: 2026-05-11
+Updated: 2026-06-11
 
 This file lists blockers that cannot be closed by local repository work alone.
 They must remain separate from local pre-pilot evidence.
@@ -42,7 +42,7 @@ They must remain separate from local pre-pilot evidence.
 | Production corpus volume | Closed for the owner-approved active corpus by `reports/publication/owner_corpus_approval_2026-05-11.json`, `reports/publication/verified_corpus_promotion_2026-05-11.json`, `reports/imports/production_corpus_postgresql_smoke_2026-05-11.json` and `reports/publication/production_corpus_gate_2026-05-11.json`; broad launch still depends on the separate legal/privacy, release-governance and scale gates. |
 | Production privacy/legal approval | Closed only for owner-operated protected production API runtime in `reports/compliance/legal_review_record.md` section 4.3 and `reports/compliance/legal_privacy_gate_2026-05-10.json`. Exact public legal entity/jurisdiction, vendors, broad public launch, school deployment and paid launch remain separate approval scopes. |
 | Release governance | Repository-side controls are defined by `.github/branch_protection_main.json`, `.github/workflows/ci.yml`, `CHANGELOG.md`, `runbooks/migration_approval_checklist.md` and `reports/release/release_governance_gate_2026-05-10.json`; actual GitHub branch-protection enforcement and release tag creation must be verified on remote/release execution. |
-| Scale/load | Local protected-runtime concurrent smoke is recorded in `reports/scale/protected_runtime_load_smoke_2026-05-10.json` with 8 concurrent deliveries, auth denial, repeat denial, quota denial and resource-limit evidence. External load test under real traffic remains required before real scale claim. |
+| Scale/load | Closed for the tested owner-operated protected business-route threshold only: documented VPS access `root@valerchik.de` was used, isolated test consumer/key `load-smoke-test-2026-06-11` was created in the PostgreSQL runtime through the API container path, and `reports/scale/protected_business_route_load_smoke_2026-06-11.json` records 60/60 protected `/v1/quiz-items/next` responses with zero 5xx/timeouts/errors. This is not broad public scale, paid launch, school launch, support/SLA or legal/privacy approval. |
 
 ## Guardrail
 
