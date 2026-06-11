@@ -107,7 +107,11 @@ def run_smoke() -> dict[str, object]:
         "scale_blockers": [
             "local TestClient smoke is not production traffic",
             "external concurrent traffic test is not executed",
-            "large corpus approved/published production volume remains NO-GO",
+            (
+                "production corpus volume is not closed by this load smoke; "
+                "later corpus closure is tracked in "
+                "reports/publication/production_corpus_gate_2026-05-11.json"
+            ),
         ],
     }
 
