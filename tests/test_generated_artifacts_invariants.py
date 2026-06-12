@@ -91,6 +91,16 @@ class GeneratedArtifactsInvariantTests(unittest.TestCase):
     def assert_control_sample_report(self) -> None:
         report = json.loads((ROOT / "reports/imports/control_sample_import.json").read_text())
         self.assertEqual(report["import_mode"], "dry_run")
+        self.assertEqual(
+            report["content_scope"],
+            {
+                "language_code": "de",
+                "content_bank_id": "german-core",
+                "bank_version_id": "german-core:control-sample-draft",
+                "bank_version": "control-sample-draft",
+                "bank_version_status": "draft",
+            },
+        )
         self.assertEqual(report["row_count_detected"], 2)
         self.assertEqual(report["canonical_output_path"], "data/imports/control_sample_items.jsonl")
         self.assertEqual(report["validation_summary"]["canonical_item_count"], 2)
@@ -99,6 +109,8 @@ class GeneratedArtifactsInvariantTests(unittest.TestCase):
         self.assertEqual(report["validation_summary"]["publishable_item_count"], 0)
         self.assertEqual(report["validation_summary"]["validation_errors"], [])
         self.assertEqual(len(report["imported_items"]), 2)
+        self.assertEqual(report["imported_items"][0]["language_code"], "de")
+        self.assertEqual(report["imported_items"][0]["bank_version_id"], "german-core:control-sample-draft")
         self.assertNotIn("answer_key", report["imported_items"][0])
 
     def assert_control_sample_jsonl(self) -> None:

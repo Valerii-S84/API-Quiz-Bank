@@ -11,6 +11,7 @@ from quizbank_common import (
     CANONICAL_LEVELS,
     EXPECTED_HEADER,
     ITEM_STATUSES,
+    SUPPORTED_LANGUAGE_CODES,
     THEME_TITLES,
     counter_for,
     load_inventory,
@@ -48,7 +49,7 @@ def canonical_schema() -> dict[str, object]:
         "required": EXPECTED_HEADER,
         "properties": {
             "item_id": {"type": "string", "minLength": 1},
-            "language": {"type": "string", "const": "de"},
+            "language": {"type": "string", "enum": list(SUPPORTED_LANGUAGE_CODES)},
             "level_band": {"type": "string", "minLength": 1},
             "sublevel": {"type": "string", "enum": list(CANONICAL_LEVELS)},
             "theme_id": {"type": "string", "pattern": "^T(0[1-9]|1[0-8])$"},

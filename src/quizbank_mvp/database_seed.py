@@ -11,6 +11,11 @@ from typing import Any
 
 from .credential_hashing import admin_key_prefix, api_key_prefix, hash_api_key
 from .database_connection import connect
+from .database_runtime import (
+    DEFAULT_BANK_VERSION_ID,
+    DEFAULT_CONTENT_BANK_ID,
+    DEFAULT_LANGUAGE_CODE,
+)
 from .image_quality_repository import upsert_quiz_item_image_quality_policy
 from .time_ids import new_id, utc_now
 from .visual_asset_repository import insert_visual_asset_record
@@ -47,19 +52,32 @@ def seed_control_fixture(
     now = utc_now()
     source_type = rows[0].get("source_type", "fixture") if rows else "fixture"
     provenance_note = rows[0].get("provenance_note", str(fixture_path)) if rows else str(fixture_path)
+    source_scope = content_scope_values(rows[0] if rows else {})
     with connect(db_path) as connection:
         connection.execute(
             """
             INSERT INTO sources (
-                source_id, source_type, provenance_note, checksum_sha256, status, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?)
+                source_id, source_type, provenance_note, checksum_sha256, status,
+                created_at, language_code, content_bank_id, bank_version_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(source_id) DO UPDATE SET
                 source_type = excluded.source_type,
                 provenance_note = excluded.provenance_note,
                 checksum_sha256 = excluded.checksum_sha256,
-                status = excluded.status
+                status = excluded.status,
+                language_code = excluded.language_code,
+                content_bank_id = excluded.content_bank_id,
+                bank_version_id = excluded.bank_version_id
             """,
-            (source_id, source_type, provenance_note, checksum, "active", now),
+            (
+                source_id,
+                source_type,
+                provenance_note,
+                checksum,
+                "active",
+                now,
+                *source_scope,
+            ),
         )
         for item in rows:
             upsert_quiz_item(connection, item, item_status, source_id)
@@ -75,19 +93,25 @@ def upsert_quiz_item(
     connection.execute(
         """
         INSERT INTO quiz_items (
-            item_id, source_id, language, level_band, sublevel, theme_id, subtheme_id,
-            objective_id, pattern_id, difficulty_band, register, prompt, stem_text,
-            options_json, answer_key, explanation, tags, coverage_cell_id, status,
-            version, created_at, updated_at, reviewed_at, level_locked, locked_at
+            item_id, source_id, language, language_code, content_bank_id,
+            bank_version_id, level_band, sublevel, theme_id, subtheme_id,
+            objective_id, pattern_id, difficulty_band, register, prompt,
+            stem_text, options_json, answer_key, explanation, tags,
+            coverage_cell_id, status, version, created_at, updated_at,
+            reviewed_at, level_locked, locked_at
         ) VALUES (
-            :item_id, :source_id, :language, :level_band, :sublevel, :theme_id,
-            :subtheme_id, :objective_id, :pattern_id, :difficulty_band, :register,
-            :prompt, :stem_text, :options_json, :answer_key, :explanation, :tags,
+            :item_id, :source_id, :language, :language_code, :content_bank_id,
+            :bank_version_id, :level_band, :sublevel, :theme_id, :subtheme_id,
+            :objective_id, :pattern_id, :difficulty_band, :register, :prompt,
+            :stem_text, :options_json, :answer_key, :explanation, :tags,
             :coverage_cell_id, :status, :version, :created_at, :updated_at,
             :reviewed_at, :level_locked, :locked_at
         )
         ON CONFLICT(item_id) DO UPDATE SET
             source_id = excluded.source_id,
+            language_code = excluded.language_code,
+            content_bank_id = excluded.content_bank_id,
+            bank_version_id = excluded.bank_version_id,
             status = excluded.status,
             updated_at = excluded.updated_at
         """,
@@ -96,9 +120,20 @@ def upsert_quiz_item(
             "source_id": source_id,
             "options_json": item["options"],
             "status": item_status,
+            "language_code": item.get("language_code") or item.get("language") or DEFAULT_LANGUAGE_CODE,
+            "content_bank_id": item.get("content_bank_id") or DEFAULT_CONTENT_BANK_ID,
+            "bank_version_id": item.get("bank_version_id") or DEFAULT_BANK_VERSION_ID,
         },
     )
     upsert_quiz_item_image_quality_policy(connection, item)
+
+
+def content_scope_values(item: dict[str, str]) -> tuple[str, str, str]:
+    return (
+        item.get("language_code") or item.get("language") or DEFAULT_LANGUAGE_CODE,
+        item.get("content_bank_id") or DEFAULT_CONTENT_BANK_ID,
+        item.get("bank_version_id") or DEFAULT_BANK_VERSION_ID,
+    )
 
 
 def seed_consumer(

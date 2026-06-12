@@ -39,7 +39,13 @@
     },
     "language": {
       "type": "string",
-      "const": "de"
+      "enum": [
+        "de",
+        "en",
+        "fr",
+        "es",
+        "nl"
+      ]
     },
     "level_band": {
       "type": "string",

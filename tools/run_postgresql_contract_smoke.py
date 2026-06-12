@@ -20,6 +20,36 @@ DEFAULT_LOAD_PLAN_PATH = Path("reports/imports/control_sample_postgresql_load_pl
 DEFAULT_CANONICAL_INPUT_PATH = Path("data/imports/control_sample_items.jsonl")
 DEFAULT_REPORT_PATH = Path("reports/imports/control_sample_postgresql_smoke.json")
 DEFAULT_EXECUTED_AT = "2026-05-08T00:00:00+00:00"
+QUIZ_ITEM_COLUMNS = [
+    "item_id",
+    "source_id",
+    "language",
+    "language_code",
+    "content_bank_id",
+    "bank_version_id",
+    "level_band",
+    "sublevel",
+    "theme_id",
+    "subtheme_id",
+    "objective_id",
+    "pattern_id",
+    "difficulty_band",
+    "register",
+    "prompt",
+    "stem_text",
+    "options_json",
+    "answer_key",
+    "explanation",
+    "tags",
+    "coverage_cell_id",
+    "status",
+    "version",
+    "created_at",
+    "updated_at",
+    "reviewed_at",
+    "level_locked",
+    "locked_at",
+]
 
 
 class PostgreSQLSmokeError(RuntimeError):
@@ -61,10 +91,13 @@ def nullable_timestamp(value: str) -> str:
 
 
 def quiz_item_insert_sql(source_id: str, item: dict[str, str]) -> str:
-    values = [
+    values: list[object] = [
         item["item_id"],
         source_id,
         item["language"],
+        item["language_code"],
+        item["content_bank_id"],
+        item["bank_version_id"],
         item["level_band"],
         item["sublevel"],
         item["theme_id"],
@@ -89,91 +122,137 @@ def quiz_item_insert_sql(source_id: str, item: dict[str, str]) -> str:
         item["locked_at"],
     ]
     rendered = render_quiz_item_values(values)
-    return f"INSERT INTO quiz_items VALUES ({rendered});"
+    return f"INSERT INTO quiz_items ({', '.join(QUIZ_ITEM_COLUMNS)}) VALUES ({rendered});"
 
 
-def render_quiz_item_values(values: list[str]) -> str:
-    rendered = [sql_literal(value) for value in values[:13]]
-    rendered.append(values[13])
-    rendered.extend(sql_literal(value) for value in values[14:22])
-    rendered.append(nullable_timestamp(values[22]))
-    rendered.append(sql_literal(values[23]))
-    rendered.append(nullable_timestamp(values[24]))
+def render_quiz_item_values(values: list[object]) -> str:
+    rendered = [sql_literal(value) for value in values[:16]]
+    rendered.append(f"{sql_literal(values[16])}::jsonb")
+    rendered.extend(sql_literal(value) for value in values[17:25])
+    rendered.append(nullable_timestamp(str(values[25])))
+    rendered.append(sql_literal(values[26]))
+    rendered.append(nullable_timestamp(str(values[27])))
     return ", ".join(rendered)
 
 
+def content_bank_version_insert_sql(row: dict[str, Any]) -> str:
+    columns = ["id", "content_bank_id", "version", "status", "activated_at", "created_at"]
+    values = [row[column] for column in columns]
+    rendered = ", ".join(sql_literal(value) for value in values)
+    return f"INSERT INTO content_bank_versions ({', '.join(columns)}) VALUES ({rendered});"
+
+
 def source_insert_sql(row: dict[str, Any]) -> str:
-    values = [
-        row["source_id"],
-        row["source_type"],
-        row["provenance_note"],
-        row["checksum_sha256"],
-        row["status"],
-        row["created_at"],
+    columns = [
+        "source_id",
+        "source_type",
+        "provenance_note",
+        "checksum_sha256",
+        "status",
+        "created_at",
+        "language_code",
+        "content_bank_id",
+        "bank_version_id",
     ]
-    return f"INSERT INTO sources VALUES ({', '.join(sql_literal(value) for value in values)});"
+    values = [row[column] for column in columns]
+    rendered = ", ".join(sql_literal(value) for value in values)
+    return f"INSERT INTO sources ({', '.join(columns)}) VALUES ({rendered});"
 
 
 def import_batch_insert_sql(row: dict[str, Any]) -> str:
-    values = [
-        row["import_batch_id"],
-        row["source_id"],
-        row["parser_profile_id"],
-        row["import_mode"],
-        row["import_status"],
-        row["source_checksum_sha256"],
-        row["default_item_status"],
-        row["row_count_detected"],
-        row["accepted_candidate_count"],
-        row["rejected_candidate_count"],
-        row["report_uri"],
-        row["started_at"],
-        row["completed_at"],
-        row["created_by"],
+    columns = [
+        "import_batch_id",
+        "source_id",
+        "parser_profile_id",
+        "import_mode",
+        "import_status",
+        "source_checksum_sha256",
+        "default_item_status",
+        "row_count_detected",
+        "accepted_candidate_count",
+        "rejected_candidate_count",
+        "report_uri",
+        "started_at",
+        "completed_at",
+        "created_by",
+        "language_code",
+        "content_bank_id",
+        "bank_version_id",
     ]
-    return f"INSERT INTO import_batches VALUES ({', '.join(sql_literal(value) for value in values)});"
+    values = [row[column] for column in columns]
+    rendered = ", ".join(sql_literal(value) for value in values)
+    return f"INSERT INTO import_batches ({', '.join(columns)}) VALUES ({rendered});"
 
 
 def import_batch_item_insert_sql(row: dict[str, Any]) -> str:
-    values = [
-        row["import_batch_id"],
-        row["item_id"],
-        row["source_id"],
-        row["source_item_id"],
-        row["source_row_number"],
-        row["canonical_status"],
-        row["content_hash_sha256"],
-        row["created_at"],
+    columns = [
+        "import_batch_id",
+        "item_id",
+        "source_id",
+        "source_item_id",
+        "source_row_number",
+        "canonical_status",
+        "content_hash_sha256",
+        "created_at",
+        "language_code",
+        "content_bank_id",
+        "bank_version_id",
     ]
-    return f"INSERT INTO import_batch_items VALUES ({', '.join(sql_literal(value) for value in values)});"
+    values = [row[column] for column in columns]
+    rendered = ", ".join(sql_literal(value) for value in values)
+    return f"INSERT INTO import_batch_items ({', '.join(columns)}) VALUES ({rendered});"
 
 
 def validation_result_insert_sql(row: dict[str, Any]) -> str:
-    values = [
-        row["validation_result_id"],
-        row["import_batch_id"],
-        row["source_id"],
-        row["source_item_id"],
-        row["source_row_number"],
-        row["severity"],
-        row["rule_id"],
-        row["message"],
-        row["created_at"],
+    columns = [
+        "validation_result_id",
+        "import_batch_id",
+        "source_id",
+        "source_item_id",
+        "source_row_number",
+        "severity",
+        "rule_id",
+        "message",
+        "created_at",
     ]
-    return f"INSERT INTO import_validation_results VALUES ({', '.join(sql_literal(value) for value in values)});"
+    values = [row[column] for column in columns]
+    rendered = ", ".join(sql_literal(value) for value in values)
+    return f"INSERT INTO import_validation_results ({', '.join(columns)}) VALUES ({rendered});"
 
 
 def build_load_sql(plan: dict[str, Any], canonical_items: list[dict[str, str]]) -> str:
     tables = plan["tables"]
     source_id = str(plan["lineage"]["source_id"])
+    runtime_items = runtime_quiz_items(canonical_items, tables["import_batch_items"])
     statements = ["BEGIN;"]
+    statements.extend(content_bank_version_insert_sql(row) for row in tables["content_bank_versions"])
     statements.extend(source_insert_sql(row) for row in tables["sources"])
     statements.extend(import_batch_insert_sql(row) for row in tables["import_batches"])
-    statements.extend(quiz_item_insert_sql(source_id, item) for item in canonical_items)
+    statements.extend(quiz_item_insert_sql(source_id, item) for item in runtime_items)
     statements.extend(import_batch_item_insert_sql(row) for row in tables["import_batch_items"])
     statements.extend(validation_result_insert_sql(row) for row in tables["import_validation_results"])
     statements.append("COMMIT;")
     return "\n".join(statements) + "\n"
+
+
+def runtime_quiz_items(
+    canonical_items: list[dict[str, str]],
+    batch_items: list[dict[str, Any]],
+) -> list[dict[str, str]]:
+    batch_by_source_id = {str(row["source_item_id"]): row for row in batch_items}
+    rows = []
+    for item in canonical_items:
+        batch_item = batch_by_source_id[item["item_id"]]
+        rows.append(
+            {
+                **item,
+                "item_id": str(batch_item["item_id"]),
+                "language_code": str(batch_item["language_code"]),
+                "content_bank_id": str(batch_item["content_bank_id"]),
+                "bank_version_id": str(batch_item["bank_version_id"]),
+            }
+        )
+    return rows
 
 
 def start_container() -> str:
@@ -230,9 +309,12 @@ def psql(container_name: str, args: list[str], stdin: str | None = None) -> str:
 
 
 def apply_schema(container_name: str) -> None:
-    psql(container_name, ["-f", "/schema/001_create_runtime.sql"])
-    psql(container_name, ["-f", "/schema/002_add_import_contract.sql"])
-    psql(container_name, ["-f", "/schema/003_add_runtime_delivery_evidence.sql"])
+    for schema_file in postgresql_schema_files():
+        psql(container_name, ["-f", f"/schema/{schema_file}"])
+
+
+def postgresql_schema_files() -> list[str]:
+    return sorted(path.name for path in (ROOT / "database" / "postgresql").glob("*.sql"))
 
 
 def query_scalar(container_name: str, sql: str) -> str:
@@ -286,9 +368,8 @@ def build_report(
         "docker_image": POSTGRES_IMAGE,
         "database": DATABASE_NAME,
         "schema_files": [
-            "database/postgresql/001_create_runtime.sql",
-            "database/postgresql/002_add_import_contract.sql",
-            "database/postgresql/003_add_runtime_delivery_evidence.sql",
+            f"database/postgresql/{schema_file}"
+            for schema_file in postgresql_schema_files()
         ],
         "source_artifacts": {
             "load_plan_path": load_plan_path.as_posix(),

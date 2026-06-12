@@ -219,6 +219,17 @@ class PostgreSQLMultilingualBankContractTests(unittest.TestCase):
         ]:
             self.assertIn(required_fragment, POSTGRESQL_MULTILINGUAL_BANK_SQL)
 
+    def test_multilingual_bank_versions_support_draft_audit_activation_flow(self) -> None:
+        for required_fragment in [
+            "status TEXT NOT NULL CHECK (status IN ('draft', 'audit', 'active', 'archived'))",
+            "from_bank_version_id TEXT REFERENCES content_bank_versions(id)",
+            "to_bank_version_id TEXT NOT NULL REFERENCES content_bank_versions(id)",
+            "actor TEXT NOT NULL CHECK (actor <> '')",
+            "reason TEXT NOT NULL CHECK (reason <> '')",
+            "activated_at TIMESTAMPTZ NOT NULL",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_MULTILINGUAL_BANK_SQL)
+
     def test_multilingual_bank_migration_seeds_default_german_bank(self) -> None:
         for required_fragment in [
             "('de', 'German', TRUE, '2026-06-12T00:00:00Z')",

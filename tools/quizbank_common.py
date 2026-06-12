@@ -78,6 +78,12 @@ ITEM_STATUSES = (
     "blocked",
 )
 NORMAL_DELIVERY_STATUSES = ("approved", "published")
+SUPPORTED_LANGUAGE_CODES = ("de", "en", "fr", "es", "nl")
+DEFAULT_LANGUAGE_CODE = "de"
+DEFAULT_CONTENT_BANK_ID = "german-core"
+DEFAULT_IMPORT_BANK_VERSION = "control-sample-draft"
+DEFAULT_IMPORT_BANK_VERSION_ID = f"{DEFAULT_CONTENT_BANK_ID}:{DEFAULT_IMPORT_BANK_VERSION}"
+IMPORT_TARGET_BANK_VERSION_STATUSES = ("draft", "audit")
 TEMPLATE_FILENAMES = {"logik_luecke_sheet_template.csv"}
 PARSER_PROFILE_ID = "csv_quiz_bank_v1"
 SNAPSHOT_DATE_FIELDS = ("updated_at", "reviewed_at", "created_at", "locked_at")

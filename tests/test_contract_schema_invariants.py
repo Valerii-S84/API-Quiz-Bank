@@ -9,6 +9,7 @@ from tests.repository_test_support import (
     ITEM_STATUSES,
     NORMAL_DELIVERY_STATUSES,
     ROOT,
+    SUPPORTED_LANGUAGE_CODES,
     THEME_TITLES,
     read_csv_dicts,
 )
@@ -118,7 +119,10 @@ class ContractSchemaInvariantTests(unittest.TestCase):
         self.assertFalse(schema["additionalProperties"])
         self.assertEqual(schema["required"], EXPECTED_HEADER)
         self.assertEqual(list(schema["properties"].keys()), EXPECTED_HEADER)
-        self.assertEqual(schema["properties"]["language"], {"type": "string", "const": "de"})
+        self.assertEqual(
+            schema["properties"]["language"],
+            {"type": "string", "enum": list(SUPPORTED_LANGUAGE_CODES)},
+        )
         self.assertEqual(schema["properties"]["sublevel"]["enum"], list(CANONICAL_LEVELS))
         self.assertEqual(schema["properties"]["status"]["enum"], list(ITEM_STATUSES))
 

@@ -9,6 +9,15 @@ import json
 from pathlib import Path
 from typing import Any
 
+from quizbank_common import (
+    DEFAULT_CONTENT_BANK_ID,
+    DEFAULT_IMPORT_BANK_VERSION,
+    DEFAULT_IMPORT_BANK_VERSION_ID,
+    DEFAULT_LANGUAGE_CODE,
+    IMPORT_TARGET_BANK_VERSION_STATUSES,
+    SUPPORTED_LANGUAGE_CODES,
+)
+
 
 DEFAULT_IMPORT_REPORT_PATH = Path("reports/imports/control_sample_import.json")
 DEFAULT_CANONICAL_INPUT_PATH = Path("data/imports/control_sample_items.jsonl")
@@ -18,6 +27,16 @@ CREATED_BY = "tool:quizbank_postgresql_load_plan.py"
 
 class LoadPlanError(ValueError):
     """Raised when import artifacts cannot form a PostgreSQL load plan."""
+
+
+def default_content_scope() -> dict[str, str]:
+    return {
+        "language_code": DEFAULT_LANGUAGE_CODE,
+        "content_bank_id": DEFAULT_CONTENT_BANK_ID,
+        "bank_version_id": DEFAULT_IMPORT_BANK_VERSION_ID,
+        "bank_version": DEFAULT_IMPORT_BANK_VERSION,
+        "bank_version_status": "draft",
+    }
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -63,9 +82,36 @@ def validate_inputs(report: dict[str, Any], canonical_items: list[dict[str, str]
     provenance_notes = {item.get("provenance_note", "") for item in canonical_items}
     if "" in source_ids or "" in provenance_notes:
         raise LoadPlanError("missing_source_traceability")
+    validate_content_scope(content_scope_from_report(report), canonical_items)
 
 
-def source_row(report: dict[str, Any], canonical_items: list[dict[str, str]]) -> dict[str, str]:
+def content_scope_from_report(report: dict[str, Any]) -> dict[str, str]:
+    scope = default_content_scope()
+    scope.update(report.get("content_scope", {}))
+    return {key: str(value) for key, value in scope.items()}
+
+
+def validate_content_scope(
+    content_scope: dict[str, str],
+    canonical_items: list[dict[str, str]],
+) -> None:
+    language_code = content_scope["language_code"]
+    if language_code not in SUPPORTED_LANGUAGE_CODES:
+        raise LoadPlanError(f"unsupported_batch_language:{language_code}")
+    if content_scope["bank_version_status"] not in IMPORT_TARGET_BANK_VERSION_STATUSES:
+        raise LoadPlanError(
+            f"invalid_import_bank_version_status:{content_scope['bank_version_status']}"
+        )
+    for item in canonical_items:
+        if item.get("language", "") != language_code:
+            raise LoadPlanError(f"language_scope_mismatch:{item.get('item_id', '')}")
+
+
+def source_row(
+    report: dict[str, Any],
+    canonical_items: list[dict[str, str]],
+    content_scope: dict[str, str],
+) -> dict[str, str]:
     first_item = canonical_items[0]
     return {
         "source_id": str(report["source_id"]),
@@ -74,6 +120,9 @@ def source_row(report: dict[str, Any], canonical_items: list[dict[str, str]]) ->
         "checksum_sha256": str(report["checksum_sha256"]),
         "status": "active",
         "created_at": str(report["generated_at"]),
+        "language_code": content_scope["language_code"],
+        "content_bank_id": content_scope["content_bank_id"],
+        "bank_version_id": content_scope["bank_version_id"],
     }
 
 
@@ -82,7 +131,22 @@ def import_status_for(report: dict[str, Any]) -> str:
     return "dry_run_passed" if not errors else "rejected"
 
 
-def import_batch_row(report: dict[str, Any], report_path: Path) -> dict[str, Any]:
+def content_bank_version_row(report: dict[str, Any], content_scope: dict[str, str]) -> dict[str, Any]:
+    return {
+        "id": content_scope["bank_version_id"],
+        "content_bank_id": content_scope["content_bank_id"],
+        "version": content_scope["bank_version"],
+        "status": content_scope["bank_version_status"],
+        "activated_at": None,
+        "created_at": report["generated_at"],
+    }
+
+
+def import_batch_row(
+    report: dict[str, Any],
+    report_path: Path,
+    content_scope: dict[str, str],
+) -> dict[str, Any]:
     summary = report["validation_summary"]
     batch_id = import_batch_id(str(report["source_id"]), str(report["import_mode"]))
     return {
@@ -100,6 +164,9 @@ def import_batch_row(report: dict[str, Any], report_path: Path) -> dict[str, Any
         "started_at": report["generated_at"],
         "completed_at": report["generated_at"],
         "created_by": CREATED_BY,
+        "language_code": content_scope["language_code"],
+        "content_bank_id": content_scope["content_bank_id"],
+        "bank_version_id": content_scope["bank_version_id"],
     }
 
 
@@ -107,6 +174,7 @@ def import_batch_item_rows(
     batch_id: str,
     source_id: str,
     generated_at: str,
+    content_scope: dict[str, str],
     canonical_items: list[dict[str, str]],
 ) -> list[dict[str, Any]]:
     rows = []
@@ -114,16 +182,23 @@ def import_batch_item_rows(
         rows.append(
             {
                 "import_batch_id": batch_id,
-                "item_id": item["item_id"],
+                "item_id": runtime_item_id(content_scope["bank_version_id"], item["item_id"]),
                 "source_id": source_id,
                 "source_item_id": item["item_id"],
                 "source_row_number": source_row_number,
                 "canonical_status": item["status"],
                 "content_hash_sha256": sha256_payload(item),
                 "created_at": generated_at,
+                "language_code": content_scope["language_code"],
+                "content_bank_id": content_scope["content_bank_id"],
+                "bank_version_id": content_scope["bank_version_id"],
             }
         )
     return rows
+
+
+def runtime_item_id(bank_version_id: str, source_item_id: str) -> str:
+    return f"{bank_version_id}:{source_item_id}"
 
 
 def validation_result_rows(report: dict[str, Any]) -> list[dict[str, Any]]:
@@ -155,10 +230,12 @@ def build_load_plan(
     canonical_items = read_jsonl(canonical_input_path)
     validate_inputs(report, canonical_items)
 
-    batch = import_batch_row(report, report_path)
+    content_scope = content_scope_from_report(report)
+    batch = import_batch_row(report, report_path, content_scope)
     return {
         "plan_type": "postgresql_load_plan",
         "generated_at": report["generated_at"],
+        "content_scope": content_scope,
         "source_artifacts": {
             "import_report_path": report_path.as_posix(),
             "canonical_input_path": canonical_input_path.as_posix(),
@@ -166,8 +243,12 @@ def build_load_plan(
         "lineage": {
             "source_id": report["source_id"],
             "import_batch_id": batch["import_batch_id"],
+            "language_code": content_scope["language_code"],
+            "content_bank_id": content_scope["content_bank_id"],
+            "bank_version_id": content_scope["bank_version_id"],
             "quiz_item_count": len(canonical_items),
             "traceability_chain": [
+                "content_bank_versions",
                 "sources",
                 "import_batches",
                 "import_batch_items",
@@ -176,12 +257,14 @@ def build_load_plan(
             ],
         },
         "tables": {
-            "sources": [source_row(report, canonical_items)],
+            "content_bank_versions": [content_bank_version_row(report, content_scope)],
+            "sources": [source_row(report, canonical_items, content_scope)],
             "import_batches": [batch],
             "import_batch_items": import_batch_item_rows(
                 batch["import_batch_id"],
                 str(report["source_id"]),
                 str(report["generated_at"]),
+                content_scope,
                 canonical_items,
             ),
             "import_validation_results": validation_result_rows(report),
