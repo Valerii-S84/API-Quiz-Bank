@@ -72,4 +72,3 @@ transaction lock on `quota_usage`, held too long while the transaction continues
 through delivery-history reads and later writes. Treat the `502` as a secondary
 symptom until a future run captures per-request client timing or edge logs with
 the same sanitized discipline.
-

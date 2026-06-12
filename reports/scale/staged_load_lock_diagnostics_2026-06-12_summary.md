@@ -106,4 +106,3 @@ Classification:
 | Blocking sessions | `0` |
 | Non-test consumers | `23` |
 | Active probe credentials | `0` |
-
