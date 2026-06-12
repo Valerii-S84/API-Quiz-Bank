@@ -79,7 +79,7 @@ class NextRouteSelectionPerformanceTests(unittest.TestCase):
         self.block_original_item()
         observed: dict[str, int] = {}
 
-        def capture_metric_ids(_connection, item_ids):
+        def capture_metric_ids(_connection, item_ids, _request):
             observed["count"] = len(item_ids)
             return {}
 
@@ -168,17 +168,18 @@ class NextRouteSelectionPerformanceTests(unittest.TestCase):
                 CROSS JOIN digits ten_thousands
             )
             INSERT INTO quiz_items (
-                item_id, source_id, language, level_band, sublevel, theme_id,
-                subtheme_id, objective_id, pattern_id, difficulty_band, register,
-                prompt, stem_text, options_json, answer_key, explanation, tags,
+                item_id, source_id, language, language_code, content_bank_id,
+                bank_version_id, level_band, sublevel, theme_id, subtheme_id,
+                objective_id, pattern_id, difficulty_band, register, prompt,
+                stem_text, options_json, answer_key, explanation, tags,
                 coverage_cell_id, status, version, created_at, updated_at,
                 reviewed_at, level_locked, locked_at
             )
             SELECT 'pool_candidate_' || printf('%05d', numbers.number),
-                   source_id, language, level_band, sublevel, 'T10',
-                   subtheme_id, objective_id, pattern_id, difficulty_band,
-                   register, prompt, stem_text, options_json, answer_key,
-                   explanation, tags,
+                   source_id, language, language_code, content_bank_id,
+                   bank_version_id, level_band, sublevel, 'T10', subtheme_id,
+                   objective_id, pattern_id, difficulty_band, register, prompt,
+                   stem_text, options_json, answer_key, explanation, tags,
                    'A2::T10::O02::P01::' || printf('%05d', numbers.number),
                    'approved', version, created_at,
                    updated_at, reviewed_at, level_locked, locked_at

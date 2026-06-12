@@ -47,15 +47,19 @@ def create_delivery(
         """
         INSERT INTO deliveries (
             delivery_id, consumer_id, quiz_item_id, item_status, delivery_status,
+            language_code, content_bank_id, bank_version_id,
             source_id, source_type, provenance_note, selection_reason_summary,
             selected_at, entitlement_id, quota_usage_id
-        ) VALUES (?, ?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             delivery_id,
             request.consumer_id,
             item["item_id"],
             item["status"],
+            request.language_code,
+            request.content_bank_id,
+            request.bank_version_id,
             item["source_id"],
             item["resolved_source_type"],
             item["resolved_provenance_note"],
@@ -72,6 +76,9 @@ def create_delivery(
             "quiz_item_id": item["item_id"],
             "item_status": item["status"],
             "delivery_status": "created",
+            "language_code": request.language_code,
+            "content_bank_id": request.content_bank_id,
+            "bank_version_id": request.bank_version_id,
             "selected_at": selected_at,
             "selection_reason_summary": selection_reason,
         }
@@ -84,6 +91,9 @@ def delivery_projection(delivery: dict[str, Any]) -> dict[str, Any]:
         "consumer_id": delivery["consumer_id"],
         "quiz_item_id": delivery["quiz_item_id"],
         "item_status": delivery["item_status"],
+        "language_code": delivery["language_code"],
+        "content_bank_id": delivery["content_bank_id"],
+        "bank_version_id": delivery["bank_version_id"],
         "status": delivery["delivery_status"],
         "selected_at": delivery["selected_at"],
         "reason": delivery["selection_reason_summary"],

@@ -828,6 +828,16 @@ components:
         consumer_id:
           type: string
           minLength: 1
+        language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+          default: de
+        content_bank_id:
+          type: string
+          minLength: 1
+        bank_version_id:
+          type: string
+          minLength: 1
         cefr_level:
           type: string
           enum: [A1, A2, B1, B2, C1, C2]
@@ -853,6 +863,9 @@ components:
         - id
         - public_id
         - language
+        - language_code
+        - content_bank_id
+        - bank_version_id
         - question
         - options
         - cefr_level
@@ -868,7 +881,14 @@ components:
           type: string
         language:
           type: string
-          const: de
+          enum: [de, en, fr, es, nl]
+        language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+        content_bank_id:
+          type: string
+        bank_version_id:
+          type: string
         question:
           type: object
           additionalProperties: false
@@ -967,6 +987,9 @@ components:
         - id
         - public_id
         - language
+        - language_code
+        - content_bank_id
+        - bank_version_id
         - question
         - options
         - cefr_level
@@ -983,7 +1006,14 @@ components:
           type: string
         language:
           type: string
-          const: de
+          enum: [de, en, fr, es, nl]
+        language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+        content_bank_id:
+          type: string
+        bank_version_id:
+          type: string
         question:
           type: object
         options:
@@ -1386,6 +1416,9 @@ components:
         - consumer_id
         - quiz_item_id
         - item_status
+        - language_code
+        - content_bank_id
+        - bank_version_id
         - status
         - selected_at
         - reason
@@ -1399,6 +1432,13 @@ components:
         item_status:
           type: string
           enum: [approved, published]
+        language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+        content_bank_id:
+          type: string
+        bank_version_id:
+          type: string
         status:
           type: string
           enum: [created, reserved, delivered, sent, failed, skipped, expired, cancelled]
@@ -1454,6 +1494,9 @@ components:
       required:
         - delivery_id
         - consumer_id
+        - language_code
+        - content_bank_id
+        - bank_version_id
         - quiz_item
         - delivery
         - interaction
@@ -1462,6 +1505,13 @@ components:
         delivery_id:
           type: string
         consumer_id:
+          type: string
+        language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+        content_bank_id:
+          type: string
+        bank_version_id:
           type: string
         quiz_item:
           oneOf:
@@ -1496,6 +1546,9 @@ components:
       additionalProperties: false
       required:
         - selection_request_id
+        - language_code
+        - content_bank_id
+        - bank_version_id
         - candidate_count
         - eligible_count
         - selected_reason
@@ -1504,6 +1557,13 @@ components:
         - fallback_reason_code
       properties:
         selection_request_id:
+          type: string
+        language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+        content_bank_id:
+          type: string
+        bank_version_id:
           type: string
         candidate_count:
           type: integer

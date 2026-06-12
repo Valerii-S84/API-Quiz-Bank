@@ -4,7 +4,22 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from .database_runtime import DEFAULT_LANGUAGE_CODE
 from .selection_policy import SelectionPolicy
+
+
+@dataclass(frozen=True)
+class ContentScope:
+    language_code: str = DEFAULT_LANGUAGE_CODE
+    content_bank_id: str | None = None
+    bank_version_id: str | None = None
+
+    def to_context(self) -> dict[str, object]:
+        return {
+            "language_code": self.language_code,
+            "content_bank_id": self.content_bank_id,
+            "bank_version_id": self.bank_version_id,
+        }
 
 
 @dataclass(frozen=True)
@@ -69,12 +84,21 @@ class SelectionRequest:
     pattern_ids: tuple[str, ...] = ()
     excluded_item_ids: tuple[str, ...] = ()
     quota_scope_key: str | None = None
+    content_scope: ContentScope | None = None
+    language_code: str | None = None
+    content_bank_id: str | None = None
+    bank_version_id: str | None = None
 
     def __post_init__(self) -> None:
         filters = self.normalized_filters(self.filters or self.legacy_filters())
+        content_scope = self.normalized_content_scope()
         self.validate_filter_contract(filters)
         object.__setattr__(self, "filters", filters)
         object.__setattr__(self, "consumer_profile", self.normalized_consumer_profile())
+        object.__setattr__(self, "content_scope", content_scope)
+        object.__setattr__(self, "language_code", content_scope.language_code)
+        object.__setattr__(self, "content_bank_id", content_scope.content_bank_id)
+        object.__setattr__(self, "bank_version_id", content_scope.bank_version_id)
         object.__setattr__(self, "cefr_level", filters.cefr_level)
         object.__setattr__(self, "theme_ids", filters.theme_ids)
         object.__setattr__(self, "objective_ids", filters.objective_ids)
@@ -112,3 +136,25 @@ class SelectionRequest:
             consumer_id=self.consumer_id,
             delivery_channel=self.delivery_mode,
         )
+
+    def normalized_content_scope(self) -> ContentScope:
+        if self.content_scope is not None:
+            return ContentScope(
+                language_code=normalized_language(self.content_scope.language_code),
+                content_bank_id=self.content_scope.content_bank_id,
+                bank_version_id=self.content_scope.bank_version_id,
+            )
+        return ContentScope(
+            language_code=normalized_language(self.language_code),
+            content_bank_id=self.content_bank_id,
+            bank_version_id=self.bank_version_id,
+        )
+
+    def filter_context(self) -> dict[str, object]:
+        return {**self.filters.to_context(), **self.content_scope.to_context()}
+
+
+def normalized_language(language_code: str | None) -> str:
+    if language_code is None or not language_code.strip():
+        return DEFAULT_LANGUAGE_CODE
+    return language_code.strip().lower()

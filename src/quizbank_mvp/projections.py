@@ -27,6 +27,9 @@ def build_learner_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
         "id": str(item["item_id"]),
         "public_id": str(item["item_id"]),
         "language": str(item["language"]),
+        "language_code": str(item.get("language_code", item["language"])),
+        "content_bank_id": str(item.get("content_bank_id", "")),
+        "bank_version_id": str(item.get("bank_version_id", "")),
         "question": {
             "text": question_text(prompt, stem),
             "prompt": prompt,
@@ -64,6 +67,9 @@ def build_admin_quiz_projection(item: dict[str, Any]) -> dict[str, Any]:
     return {
         "item_id": str(item["item_id"]),
         "language": str(item["language"]),
+        "language_code": str(item.get("language_code", item["language"])),
+        "content_bank_id": str(item.get("content_bank_id", "")),
+        "bank_version_id": str(item.get("bank_version_id", "")),
         "cefr_level": str(item["sublevel"]),
         "theme_id": str(item["theme_id"]),
         "objective_id": str(item["objective_id"]),

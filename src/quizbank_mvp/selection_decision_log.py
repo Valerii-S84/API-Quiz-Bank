@@ -14,6 +14,9 @@ class SelectionDecisionLog:
     selection_request_id: str
     delivery_id: str | None
     consumer_id: str
+    language_code: str
+    content_bank_id: str | None
+    bank_version_id: str | None
     delivery_mode: str
     selection_strategy: str
     filters: dict[str, object]
@@ -31,6 +34,9 @@ class SelectionDecisionLog:
             "selection_request_id": self.selection_request_id,
             "delivery_id": self.delivery_id,
             "consumer_id": self.consumer_id,
+            "language_code": self.language_code,
+            "content_bank_id": self.content_bank_id,
+            "bank_version_id": self.bank_version_id,
             "delivery_mode": self.delivery_mode,
             "selection_strategy": self.selection_strategy,
             "filters_json": stable_json(self.filters),
@@ -48,6 +54,9 @@ class SelectionDecisionLog:
     def to_context(self) -> dict[str, object]:
         return {
             "selection_request_id": self.selection_request_id,
+            "language_code": self.language_code,
+            "content_bank_id": self.content_bank_id,
+            "bank_version_id": self.bank_version_id,
             "candidate_count": self.candidate_count,
             "eligible_count": self.eligible_count,
             "selected_item_id": self.selected_item_id,
@@ -71,9 +80,12 @@ def success_decision(
         selection_request_id=selection_request_id,
         delivery_id=str(delivery["delivery_id"]),
         consumer_id=request.consumer_id,
+        language_code=request.language_code,
+        content_bank_id=request.content_bank_id,
+        bank_version_id=request.bank_version_id,
         delivery_mode=request.delivery_mode,
         selection_strategy=request.selection_strategy,
-        filters=request.filters.to_context(),
+        filters=request.filter_context(),
         filters_applied=list(request.policy.hard_filters),
         candidate_count=candidate_count,
         eligible_count=eligible_count,
@@ -95,9 +107,12 @@ def no_candidate_decision(
         selection_request_id=selection_request_id,
         delivery_id=None,
         consumer_id=request.consumer_id,
+        language_code=request.language_code,
+        content_bank_id=request.content_bank_id,
+        bank_version_id=request.bank_version_id,
         delivery_mode=request.delivery_mode,
         selection_strategy=request.selection_strategy,
-        filters=request.filters.to_context(),
+        filters=request.filter_context(),
         filters_applied=list(request.policy.hard_filters),
         candidate_count=candidate_count,
         eligible_count=0,
@@ -115,13 +130,15 @@ def insert_selection_decision(connection, decision: SelectionDecisionLog) -> Non
         """
         INSERT INTO selection_decisions (
             selection_request_id, delivery_id, consumer_id, delivery_mode,
-            selection_strategy, filters_json, filters_applied_json, candidate_count,
-            eligible_count, selected_item_id, selected_score_json, selected_reason,
+            language_code, content_bank_id, bank_version_id, selection_strategy,
+            filters_json, filters_applied_json, candidate_count, eligible_count,
+            selected_item_id, selected_score_json, selected_reason,
             blocked_reason_counts_json, fallback_reason_code, created_at
         ) VALUES (
             :selection_request_id, :delivery_id, :consumer_id, :delivery_mode,
-            :selection_strategy, :filters_json, :filters_applied_json, :candidate_count,
-            :eligible_count, :selected_item_id, :selected_score_json, :selected_reason,
+            :language_code, :content_bank_id, :bank_version_id, :selection_strategy,
+            :filters_json, :filters_applied_json, :candidate_count, :eligible_count,
+            :selected_item_id, :selected_score_json, :selected_reason,
             :blocked_reason_counts_json, :fallback_reason_code, :created_at
         )
         """,

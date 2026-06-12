@@ -131,7 +131,7 @@ class NextRouteQuotaLockTests(unittest.TestCase):
         first_result: dict[str, object] = {}
         second_result: dict[str, object] = {}
 
-        def observed_load_metrics(connection, item_ids):
+        def observed_load_metrics(connection, item_ids, request):
             nonlocal call_count
             with call_lock:
                 call_count += 1
@@ -139,7 +139,7 @@ class NextRouteQuotaLockTests(unittest.TestCase):
             if current_call == 1:
                 first_metrics_started.set()
                 release_first_metrics.wait(timeout=5)
-            return original_load_metrics(connection, item_ids)
+            return original_load_metrics(connection, item_ids, request)
 
         with mock.patch.object(
             selection_eligibility,

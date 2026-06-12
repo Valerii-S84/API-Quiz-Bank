@@ -14,12 +14,18 @@ def candidate_count(connection, request: Any) -> int:
         FROM quiz_items qi
         JOIN sources s ON s.source_id = qi.source_id
         WHERE qi.status IN (?, ?)
+          AND qi.language_code = ?
+          AND qi.bank_version_id = ?
           AND qi.source_id <> ''
           AND s.source_type <> ''
           AND s.provenance_note <> ''
         """
     ]
-    parameters: list[Any] = [*DELIVERABLE_STATUSES]
+    parameters: list[Any] = [
+        *DELIVERABLE_STATUSES,
+        request.language_code,
+        request.bank_version_id,
+    ]
     append_taxonomy_filters(query, parameters, request)
     row = connection.execute(" ".join(query), parameters).fetchone()
     return int(row["count"])
@@ -47,9 +53,15 @@ def non_deliverable_status_count(connection, request: Any) -> int:
         SELECT COUNT(*) AS count
         FROM quiz_items qi
         WHERE qi.status NOT IN (?, ?)
+          AND qi.language_code = ?
+          AND qi.bank_version_id = ?
         """
     ]
-    parameters: list[Any] = [*DELIVERABLE_STATUSES]
+    parameters: list[Any] = [
+        *DELIVERABLE_STATUSES,
+        request.language_code,
+        request.bank_version_id,
+    ]
     append_taxonomy_filters(query, parameters, request)
     row = connection.execute(" ".join(query), parameters).fetchone()
     return int(row["count"])
@@ -67,16 +79,24 @@ def repeat_policy_block_count(connection, request: Any) -> int:
         JOIN sources s ON s.source_id = qi.source_id
         JOIN deliveries d ON d.quiz_item_id = qi.item_id
         WHERE qi.status IN (?, ?)
+          AND qi.language_code = ?
+          AND qi.bank_version_id = ?
           AND qi.source_id <> ''
           AND s.source_type <> ''
           AND s.provenance_note <> ''
           AND d.consumer_id = ?
+          AND d.language_code = ?
+          AND d.bank_version_id = ?
           AND d.delivery_status IN ({placeholders})
         """
     ]
     parameters: list[Any] = [
         *DELIVERABLE_STATUSES,
+        request.language_code,
+        request.bank_version_id,
         request.consumer_id,
+        request.language_code,
+        request.bank_version_id,
         *policy.blocked_delivery_statuses,
     ]
     append_taxonomy_filters(query, parameters, request)
