@@ -1,0 +1,148 @@
+{
+  "allowed_cefr_levels": [
+    "A2"
+  ],
+  "allowed_theme_ids": [
+    "T01",
+    "T02",
+    "T03",
+    "T04",
+    "T05",
+    "T06",
+    "T07",
+    "T08",
+    "T09",
+    "T10",
+    "T11",
+    "T12",
+    "T13",
+    "T14",
+    "T15",
+    "T16",
+    "T17",
+    "T18"
+  ],
+  "consumer_count": 20,
+  "consumer_ids": [
+    "staged-load-next-route-2026-06-12-00",
+    "staged-load-next-route-2026-06-12-01",
+    "staged-load-next-route-2026-06-12-02",
+    "staged-load-next-route-2026-06-12-03",
+    "staged-load-next-route-2026-06-12-04",
+    "staged-load-next-route-2026-06-12-05",
+    "staged-load-next-route-2026-06-12-06",
+    "staged-load-next-route-2026-06-12-07",
+    "staged-load-next-route-2026-06-12-08",
+    "staged-load-next-route-2026-06-12-09",
+    "staged-load-next-route-2026-06-12-10",
+    "staged-load-next-route-2026-06-12-11",
+    "staged-load-next-route-2026-06-12-12",
+    "staged-load-next-route-2026-06-12-13",
+    "staged-load-next-route-2026-06-12-14",
+    "staged-load-next-route-2026-06-12-15",
+    "staged-load-next-route-2026-06-12-16",
+    "staged-load-next-route-2026-06-12-17",
+    "staged-load-next-route-2026-06-12-18",
+    "staged-load-next-route-2026-06-12-19"
+  ],
+  "consumer_prefix": "staged-load-next-route-2026-06-12-",
+  "credential_count": 20,
+  "credentials_revoked": true,
+  "daily_quota_limit": 5000,
+  "generated_at": "2026-06-12T08:07:20Z",
+  "key_fingerprints": [
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-00",
+      "key_fingerprint": "ef2c8bd9da91fe30ff227f29"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-01",
+      "key_fingerprint": "095d8188ff1dca5ebb4018cb"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-02",
+      "key_fingerprint": "fc1c665234bd99c2782c21b5"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-03",
+      "key_fingerprint": "cd75bb68fce9069da71e5b32"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-04",
+      "key_fingerprint": "017f2bc3e176bfbba33cfce2"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-05",
+      "key_fingerprint": "696ac7ca8d04c3f325c8e716"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-06",
+      "key_fingerprint": "1f9af1ed34077618aebf1437"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-07",
+      "key_fingerprint": "f8dc0c305d0139a0fc666380"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-08",
+      "key_fingerprint": "0e90a1c10875a2267ad89f89"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-09",
+      "key_fingerprint": "398838a2e3ee02be9c385eff"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-10",
+      "key_fingerprint": "87b28412cc7fa82aa6cc8314"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-11",
+      "key_fingerprint": "df79802775da17c1977b92ca"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-12",
+      "key_fingerprint": "5310ae5dc16fedde7bfff064"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-13",
+      "key_fingerprint": "b914fbdce473e4f366e5d2d1"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-14",
+      "key_fingerprint": "8a55c35b3555cbcfd16ce765"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-15",
+      "key_fingerprint": "070872354b3e7be81e3b8c31"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-16",
+      "key_fingerprint": "d51111ed00dcd890d29ea0b2"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-17",
+      "key_fingerprint": "25fe18ce025f3801bcb2510e"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-18",
+      "key_fingerprint": "2e2827d64b4ddff5bfafdabd"
+    },
+    {
+      "consumer_id": "staged-load-next-route-2026-06-12-19",
+      "key_fingerprint": "be6f3a954880c1d27281c92a"
+    }
+  ],
+  "non_test_consumers_after_cleanup": 23,
+  "non_test_consumers_after_create": 23,
+  "non_test_consumers_before": 23,
+  "report_type": "protected_staged_load_consumers",
+  "revoked_key_check_status": 403,
+  "secret_values_printed": false,
+  "temp_key_file": {
+    "committed": false,
+    "mode": "0o600",
+    "removed_after_cleanup": true
+  },
+  "test_active_credentials_after": 0,
+  "test_revoked_credentials_after": 20
+}
