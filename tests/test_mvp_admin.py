@@ -87,6 +87,9 @@ class MvpAdminEndpointTests(MvpAdminCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("API Quiz Bank Admin", response.text)
         self.assertIn("Admin password", response.text)
+        self.assertIn("Content banks", response.text)
+        self.assertIn("/v1/admin/content-banks", response.text)
+        self.assertIn("/v1/admin/content-bank-versions/", response.text)
 
     def test_admin_reads_require_admin_key(self) -> None:
         response = self.client.get("/v1/admin/dashboard")
@@ -261,6 +264,26 @@ class MvpAdminEndpointTests(MvpAdminCase):
 
 
 class MvpAdminContentBankTests(MvpAdminCase):
+    def test_admin_dashboard_includes_content_bank_version_aggregates(self) -> None:
+        key = self.seed_admin()
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        insert_bank_version(self, "german-core:dashboard-draft", "dashboard-draft", "draft")
+
+        response = self.client.get("/v1/admin/dashboard", headers=self.admin_headers(key))
+        payload = response.json()
+        baseline = aggregate_for(payload, BASELINE_VERSION_ID)
+        draft = aggregate_for(payload, "german-core:dashboard-draft")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["items_by_language"]["de"], 1)
+        self.assertEqual(baseline["language_code"], "de")
+        self.assertEqual(baseline["content_bank_id"], "german-core")
+        self.assertEqual(baseline["bank_version_status"], "active")
+        self.assertEqual(baseline["item_count"], 1)
+        self.assertEqual(baseline["approved_published_count"], 1)
+        self.assertEqual(draft["bank_version_status"], "draft")
+        self.assertEqual(draft["item_count"], 0)
+
     def test_read_only_admin_can_inspect_content_bank_workflow_surface(self) -> None:
         key = self.seed_admin("reviewer", "read_only_reviewer")
         insert_bank_version(self, "german-core:stage4-draft", "stage4-draft", "draft")
@@ -483,6 +506,13 @@ def bank_version_status(case: MvpAdminCase, bank_version_id: str) -> str:
             (bank_version_id,),
         ).fetchone()
     return str(row["status"])
+
+
+def aggregate_for(payload: dict[str, object], bank_version_id: str) -> dict[str, object]:
+    for aggregate in payload["items_by_bank_version"]:
+        if aggregate["bank_version_id"] == bank_version_id:
+            return aggregate
+    raise AssertionError(f"missing aggregate for {bank_version_id}")
 
 
 def create_import_batches_table(case: MvpAdminCase) -> None:

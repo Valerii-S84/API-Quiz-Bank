@@ -90,12 +90,16 @@ def admin_dashboard(db_path: Path | None) -> dict[str, object]:
         status_counts = count_by(connection, "quiz_items", "status")
         level_counts = count_by(connection, "quiz_items", "sublevel")
         theme_counts = count_by(connection, "quiz_items", "theme_id")
+        language_counts = count_by(connection, "quiz_items", "language_code")
+        bank_version_counts = count_items_by_bank_version(connection)
         delivery_count = scalar_count(connection, "deliveries")
         audit_count = scalar_count(connection, "audit_log")
     return {
         "corpus_status_counts": status_counts,
         "items_by_cefr_level": level_counts,
         "items_by_theme": theme_counts,
+        "items_by_language": language_counts,
+        "items_by_bank_version": bank_version_counts,
         "approved_published_count": sum(status_counts.get(status, 0) for status in ("approved", "published")),
         "delivery_log_count": delivery_count,
         "audit_log_count": audit_count,
@@ -407,6 +411,51 @@ def count_by(connection, table: str, column: str) -> dict[str, int]:
         f"SELECT {column} AS key, COUNT(*) AS count FROM {table} GROUP BY {column}"
     ).fetchall()
     return {str(row["key"]): int(row["count"]) for row in rows}
+
+
+def count_items_by_bank_version(connection) -> list[dict[str, object]]:
+    rows = connection.execute(
+        """
+        SELECT cb.language_code, cb.id AS content_bank_id,
+               cb.slug AS content_bank_slug, cbv.id AS bank_version_id,
+               cbv.version AS bank_version, cbv.status AS bank_version_status,
+               COUNT(qi.item_id) AS item_count,
+               SUM(CASE WHEN qi.status IN ('approved', 'published') THEN 1 ELSE 0 END)
+                   AS approved_published_count
+        FROM content_bank_versions cbv
+        JOIN content_banks cb ON cb.id = cbv.content_bank_id
+        LEFT JOIN quiz_items qi
+          ON qi.bank_version_id = cbv.id
+         AND qi.content_bank_id = cb.id
+         AND qi.language_code = cb.language_code
+        GROUP BY cb.language_code, cb.id, cb.slug, cbv.id, cbv.version, cbv.status,
+                 cbv.created_at
+        ORDER BY cb.language_code, cb.slug,
+                 CASE cbv.status
+                   WHEN 'active' THEN 1
+                   WHEN 'audit' THEN 2
+                   WHEN 'draft' THEN 3
+                   WHEN 'archived' THEN 4
+                   ELSE 99
+                 END,
+                 cbv.created_at DESC,
+                 cbv.id
+        """
+    ).fetchall()
+    return [bank_version_count_projection(row_to_dict(row)) for row in rows]
+
+
+def bank_version_count_projection(row: dict[str, Any]) -> dict[str, object]:
+    return {
+        "language_code": str(row["language_code"]),
+        "content_bank_id": str(row["content_bank_id"]),
+        "content_bank_slug": str(row["content_bank_slug"]),
+        "bank_version_id": str(row["bank_version_id"]),
+        "bank_version": str(row["bank_version"]),
+        "bank_version_status": str(row["bank_version_status"]),
+        "item_count": int(row["item_count"]),
+        "approved_published_count": int(row["approved_published_count"] or 0),
+    }
 
 
 def scalar_count(connection, table: str) -> int:

@@ -1594,6 +1594,8 @@ components:
         - corpus_status_counts
         - items_by_cefr_level
         - items_by_theme
+        - items_by_language
+        - items_by_bank_version
         - approved_published_count
         - delivery_log_count
         - audit_log_count
@@ -1611,6 +1613,14 @@ components:
           type: object
           additionalProperties:
             type: integer
+        items_by_language:
+          type: object
+          additionalProperties:
+            type: integer
+        items_by_bank_version:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminBankVersionDashboardAggregate'
         approved_published_count:
           type: integer
         delivery_log_count:
@@ -1619,6 +1629,39 @@ components:
           type: integer
         visual_metrics:
           $ref: '#/components/schemas/AdminVisualMetricsSummary'
+    AdminBankVersionDashboardAggregate:
+      type: object
+      additionalProperties: false
+      required:
+        - language_code
+        - content_bank_id
+        - content_bank_slug
+        - bank_version_id
+        - bank_version
+        - bank_version_status
+        - item_count
+        - approved_published_count
+      properties:
+        language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+        content_bank_id:
+          type: string
+        content_bank_slug:
+          type: string
+        bank_version_id:
+          type: string
+        bank_version:
+          type: string
+        bank_version_status:
+          type: string
+          enum: [draft, audit, active, archived]
+        item_count:
+          type: integer
+          minimum: 0
+        approved_published_count:
+          type: integer
+          minimum: 0
     AdminVisualMetricsSummary:
       type: object
       additionalProperties: false

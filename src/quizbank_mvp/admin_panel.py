@@ -18,6 +18,7 @@ ADMIN_PANEL_HTML = """<!doctype html>
     button.secondary { background: white; color: #18202a; border-color: #b8c2cf; }
     .toolbar { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 12px; align-items: end; }
     .consumer-form { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 12px; align-items: end; }
+    .bank-form { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: 12px; align-items: end; }
     .metrics { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 12px; }
     .metric { background: #eef3f8; border-radius: 6px; padding: 12px; }
     table { border-collapse: collapse; width: 100%; font-size: 14px; }
@@ -25,7 +26,7 @@ ADMIN_PANEL_HTML = """<!doctype html>
     tr:hover { background: #f8fafc; }
     .actions { display: flex; flex-wrap: wrap; gap: 6px; }
     .error { color: #b42318; font-weight: 700; }
-    @media (max-width: 800px) { .toolbar, .consumer-form, .metrics { grid-template-columns: 1fr; } }
+    @media (max-width: 800px) { .toolbar, .consumer-form, .bank-form, .metrics { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -40,6 +41,40 @@ ADMIN_PANEL_HTML = """<!doctype html>
     </section>
     <section>
       <div class="metrics" id="metrics"></div>
+    </section>
+    <section>
+      <h2>Content banks</h2>
+      <div class="bank-form">
+        <label>Language
+          <select id="bankLanguage">
+            <option value="de">de</option>
+            <option value="en">en</option>
+            <option value="fr">fr</option>
+            <option value="es">es</option>
+            <option value="nl">nl</option>
+          </select>
+        </label>
+        <label>Bank ID <input id="contentBankId" value="german-core"></label>
+        <label>Version ID <input id="bankVersionId" placeholder="german-core:2026-06-12-baseline"></label>
+        <label>Reason <input id="bankReason" placeholder="workflow reason"></label>
+        <button class="secondary" id="loadBanks">Load banks</button>
+        <button id="markAudit">Mark audit</button>
+        <button id="activateBank">Activate</button>
+        <button id="rollbackBank">Rollback</button>
+      </div>
+      <div class="metrics" id="bankMetrics"></div>
+      <table>
+        <thead><tr><th>Bank</th><th>Language</th><th>Status</th><th>Active version</th><th>Versions</th><th>Actions</th></tr></thead>
+        <tbody id="contentBanks"></tbody>
+      </table>
+      <table>
+        <thead><tr><th>Version</th><th>Status</th><th>Activated</th><th>Created</th><th>Actions</th></tr></thead>
+        <tbody id="bankVersions"></tbody>
+      </table>
+      <table>
+        <thead><tr><th>Import batch</th><th>Status</th><th>Scope</th><th>Rows</th><th>Report</th></tr></thead>
+        <tbody id="importBatches"></tbody>
+      </table>
     </section>
     <section>
       <p class="error" id="error"></p>
@@ -101,6 +136,7 @@ ADMIN_PANEL_HTML = """<!doctype html>
         ]);
         renderMetrics(dashboard);
         renderItems(items.data);
+        await loadContentBankWorkflow(dashboard);
         await loadConsumers();
       } catch (error) {
         document.getElementById('error').textContent = error.detail || error.title || 'Admin request failed';
@@ -118,6 +154,80 @@ ADMIN_PANEL_HTML = """<!doctype html>
         ['Visual Fallback Rate', `${Math.round((visual.fallback_rate || 0) * 100)}%`],
         ['Visual Generations', visualEvents.generation_requested || 0]
       ].map(([label, value]) => `<div class="metric"><strong>${value}</strong><br>${label}</div>`).join('');
+    }
+    async function loadContentBankWorkflow(dashboard = null) {
+      const language = bankLanguage.value || 'de';
+      const bankId = contentBankId.value.trim();
+      const versionId = bankVersionId.value.trim();
+      const importParams = new URLSearchParams({language_code: language});
+      if (bankId) importParams.set('content_bank_id', bankId);
+      if (versionId) importParams.set('bank_version_id', versionId);
+      const [languages, banks, batches] = await Promise.all([
+        api('/v1/admin/languages'),
+        api('/v1/admin/content-banks?language_code=' + encodeURIComponent(language)),
+        api('/v1/admin/import-batches?' + importParams.toString())
+      ]);
+      renderLanguageOptions(languages.data);
+      renderContentBanks(banks.data);
+      const selectedBankId = bankId || (banks.data[0] && banks.data[0].content_bank_id) || '';
+      if (!bankId && selectedBankId) contentBankId.value = selectedBankId;
+      const versions = selectedBankId
+        ? await api('/v1/admin/content-banks/' + encodeURIComponent(selectedBankId) + '/versions')
+        : {data: []};
+      renderBankVersions(versions.data);
+      renderImportBatches(batches.data);
+      if (dashboard) renderBankMetrics(dashboard.items_by_bank_version || []);
+    }
+    function renderLanguageOptions(languages) {
+      const current = bankLanguage.value || 'de';
+      bankLanguage.innerHTML = languages.map(language => {
+        const label = `${language.code} ${language.is_active ? 'active' : 'inactive'}`;
+        return `<option value="${escapeHtml(language.code)}">${escapeHtml(label)}</option>`;
+      }).join('');
+      bankLanguage.value = current;
+    }
+    function renderBankMetrics(counts) {
+      document.getElementById('bankMetrics').innerHTML = counts.map(count => `
+        <div class="metric">
+          <strong>${count.item_count}</strong><br>
+          ${escapeHtml(count.language_code)} / ${escapeHtml(count.content_bank_slug)}<br>
+          ${escapeHtml(count.bank_version_status)} ${escapeHtml(count.bank_version)}
+        </div>`).join('');
+    }
+    function renderContentBanks(banks) {
+      document.getElementById('contentBanks').innerHTML = banks.map(bank => `
+        <tr>
+          <td>${escapeHtml(bank.content_bank_id)}<br>${escapeHtml(bank.name)}</td>
+          <td>${escapeHtml(bank.language_code)}</td>
+          <td>${escapeHtml(bank.status)}</td>
+          <td>${escapeHtml(bank.active_bank_version || '')}</td>
+          <td>${bank.version_count}</td>
+          <td class="actions">
+            <button class="secondary" data-bank="${escapeHtml(bank.content_bank_id)}">Select</button>
+          </td>
+        </tr>`).join('');
+    }
+    function renderBankVersions(versions) {
+      document.getElementById('bankVersions').innerHTML = versions.map(version => `
+        <tr>
+          <td>${escapeHtml(version.bank_version_id)}<br>${escapeHtml(version.version)}</td>
+          <td>${escapeHtml(version.status)}</td>
+          <td>${escapeHtml(version.activated_at || '')}</td>
+          <td>${escapeHtml(version.created_at)}</td>
+          <td class="actions">
+            <button class="secondary" data-bank-version="${escapeHtml(version.bank_version_id)}">Select</button>
+          </td>
+        </tr>`).join('');
+    }
+    function renderImportBatches(batches) {
+      document.getElementById('importBatches').innerHTML = batches.map(batch => `
+        <tr>
+          <td>${escapeHtml(batch.import_batch_id)}<br>${escapeHtml(batch.source_id)}</td>
+          <td>${escapeHtml(batch.import_status)}</td>
+          <td>${escapeHtml(batch.language_code)} / ${escapeHtml(batch.content_bank_id)}<br>${escapeHtml(batch.bank_version_id)}</td>
+          <td>${batch.accepted_candidate_count}/${batch.row_count_detected}</td>
+          <td>${escapeHtml(batch.report_uri)}</td>
+        </tr>`).join('');
     }
     function renderItems(items) {
       document.getElementById('items').innerHTML = items.map(item => `
@@ -196,8 +306,38 @@ ADMIN_PANEL_HTML = """<!doctype html>
     function csvValues(value) {
       return value.split(',').map(part => part.trim()).filter(Boolean);
     }
+    async function runBankAction(action) {
+      const versionId = bankVersionId.value.trim();
+      const workflowReason = bankReason.value.trim();
+      if (!versionId || !workflowReason) {
+        document.getElementById('error').textContent = 'Bank version and reason are required';
+        return;
+      }
+      await api('/v1/admin/content-bank-versions/' + encodeURIComponent(versionId) + '/' + action, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({reason: workflowReason})
+      });
+      bankReason.value = '';
+      await load();
+    }
     document.getElementById('load').addEventListener('click', load);
+    document.getElementById('loadBanks').addEventListener('click', () => loadContentBankWorkflow());
+    document.getElementById('markAudit').addEventListener('click', () => runBankAction('mark-audit'));
+    document.getElementById('activateBank').addEventListener('click', () => runBankAction('activate'));
+    document.getElementById('rollbackBank').addEventListener('click', () => runBankAction('rollback'));
     document.getElementById('createConsumer').addEventListener('click', createConsumer);
+    document.getElementById('contentBanks').addEventListener('click', async event => {
+      if (event.target.dataset && event.target.dataset.bank) {
+        contentBankId.value = event.target.dataset.bank;
+        await loadContentBankWorkflow();
+      }
+    });
+    document.getElementById('bankVersions').addEventListener('click', event => {
+      if (event.target.dataset && event.target.dataset.bankVersion) {
+        bankVersionId.value = event.target.dataset.bankVersion;
+      }
+    });
     document.getElementById('items').addEventListener('click', event => {
       if (event.target.dataset && event.target.dataset.action) {
         openAction(event.target.dataset.item, event.target.dataset.action);
