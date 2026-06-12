@@ -1,0 +1,78 @@
+{
+  "cleanup": {
+    "non_test_consumers_unchanged": true,
+    "probe_cleanup": {
+      "credentials_revoked": true,
+      "diagnostic_consumer_count": 20,
+      "passed": true,
+      "revoked_key_check_status": 403,
+      "temp_key_files_removed": true
+    },
+    "smoke_cleanup": {
+      "credentials_revoked": true,
+      "diagnostic_consumer_count": 1,
+      "passed": true,
+      "revoked_key_check_status": 403,
+      "temp_key_files_removed": true
+    }
+  },
+  "explicit_non_claims": {
+    "not_broad_launch_readiness": true,
+    "not_paid_pilot_readiness": true,
+    "not_stage_4_pass": true,
+    "not_stage_5_soak_pass": true
+  },
+  "gate_sequence": {
+    "lock_probe_passed": false,
+    "protected_smoke_passed": true,
+    "stage_4_allowed_to_start": false,
+    "stage_5_allowed_to_start": false
+  },
+  "generated_at": "2026-06-12T10:03:16Z",
+  "probe_failure_reasons": [
+    "probe p95 2373.93 ms exceeded 1500 ms acceptance gate",
+    "sampled Postgres CPU peaked at 101.46%, so CPU was near 100% during the probe"
+  ],
+  "probe_sampler": {
+    "api_cpu_percent_max": 58.57,
+    "blocked_locks_max": 0,
+    "db_connections_final": 1,
+    "db_connections_max": 19,
+    "postgres_cpu_percent_max": 101.46,
+    "sample_count": 20
+  },
+  "probe_summary": {
+    "candidate_max": 300,
+    "candidate_samples": 1200,
+    "five_xx_count": 0,
+    "max_ms": 2898.439,
+    "name": "quota_lock_probe",
+    "p50_ms": 1713.424,
+    "p95_ms": 2373.93,
+    "p99_ms": 2577.845,
+    "status_counts": {
+      "200": 1200
+    },
+    "timeout_count": 0,
+    "total_requests": 1200
+  },
+  "report_type": "protected_staged_load_after_quota_fix",
+  "server_git_sha": "3c866492ec2f1a42e9dcb512c980b92ebd1fd7e3",
+  "smoke_summary": {
+    "candidate_max": 300,
+    "candidate_samples": 85,
+    "five_xx_count": 0,
+    "max_ms": 381.623,
+    "name": "smoke_total",
+    "p50_ms": 121.261,
+    "p95_ms": 311.249,
+    "p99_ms": 376.85,
+    "status_counts": {
+      "200": 85
+    },
+    "timeout_count": 0,
+    "total_requests": 85
+  },
+  "stage_4_status": "skipped_after_lock_probe_latency_gate",
+  "stage_5_status": "skipped_stage_4_not_run"
+}

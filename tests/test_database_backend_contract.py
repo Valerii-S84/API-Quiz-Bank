@@ -180,7 +180,7 @@ class DatabaseBackendContractTests(unittest.TestCase):
         self.assertIn("%(selection_request_id)s", executed_sql)
         self.assertIn("LEFT JOIN deliveries d_repeat", executed_sql)
         self.assertIn("LIMIT %s", executed_sql)
-        self.assertIn("GROUP BY quiz_item_id", executed_sql)
+        self.assertNotIn("GROUP BY quiz_item_id", executed_sql)
         self.assertNotIn("d_all", executed_sql)
         self.assertNotIn("d_last", executed_sql)
         self.assertNotIn("d_cell", executed_sql)
@@ -198,7 +198,6 @@ class DatabaseBackendContractTests(unittest.TestCase):
         request = SelectionRequest(
             "consumer_pg",
             filters=SelectionFilters(cefr_level="A2", theme_ids=("T10",)),
-            selection_strategy="first_eligible",
         )
 
         with mock.patch.object(selection_module, "connect", side_effect=lambda _db_path: next(connections)):

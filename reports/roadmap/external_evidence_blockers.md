@@ -56,6 +56,73 @@ delivery-history reads, scoring and eligibility before the atomic quota reserve.
 The scale/load blocker remains external until an approved production deploy,
 small protected smoke and separate Stage 4/Stage 5 rerun are completed.
 
+## 2026-06-12 Quota Lock Production Rerun Boundary
+
+Production was updated from GitHub `main` at
+`3c866492ec2f1a42e9dcb512c980b92ebd1fd7e3` with an API-only rebuild/restart.
+Postgres was not restarted and no migrations were applied because there were no
+new migration files relative to the previous production checkout.
+
+Evidence is recorded in:
+
+- `reports/scale/quota_lock_production_deploy_2026-06-12.md`
+- `reports/scale/quota_lock_postfix_smoke_2026-06-12.json`
+- `reports/scale/quota_lock_probe_2026-06-12.json`
+- `reports/scale/protected_staged_load_after_quota_fix_2026-06-12.json`
+- `reports/scale/protected_staged_load_after_quota_fix_2026-06-12_summary.md`
+
+The protected smoke passed with 85/85 `200`, zero 5xx/timeouts, p95
+`311.249 ms`, candidate max `300` and blocked locks max `0`. The short
+lock probe returned 1200/1200 `200`, zero 5xx/timeouts and blocked locks max
+`0`, but failed the latency/CPU gate with p95 `2373.93 ms` and sampled
+Postgres CPU max `101.46%`. Stage 4 and Stage 5 were therefore not run.
+
+The scale/load blocker remains open. This does not claim paid pilot readiness,
+broad launch readiness, school launch readiness, support/SLA readiness or
+additional legal/privacy approval.
+
+## 2026-06-12 Post-Quota Fix CPU Diagnostics Boundary
+
+Follow-up production-safe CPU diagnostics are recorded in:
+
+- `reports/scale/post_quota_fix_cpu_diagnostics_2026-06-12.json`
+- `reports/scale/post_quota_fix_cpu_diagnostics_2026-06-12_summary.md`
+- `reports/scale/next_route_slow_query_profile_2026-06-12.md`
+
+The controlled probe used 20 isolated diagnostic consumers and stopped before
+Stage 4/Stage 5 scope. It returned 461/461 `200`, zero 5xx, zero timeouts,
+p95 `2159.653 ms`, p99 `2322.067 ms`, blocked locks max `0`, candidate count
+min/max `300/300` and Postgres CPU max `103.13%`. The stop reason was
+Postgres CPU above `90%` for more than 30 seconds.
+
+The new scale blocker is no longer DB lock contention in this repro. It is the
+CPU-bound synchronous read path for `/v1/quiz-items/next`: bounded candidate
+selection plus delivery-history grouped metric lookups under concurrency.
+Expected next-route indexes are present, so no missing index is proven by this
+run. Stage 4 and Stage 5 remain blocked until that read path is remediated and
+the protected gates are rerun under explicit approval.
+
+## 2026-06-12 Read Path CPU Remediation Boundary
+
+Local read-path remediation is recorded in:
+
+- `reports/scale/read_path_cpu_remediation_2026-06-12.md`
+- `reports/scale/read_path_candidate_pool_before_after_2026-06-12.md`
+- `reports/scale/read_path_perf_after_fix_2026-06-12.json`
+
+The local proof used a synthetic 30k-item SQLite runtime and recorded 100/100
+sequential `/v1/quiz-items/next` responses, p95 `134.965 ms`, candidate max
+`150`, query count per success `8`, and zero exceptions/timeouts/5xx. It also
+recorded a short local concurrency probe with 24/24 `200` and zero
+exceptions/timeouts/5xx.
+
+This closes only the local code-remediation proof. The external scale/load
+blocker remains open until an explicitly approved production deploy, protected
+smoke and Stage 4/Stage 5 rerun show acceptable PostgreSQL CPU, latency and
+lock behavior. This does not claim paid pilot readiness, broad launch
+readiness, school launch readiness, support/SLA readiness or additional
+legal/privacy approval.
+
 ## Guardrail
 
 None of these blockers may be marked `Done` from local docs, SQLite evidence,

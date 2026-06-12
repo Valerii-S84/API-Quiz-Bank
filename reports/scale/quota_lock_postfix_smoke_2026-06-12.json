@@ -1,0 +1,108 @@
+{
+  "api_container": "api-quiz-bank-pilot",
+  "cleanup": {
+    "credentials_revoked": true,
+    "diagnostic_consumer_count": 1,
+    "passed": true,
+    "revoked_key_check_status": 403,
+    "temp_key_files_removed": true
+  },
+  "explicit_non_claims": {
+    "not_broad_launch_readiness": true,
+    "not_legal_privacy_approval": true,
+    "not_paid_pilot_readiness": true
+  },
+  "finished_at": "2026-06-12T10:01:10Z",
+  "generated_at": "2026-06-12T10:01:10Z",
+  "non_test_consumers_after": 41,
+  "non_test_consumers_before": 41,
+  "non_test_consumers_unchanged": true,
+  "postgres_container": "api-quiz-bank-postgres",
+  "report_type": "smoke",
+  "result": {
+    "acceptance": {
+      "candidate_max_allowed": 300,
+      "expected_200": 85,
+      "p95_allowed_ms": 1500.0,
+      "p95_strict_ms": 800.0
+    },
+    "passed": true,
+    "phases": [
+      {
+        "candidate_max": 300,
+        "candidate_samples": 5,
+        "five_xx_count": 0,
+        "max_ms": 120.083,
+        "name": "warmup_sequential",
+        "p50_ms": 115.196,
+        "p95_ms": 116.662,
+        "p99_ms": 116.662,
+        "status_counts": {
+          "200": 5
+        },
+        "timeout_count": 0,
+        "total_requests": 5
+      },
+      {
+        "candidate_max": 300,
+        "candidate_samples": 50,
+        "five_xx_count": 0,
+        "max_ms": 150.458,
+        "name": "main_sequential",
+        "p50_ms": 106.124,
+        "p95_ms": 134.944,
+        "p99_ms": 140.799,
+        "status_counts": {
+          "200": 50
+        },
+        "timeout_count": 0,
+        "total_requests": 50
+      },
+      {
+        "candidate_max": 300,
+        "candidate_samples": 30,
+        "five_xx_count": 0,
+        "max_ms": 381.623,
+        "name": "concurrency_3",
+        "p50_ms": 259.628,
+        "p95_ms": 335.722,
+        "p99_ms": 376.85,
+        "status_counts": {
+          "200": 30
+        },
+        "timeout_count": 0,
+        "total_requests": 30
+      }
+    ],
+    "profile": {
+      "concurrency_3": 30,
+      "main_sequential": 50,
+      "warmup_sequential": 5
+    },
+    "sampler": {
+      "api_cpu_percent_max": 65.44,
+      "blocked_locks_max": 0,
+      "db_connections_final": 1,
+      "db_connections_max": 2,
+      "postgres_cpu_percent_max": 80.11,
+      "sample_count": 3
+    },
+    "summary": {
+      "candidate_max": 300,
+      "candidate_samples": 85,
+      "five_xx_count": 0,
+      "max_ms": 381.623,
+      "name": "smoke_total",
+      "p50_ms": 121.261,
+      "p95_ms": 311.249,
+      "p99_ms": 376.85,
+      "status_counts": {
+        "200": 85
+      },
+      "timeout_count": 0,
+      "total_requests": 85
+    }
+  },
+  "server_git_sha": "3c866492ec2f1a42e9dcb512c980b92ebd1fd7e3",
+  "started_at": "2026-06-12T10:00:57Z"
+}
