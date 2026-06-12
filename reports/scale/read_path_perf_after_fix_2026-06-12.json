@@ -1,0 +1,97 @@
+{
+  "candidate_pool": {
+    "cell_grouped_metrics_on_hot_path": false,
+    "history_metric_candidate_limit": 24,
+    "limit": 150,
+    "max_candidate_count_recorded": 150
+  },
+  "concurrent": {
+    "candidate_count": {
+      "max": 150,
+      "mean": 150.0,
+      "min": 150
+    },
+    "exception_count": 0,
+    "five_xx_count": 0,
+    "latency_ms": {
+      "max": 1281.485,
+      "mean": 331.588,
+      "min": 148.151,
+      "p50": 231.143,
+      "p95": 1278.596,
+      "p99": 1281.485
+    },
+    "query_count": {
+      "max": null,
+      "mean": null,
+      "min": null
+    },
+    "requests": 24,
+    "status_counts": {
+      "200": 24
+    },
+    "timeout_count": 0,
+    "workers": 4
+  },
+  "dataset": {
+    "levels": [
+      "A2"
+    ],
+    "quiz_content_in_report": false,
+    "synthetic_published_items": 30000,
+    "themes": [
+      "T10"
+    ]
+  },
+  "decision": "GO local read-path proof",
+  "environment": "local_sqlite_testclient_synthetic_30k",
+  "explicit_non_claims": {
+    "not_broad_scale_approval": true,
+    "not_paid_pilot_readiness": true,
+    "not_production_deploy": true,
+    "not_production_smoke_or_load": true
+  },
+  "generated_at": "2026-06-12T10:57:00Z",
+  "production_deploy_performed": false,
+  "production_load_test_performed": false,
+  "production_touched": false,
+  "report_type": "read_path_perf_after_fix",
+  "secret_or_quiz_content_printed": false,
+  "sequential": {
+    "candidate_count": {
+      "max": 150,
+      "mean": 150.0,
+      "min": 150
+    },
+    "exception_count": 0,
+    "five_xx_count": 0,
+    "latency_ms": {
+      "max": 145.406,
+      "mean": 117.847,
+      "min": 98.518,
+      "p50": 116.425,
+      "p95": 134.965,
+      "p99": 145.406
+    },
+    "query_count": {
+      "max": 8,
+      "mean": 8.0,
+      "min": 8
+    },
+    "requests": 100,
+    "status_counts": {
+      "200": 100
+    },
+    "timeout_count": 0
+  },
+  "thresholds": {
+    "candidate_max_allowed": 150,
+    "exceptions_allowed": 0,
+    "p95_ms_allowed": 300.0,
+    "p95_ms_target": 150.0,
+    "sequential_requests": 100,
+    "sequential_status_200": 100,
+    "timeouts_allowed": 0
+  },
+  "thresholds_met": true
+}

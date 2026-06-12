@@ -1,0 +1,59 @@
+{
+  "api_container": "api-quiz-bank-pilot",
+  "cleanup": {
+    "credentials_revoked": true,
+    "diagnostic_consumer_count": 20,
+    "passed": true,
+    "revoked_key_check_status": 403,
+    "temp_key_files_removed": true
+  },
+  "explicit_non_claims": {
+    "not_broad_launch_readiness": true,
+    "not_legal_privacy_approval": true,
+    "not_paid_pilot_readiness": true
+  },
+  "finished_at": "2026-06-12T10:03:16Z",
+  "generated_at": "2026-06-12T10:03:16Z",
+  "non_test_consumers_after": 41,
+  "non_test_consumers_before": 41,
+  "non_test_consumers_unchanged": true,
+  "postgres_container": "api-quiz-bank-postgres",
+  "report_type": "probe",
+  "result": {
+    "final_db_connections": 1,
+    "five_xx_rate_percent": 0.0,
+    "passed": false,
+    "profile": {
+      "duration_seconds": 60.0,
+      "isolated_consumers": 20,
+      "name": "quota_lock_probe",
+      "requests_per_second": 20.0,
+      "target_requests": 1200
+    },
+    "sampler": {
+      "api_cpu_percent_max": 58.57,
+      "blocked_locks_max": 0,
+      "db_connections_final": 1,
+      "db_connections_max": 19,
+      "postgres_cpu_percent_max": 101.46,
+      "sample_count": 20
+    },
+    "summary": {
+      "candidate_max": 300,
+      "candidate_samples": 1200,
+      "five_xx_count": 0,
+      "max_ms": 2898.439,
+      "name": "quota_lock_probe",
+      "p50_ms": 1713.424,
+      "p95_ms": 2373.93,
+      "p99_ms": 2577.845,
+      "status_counts": {
+        "200": 1200
+      },
+      "timeout_count": 0,
+      "total_requests": 1200
+    }
+  },
+  "server_git_sha": "3c866492ec2f1a42e9dcb512c980b92ebd1fd7e3",
+  "started_at": "2026-06-12T10:01:25Z"
+}

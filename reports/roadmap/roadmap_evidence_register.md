@@ -57,6 +57,36 @@ operation evidence are listed.
 - Verification: `python3 -m unittest discover -s tests -p "test_*.py"` -> 380 tests OK; `python3 tools/no_secrets_scan.py` -> no committed secrets detected; `git diff --check` -> pass.
 - Remaining external gate: approved production deploy, protected smoke, and rerun of Stage 4/Stage 5 remain separate tasks.
 
+## 2026-06-12 Quota Lock Production Rerun
+
+- Status: `Partial`.
+- Evidence: `reports/scale/quota_lock_production_deploy_2026-06-12.md`, `reports/scale/quota_lock_postfix_smoke_2026-06-12.json`, `reports/scale/quota_lock_probe_2026-06-12.json`, `reports/scale/protected_staged_load_after_quota_fix_2026-06-12.json`, `reports/scale/protected_staged_load_after_quota_fix_2026-06-12_summary.md`.
+- Deploy: production server `/opt/api-quiz-bank` was updated from `origin/main` to `3c866492ec2f1a42e9dcb512c980b92ebd1fd7e3`; only the API container was rebuilt/restarted; Postgres was not restarted; no migrations were applied because there were no new migrations relative to the previous production checkout.
+- Protected smoke: passed with 85/85 `200`, zero 5xx/timeouts, p95 `311.249 ms`, p99 `376.85 ms`, candidate max `300`, blocked locks max `0`, final health/ready `200/200`, diagnostic credential revoked and non-test consumers unchanged at `41`.
+- Lock probe: failed the gate despite 1200/1200 `200`, zero 5xx/timeouts and blocked locks max `0`; p95 was `2373.93 ms` and sampled Postgres CPU max was `101.46%`.
+- Stage 4 / Stage 5: not run because the lock probe did not pass.
+- Cleanup: all diagnostic credentials were revoked, revoked-key check returned `403`, temp raw key files were removed, active diagnostic credentials after final cleanup were `0`, DB connections returned to `1`, blocked locks returned to `0`, and health/ready remained `200/200`.
+- Paid pilot readiness: not claimed.
+
+## 2026-06-12 Post-Quota Fix CPU Diagnostics
+
+- Status: `Done diagnostic narrowing`; Stage 4 and Stage 5 were not run.
+- Evidence: `reports/scale/post_quota_fix_cpu_diagnostics_2026-06-12.json`, `reports/scale/post_quota_fix_cpu_diagnostics_2026-06-12_summary.md`, `reports/scale/next_route_slow_query_profile_2026-06-12.md`.
+- Production sanity: server SHA remained `3c866492ec2f1a42e9dcb512c980b92ebd1fd7e3`; public and loopback health/ready were `200/200`; API and Postgres stayed `running/healthy`; restart counts stayed unchanged; final DB connections returned to `1`; final blocked locks were `0`.
+- Controlled repro: 20 isolated diagnostic consumers, `20 rps`, max `60s`; stopped by Postgres CPU over `90%` for more than `30s` after 461/461 `200`, zero 5xx/timeouts/network errors, p95 `2159.653 ms`, p99 `2322.067 ms`, candidate count min/max `300/300`, blocked locks max `0`, Postgres CPU max `103.13%`.
+- Query profile: active sampler was dominated by `SELECT FROM quiz_items` and `SELECT FROM deliveries`; sanitized `EXPLAIN` confirms expected indexes are present, while the hot read path remains bounded candidate selection plus delivery-history grouped metrics.
+- Cleanup: diagnostic credentials revoked, active diagnostic credentials after cleanup `0`, revoked-key check `403`, no temp raw key files created.
+- Scale/load gate: remains open until read-path remediation is implemented and the protected strong/soak gates are rerun under explicit approval.
+
+## 2026-06-12 Read Path CPU Remediation
+
+- Status: `Done local remediation proof`; production deploy and production load were not run.
+- Evidence: `reports/scale/read_path_cpu_remediation_2026-06-12.md`, `reports/scale/read_path_candidate_pool_before_after_2026-06-12.md`, `reports/scale/read_path_perf_after_fix_2026-06-12.json`, `tools/run_next_route_read_path_perf.py`, `tests/test_next_route_selection_performance.py`.
+- Code boundary: candidate pool limit is now `150`; delivery-history item metrics are limited to `24` weighted shortlist candidates; synchronous cell grouped metrics were removed from the `/next` hot path; repeat anti-join, entitlement, eligibility and quota reservation remain enforced.
+- Local proof: 100/100 local synthetic 30k `/v1/quiz-items/next` responses were `200`, p95 `134.965 ms`, candidate max `150`, query count per success `8`, zero exceptions/timeouts/5xx; short local concurrency probe returned 24/24 `200` with zero exceptions/timeouts/5xx.
+- Verification: targeted selection/quota/PostgreSQL-boundary tests passed; full repository verification is recorded in the task close-out.
+- Remaining external gate: approved production deploy, protected smoke and protected Stage 4/Stage 5 rerun remain separate tasks.
+
 ## Baseline Evidence
 
 Verified at start of this execution pass:

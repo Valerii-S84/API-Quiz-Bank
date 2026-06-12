@@ -7,24 +7,29 @@ from typing import TYPE_CHECKING, Any
 
 from .database_connection import row_to_dict
 from .database_status import DELIVERABLE_STATUSES
-from .weighted_selection import select_ranked_candidate
+from .weighted_selection import candidate_score, select_ranked_candidate
 
 if TYPE_CHECKING:
     from .selection_models import SelectionRequest
 
 
-CANDIDATE_POOL_LIMIT = 300
+CANDIDATE_POOL_LIMIT = 150
+HISTORY_SCORING_CANDIDATE_LIMIT = 24
 
 
 def find_eligible_item(
     connection,
     request: "SelectionRequest",
 ) -> tuple[dict[str, Any] | None, int]:
-    candidates = enrich_candidates_with_delivery_metrics(
+    candidates = [row_to_dict(row) for row in fetch_candidate_pool(connection, request)]
+    candidate_count = len(candidates)
+    if request.selection_strategy == "first_eligible":
+        return select_ranked_candidate(candidates, request), candidate_count
+    scored_candidates = enrich_candidates_with_delivery_metrics(
         connection,
-        [row_to_dict(row) for row in fetch_candidate_pool(connection, request)],
+        history_metric_candidates(candidates, request),
     )
-    return select_ranked_candidate(candidates, request), len(candidates)
+    return select_ranked_candidate(scored_candidates, request), candidate_count
 
 
 def fetch_candidate_pool(connection, request: "SelectionRequest"):
@@ -78,21 +83,36 @@ def enrich_candidates_with_delivery_metrics(
         connection,
         tuple(str(candidate["item_id"]) for candidate in candidates),
     )
-    cell_counts = load_cell_delivery_counts(connection, candidates)
     enriched_candidates = []
     for candidate in candidates:
         item_id = str(candidate["item_id"])
-        cell_key = (str(candidate["theme_id"]), str(candidate["pattern_id"]))
         metrics = item_metrics.get(item_id, {})
         enriched_candidates.append(
             {
                 **candidate,
                 "delivery_count": int(metrics.get("delivery_count", 0)),
                 "last_delivered_at": str(metrics.get("last_delivered_at", "")),
-                "cell_delivery_count": int(cell_counts.get(cell_key, 0)),
+                "cell_delivery_count": 0,
             }
         )
     return enriched_candidates
+
+
+def history_metric_candidates(
+    candidates: list[dict[str, Any]],
+    request: "SelectionRequest",
+) -> list[dict[str, Any]]:
+    if len(candidates) <= HISTORY_SCORING_CANDIDATE_LIMIT:
+        return candidates
+    scored_candidates = [
+        (candidate_score(candidate, request).total, candidate)
+        for candidate in candidates
+    ]
+    scored_candidates.sort(
+        key=lambda scored: (scored[0], str(scored[1]["item_id"])),
+        reverse=True,
+    )
+    return [candidate for _score, candidate in scored_candidates[:HISTORY_SCORING_CANDIDATE_LIMIT]]
 
 
 def load_item_delivery_metrics(
@@ -111,31 +131,6 @@ def load_item_delivery_metrics(
         item_ids,
     ).fetchall()
     return {str(row["quiz_item_id"]): row_to_dict(row) for row in rows}
-
-
-def load_cell_delivery_counts(
-    connection,
-    candidates: list[dict[str, Any]],
-) -> dict[tuple[str, str], int]:
-    themes = tuple(sorted({str(candidate["theme_id"]) for candidate in candidates}))
-    patterns = tuple(sorted({str(candidate["pattern_id"]) for candidate in candidates}))
-    theme_placeholders = ", ".join("?" for _ in themes)
-    pattern_placeholders = ", ".join("?" for _ in patterns)
-    rows = connection.execute(
-        f"""
-        SELECT qi.theme_id, qi.pattern_id, COUNT(*) AS cell_delivery_count
-        FROM quiz_items qi
-        JOIN deliveries d ON d.quiz_item_id = qi.item_id
-        WHERE qi.theme_id IN ({theme_placeholders})
-          AND qi.pattern_id IN ({pattern_placeholders})
-        GROUP BY qi.theme_id, qi.pattern_id
-        """,
-        (*themes, *patterns),
-    ).fetchall()
-    return {
-        (str(row["theme_id"]), str(row["pattern_id"])): int(row["cell_delivery_count"])
-        for row in rows
-    }
 
 
 def append_repeat_policy_join(

@@ -32,7 +32,7 @@ class NextRouteSelectionPerformanceTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp_directory.cleanup()
 
-    def test_runtime_selector_scores_only_bounded_candidate_pool(self) -> None:
+    def test_runtime_selector_scores_only_history_shortlist(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         seed_consumer(self.db_path, "consumer_allowed", 500, ["A2"], ["T10"])
         seed_entitlement(self.db_path, "consumer_allowed", ["A2"], ["T10"])
@@ -58,11 +58,69 @@ class NextRouteSelectionPerformanceTests(unittest.TestCase):
                 ),
             )
 
-        self.assertEqual(observed["count"], selection_eligibility.CANDIDATE_POOL_LIMIT)
+        self.assertEqual(observed["count"], selection_eligibility.HISTORY_SCORING_CANDIDATE_LIMIT)
         self.assertEqual(
             result["selection_decision"]["candidate_count"],
             selection_eligibility.CANDIDATE_POOL_LIMIT,
         )
+
+    def test_candidate_pool_limit_is_read_path_safe(self) -> None:
+        self.assertEqual(selection_eligibility.CANDIDATE_POOL_LIMIT, 150)
+        self.assertLessEqual(
+            selection_eligibility.HISTORY_SCORING_CANDIDATE_LIMIT,
+            selection_eligibility.CANDIDATE_POOL_LIMIT,
+        )
+
+    def test_delivery_history_metrics_are_loaded_for_shortlist_only(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        seed_consumer(self.db_path, "consumer_allowed", 500, ["A2"], ["T10"])
+        seed_entitlement(self.db_path, "consumer_allowed", ["A2"], ["T10"])
+        self.clone_many_items(selection_eligibility.CANDIDATE_POOL_LIMIT + 25)
+        self.block_original_item()
+        observed: dict[str, int] = {}
+
+        def capture_metric_ids(_connection, item_ids):
+            observed["count"] = len(item_ids)
+            return {}
+
+        with mock.patch.object(
+            selection_eligibility,
+            "load_item_delivery_metrics",
+            side_effect=capture_metric_ids,
+        ):
+            result = select_next_item(
+                self.db_path,
+                SelectionRequest(
+                    consumer_id="consumer_allowed",
+                    filters=SelectionFilters(cefr_level="A2", theme_ids=("T10",)),
+                    deterministic=True,
+                ),
+            )
+
+        self.assertEqual(observed["count"], selection_eligibility.HISTORY_SCORING_CANDIDATE_LIMIT)
+        self.assertEqual(
+            result["selection_decision"]["candidate_count"],
+            selection_eligibility.CANDIDATE_POOL_LIMIT,
+        )
+
+    def test_thirty_thousand_item_pool_keeps_candidate_limit(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        seed_consumer(self.db_path, "consumer_allowed", 1, ["A2"], ["T10"])
+        seed_entitlement(self.db_path, "consumer_allowed", ["A2"], ["T10"])
+        self.clone_many_items(30_000)
+        self.block_original_item()
+
+        result = select_next_item(
+            self.db_path,
+            SelectionRequest(
+                consumer_id="consumer_allowed",
+                filters=SelectionFilters(cefr_level="A2", theme_ids=("T10",)),
+                deterministic=True,
+            ),
+        )
+
+        self.assertEqual(result["selection_decision"]["candidate_count"], 150)
+        self.assertEqual(result["delivery"]["item_status"], "approved")
 
     def test_next_route_selection_indexes_are_applied(self) -> None:
         with connect(self.db_path) as connection:
@@ -86,13 +144,29 @@ class NextRouteSelectionPerformanceTests(unittest.TestCase):
         )
 
     def clone_many_items(self, count: int) -> None:
+        if count <= 0:
+            return
         with connect(self.db_path) as connection:
-            for index in range(count):
-                self.clone_item(connection, index)
+            self.clone_items_with_generated_numbers(connection, count)
 
-    def clone_item(self, connection, index: int) -> None:
+    def clone_items_with_generated_numbers(self, connection, count: int) -> None:
         connection.execute(
             """
+            WITH digits(digit) AS (
+                VALUES (0), (1), (2), (3), (4), (5), (6), (7), (8), (9)
+            ),
+            numbers(number) AS (
+                SELECT ones.digit
+                     + tens.digit * 10
+                     + hundreds.digit * 100
+                     + thousands.digit * 1000
+                     + ten_thousands.digit * 10000
+                FROM digits ones
+                CROSS JOIN digits tens
+                CROSS JOIN digits hundreds
+                CROSS JOIN digits thousands
+                CROSS JOIN digits ten_thousands
+            )
             INSERT INTO quiz_items (
                 item_id, source_id, language, level_band, sublevel, theme_id,
                 subtheme_id, objective_id, pattern_id, difficulty_band, register,
@@ -100,18 +174,20 @@ class NextRouteSelectionPerformanceTests(unittest.TestCase):
                 coverage_cell_id, status, version, created_at, updated_at,
                 reviewed_at, level_locked, locked_at
             )
-            SELECT ?, source_id, language, level_band, sublevel, 'T10',
+            SELECT 'pool_candidate_' || printf('%05d', numbers.number),
+                   source_id, language, level_band, sublevel, 'T10',
                    subtheme_id, objective_id, pattern_id, difficulty_band,
                    register, prompt, stem_text, options_json, answer_key,
-                   explanation, tags, ?, 'approved', version, created_at,
+                   explanation, tags,
+                   'A2::T10::O02::P01::' || printf('%05d', numbers.number),
+                   'approved', version, created_at,
                    updated_at, reviewed_at, level_locked, locked_at
             FROM quiz_items
+            CROSS JOIN numbers
             WHERE item_id = 'approved_traceable_001'
+              AND numbers.number < ?
             """,
-            (
-                f"pool_candidate_{index:03d}",
-                f"A2::T10::O02::P01::{index:03d}",
-            ),
+            (count,),
         )
 
     def block_original_item(self) -> None:

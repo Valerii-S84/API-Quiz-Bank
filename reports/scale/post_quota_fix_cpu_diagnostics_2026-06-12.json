@@ -1,0 +1,2245 @@
+{
+  "cleanup": {
+    "active_diagnostic_credentials_after_cleanup_all_known_prefixes": 0,
+    "active_diagnostic_credentials_after_cleanup_this_run": 0,
+    "attempted": true,
+    "credentials_revoked": true,
+    "revoked_key_check_status": 403,
+    "temp_raw_key_files_created": false,
+    "temp_raw_key_files_removed": true
+  },
+  "controlled_probe": {
+    "access_path": "production host loopback",
+    "candidate_count": {
+      "max": 300,
+      "min": 300,
+      "samples": 461
+    },
+    "ended_at": "2026-06-12T10:27:25Z",
+    "five_xx_count": 0,
+    "latency_ms": {
+      "buckets_ms": {
+        "0_250": 5,
+        "1000_1500": 148,
+        "1500_2000": 244,
+        "2000_2500": 56,
+        "2500_plus": 0,
+        "250_500": 1,
+        "500_1000": 7
+      },
+      "count": 461,
+      "max_ms": 2407.067,
+      "p50_ms": 1620.427,
+      "p90_ms": 2061.933,
+      "p95_ms": 2159.653,
+      "p99_ms": 2322.067
+    },
+    "latency_shape": "broad_elevated_plateau",
+    "latency_timeline_seconds": [
+      {
+        "max_ms": 639.024,
+        "p50_ms": 190.126,
+        "p95_ms": 599.56,
+        "requests": 8,
+        "second": 0
+      },
+      {
+        "max_ms": 1467.07,
+        "p50_ms": 1177.407,
+        "p95_ms": 1425.126,
+        "requests": 5,
+        "second": 1
+      },
+      {
+        "max_ms": 1838.989,
+        "p50_ms": 1584.981,
+        "p95_ms": 1817.648,
+        "requests": 12,
+        "second": 2
+      },
+      {
+        "max_ms": 2064.071,
+        "p50_ms": 1664.459,
+        "p95_ms": 1990.407,
+        "requests": 13,
+        "second": 3
+      },
+      {
+        "max_ms": 2044.718,
+        "p50_ms": 1692.242,
+        "p95_ms": 1986.518,
+        "requests": 8,
+        "second": 4
+      },
+      {
+        "max_ms": 2203.378,
+        "p50_ms": 1668.706,
+        "p95_ms": 2150.99,
+        "requests": 14,
+        "second": 5
+      },
+      {
+        "max_ms": 2139.116,
+        "p50_ms": 1571.758,
+        "p95_ms": 2009.166,
+        "requests": 17,
+        "second": 6
+      },
+      {
+        "max_ms": 1565.919,
+        "p50_ms": 1283.43,
+        "p95_ms": 1494.893,
+        "requests": 8,
+        "second": 7
+      },
+      {
+        "max_ms": 1952.82,
+        "p50_ms": 1556.641,
+        "p95_ms": 1863.094,
+        "requests": 12,
+        "second": 8
+      },
+      {
+        "max_ms": 2391.813,
+        "p50_ms": 1731.595,
+        "p95_ms": 2294.95,
+        "requests": 12,
+        "second": 9
+      },
+      {
+        "max_ms": 2156.093,
+        "p50_ms": 1670.534,
+        "p95_ms": 2009.065,
+        "requests": 9,
+        "second": 10
+      },
+      {
+        "max_ms": 2133.369,
+        "p50_ms": 1669.324,
+        "p95_ms": 2085.062,
+        "requests": 19,
+        "second": 11
+      },
+      {
+        "max_ms": 1785.293,
+        "p50_ms": 1608.941,
+        "p95_ms": 1778.173,
+        "requests": 5,
+        "second": 12
+      },
+      {
+        "max_ms": 2155.328,
+        "p50_ms": 1641.465,
+        "p95_ms": 2024.964,
+        "requests": 15,
+        "second": 13
+      },
+      {
+        "max_ms": 1949.992,
+        "p50_ms": 1520.131,
+        "p95_ms": 1881.342,
+        "requests": 16,
+        "second": 14
+      },
+      {
+        "max_ms": 1694.281,
+        "p50_ms": 1369.157,
+        "p95_ms": 1687.152,
+        "requests": 8,
+        "second": 15
+      },
+      {
+        "max_ms": 1657.839,
+        "p50_ms": 1389.591,
+        "p95_ms": 1653.349,
+        "requests": 18,
+        "second": 16
+      },
+      {
+        "max_ms": 1860.702,
+        "p50_ms": 1452.762,
+        "p95_ms": 1854.81,
+        "requests": 14,
+        "second": 17
+      },
+      {
+        "max_ms": 1863.071,
+        "p50_ms": 1680.54,
+        "p95_ms": 1855.572,
+        "requests": 5,
+        "second": 18
+      },
+      {
+        "max_ms": 2199.254,
+        "p50_ms": 1853.89,
+        "p95_ms": 2165.903,
+        "requests": 19,
+        "second": 19
+      },
+      {
+        "max_ms": 1725.272,
+        "p50_ms": 1390.618,
+        "p95_ms": 1668.819,
+        "requests": 8,
+        "second": 20
+      },
+      {
+        "max_ms": 1956.462,
+        "p50_ms": 1679.726,
+        "p95_ms": 1895.568,
+        "requests": 10,
+        "second": 21
+      },
+      {
+        "max_ms": 2407.067,
+        "p50_ms": 2069.537,
+        "p95_ms": 2396.814,
+        "requests": 7,
+        "second": 22
+      },
+      {
+        "max_ms": 2206.888,
+        "p50_ms": 1983.188,
+        "p95_ms": 2184.15,
+        "requests": 14,
+        "second": 23
+      },
+      {
+        "max_ms": 2389.604,
+        "p50_ms": 1877.529,
+        "p95_ms": 2386.861,
+        "requests": 7,
+        "second": 24
+      },
+      {
+        "max_ms": 2202.566,
+        "p50_ms": 2008.428,
+        "p95_ms": 2192.184,
+        "requests": 14,
+        "second": 25
+      },
+      {
+        "max_ms": 2152.122,
+        "p50_ms": 1664.697,
+        "p95_ms": 2124.014,
+        "requests": 12,
+        "second": 26
+      },
+      {
+        "max_ms": 1836.281,
+        "p50_ms": 1653.736,
+        "p95_ms": 1813.37,
+        "requests": 11,
+        "second": 27
+      },
+      {
+        "max_ms": 1638.669,
+        "p50_ms": 1435.746,
+        "p95_ms": 1618.167,
+        "requests": 16,
+        "second": 28
+      },
+      {
+        "max_ms": 1747.696,
+        "p50_ms": 1347.019,
+        "p95_ms": 1694.863,
+        "requests": 11,
+        "second": 29
+      },
+      {
+        "max_ms": 2286.339,
+        "p50_ms": 1980.411,
+        "p95_ms": 2268.687,
+        "requests": 10,
+        "second": 30
+      },
+      {
+        "max_ms": 2256.96,
+        "p50_ms": 1876.938,
+        "p95_ms": 2195.096,
+        "requests": 13,
+        "second": 31
+      },
+      {
+        "max_ms": 2270.024,
+        "p50_ms": 1971.691,
+        "p95_ms": 2263.013,
+        "requests": 8,
+        "second": 32
+      },
+      {
+        "max_ms": 2272.063,
+        "p50_ms": 1710.364,
+        "p95_ms": 2073.918,
+        "requests": 14,
+        "second": 33
+      },
+      {
+        "max_ms": 1976.011,
+        "p50_ms": 1821.049,
+        "p95_ms": 1941.516,
+        "requests": 10,
+        "second": 34
+      },
+      {
+        "max_ms": 2090.602,
+        "p50_ms": 1738.595,
+        "p95_ms": 2027.547,
+        "requests": 14,
+        "second": 35
+      },
+      {
+        "max_ms": 1798.937,
+        "p50_ms": 1542.76,
+        "p95_ms": 1737.596,
+        "requests": 14,
+        "second": 36
+      },
+      {
+        "max_ms": 1963.083,
+        "p50_ms": 1404.1,
+        "p95_ms": 1921.329,
+        "requests": 11,
+        "second": 37
+      },
+      {
+        "max_ms": 2039.5,
+        "p50_ms": 1629.505,
+        "p95_ms": 2029.565,
+        "requests": 14,
+        "second": 38
+      },
+      {
+        "max_ms": 1452.898,
+        "p50_ms": 1185.983,
+        "p95_ms": 1432.496,
+        "requests": 6,
+        "second": 39
+      }
+    ],
+    "network_error_count": 0,
+    "per_consumer_distribution": [
+      {
+        "consumer_index": 0,
+        "max_ms": 2077.627,
+        "p95_ms": 2068.346,
+        "requests": 24,
+        "status_counts": {
+          "200": 24
+        }
+      },
+      {
+        "consumer_index": 1,
+        "max_ms": 2206.888,
+        "p95_ms": 2126.93,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 2,
+        "max_ms": 2171.906,
+        "p95_ms": 2158.255,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 3,
+        "max_ms": 2069.537,
+        "p95_ms": 2058.096,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 4,
+        "max_ms": 2256.96,
+        "p95_ms": 2167.293,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 5,
+        "max_ms": 2203.378,
+        "p95_ms": 2086.481,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 6,
+        "max_ms": 2202.566,
+        "p95_ms": 2017.363,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 7,
+        "max_ms": 1865.038,
+        "p95_ms": 1843.932,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 8,
+        "max_ms": 2156.093,
+        "p95_ms": 2073.399,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 9,
+        "max_ms": 2186.593,
+        "p95_ms": 2019.312,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 10,
+        "max_ms": 2155.328,
+        "p95_ms": 1955.287,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 11,
+        "max_ms": 2064.071,
+        "p95_ms": 2060.359,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 12,
+        "max_ms": 2243.902,
+        "p95_ms": 2073.85,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 13,
+        "max_ms": 2380.46,
+        "p95_ms": 2231.129,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 14,
+        "max_ms": 2249.992,
+        "p95_ms": 2067.354,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 15,
+        "max_ms": 2288.183,
+        "p95_ms": 2143.267,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 16,
+        "max_ms": 2391.813,
+        "p95_ms": 2351.568,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 17,
+        "max_ms": 2407.067,
+        "p95_ms": 2377.85,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 18,
+        "max_ms": 2286.339,
+        "p95_ms": 2133.174,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      },
+      {
+        "consumer_index": 19,
+        "max_ms": 2247.113,
+        "p95_ms": 2148.57,
+        "requests": 23,
+        "status_counts": {
+          "200": 23
+        }
+      }
+    ],
+    "profile": {
+      "blocked_lock_stop": "> 0",
+      "isolated_consumers": 20,
+      "max_duration_seconds": 60.0,
+      "p95_stop_ms": 2500.0,
+      "postgres_cpu_stop": "> 90.0% for > 30.0s",
+      "target_rps": 20.0,
+      "worker_limit": 20
+    },
+    "requests_total": 461,
+    "route": "/v1/quiz-items/next",
+    "run_id": "post_quota_cpu_diag_20260612T102645Z_e4593c26",
+    "sampler": {
+      "final_db_connections": 20,
+      "interval_seconds": 1.0,
+      "max_api_cpu_percent": 60.77,
+      "max_blocked_locks": 0,
+      "max_blocking_sessions": 0,
+      "max_db_connections": 20,
+      "max_postgres_cpu_percent": 103.13,
+      "query_rollup": {
+        "max_query_age_seconds_by_type": {
+          "BEGIN OTHER": 0.116,
+          "COMMIT OTHER": 0.002,
+          "INSERT INTO deliveries": 0.204,
+          "INSERT INTO quota_usage": 0.005,
+          "INSERT INTO selection_decisions": 0.104,
+          "SELECT FROM api_credentials": 0.096,
+          "SELECT FROM consumers": 0.185,
+          "SELECT FROM deliveries": 0.392,
+          "SELECT FROM entitlements": 0.199,
+          "SELECT FROM quiz_items": 0.404
+        },
+        "relations_by_type": {
+          "BEGIN OTHER": {
+            "api_credentials": 1,
+            "api_credentials_consumer_id_key_prefix_key": 1,
+            "api_credentials_pkey": 1,
+            "consumers": 3,
+            "consumers_pkey": 3,
+            "entitlements": 2,
+            "idx_api_credentials_consumer_prefix": 1,
+            "virtualxid": 3
+          },
+          "COMMIT OTHER": {
+            "consumers": 1,
+            "consumers_pkey": 1,
+            "deliveries": 1,
+            "deliveries_pkey": 1,
+            "entitlements": 1,
+            "entitlements_pkey": 1,
+            "idx_deliveries_consumer_item": 1,
+            "idx_deliveries_consumer_item_selected_at": 1
+          },
+          "INSERT INTO deliveries": {
+            "consumers": 7,
+            "consumers_pkey": 7,
+            "deliveries": 7,
+            "quota_usage": 7,
+            "quota_usage_consumer_id_feature_usage_date_key": 7,
+            "quota_usage_pkey": 7,
+            "transactionid": 7,
+            "virtualxid": 7
+          },
+          "INSERT INTO quota_usage": {
+            "pg_attribute": 1,
+            "pg_attribute_relid_attnum_index": 1,
+            "quota_usage": 2,
+            "quota_usage_consumer_id_feature_usage_date_key": 1,
+            "quota_usage_pkey": 2,
+            "transactionid": 1,
+            "virtualxid": 2
+          },
+          "INSERT INTO selection_decisions": {
+            "consumers": 2,
+            "consumers_pkey": 2,
+            "deliveries": 2,
+            "entitlements": 2,
+            "entitlements_pkey": 2,
+            "idx_entitlements_consumer_feature_status": 2,
+            "idx_quiz_items_cell_lookup": 2,
+            "idx_quiz_items_delivery_filter": 2
+          },
+          "SELECT FROM api_credentials": {
+            "api_credentials": 9,
+            "api_credentials_consumer_id_key_prefix_key": 8,
+            "api_credentials_pkey": 8,
+            "consumers": 9,
+            "consumers_pkey": 5,
+            "idx_api_credentials_consumer_prefix": 7,
+            "pg_index": 4,
+            "virtualxid": 9
+          },
+          "SELECT FROM consumers": {
+            "consumers": 3,
+            "consumers_pkey": 3,
+            "entitlements": 1,
+            "entitlements_pkey": 1,
+            "idx_entitlements_consumer_feature_status": 1,
+            "pg_amproc": 1,
+            "pg_amproc_fam_proc_index": 1,
+            "virtualxid": 3
+          },
+          "SELECT FROM deliveries": {
+            "consumers": 13,
+            "consumers_pkey": 13,
+            "deliveries": 13,
+            "deliveries_pkey": 13,
+            "entitlements": 13,
+            "entitlements_pkey": 13,
+            "idx_deliveries_consumer_item": 13,
+            "idx_deliveries_consumer_item_selected_at": 13
+          },
+          "SELECT FROM entitlements": {
+            "consumers": 5,
+            "consumers_pkey": 5,
+            "entitlements": 5,
+            "entitlements_pkey": 3,
+            "idx_entitlements_consumer_feature_status": 3,
+            "pg_opclass": 4,
+            "pg_opclass_am_name_nsp_index": 4,
+            "virtualxid": 5
+          },
+          "SELECT FROM quiz_items": {
+            "consumers": 33,
+            "consumers_pkey": 33,
+            "deliveries": 33,
+            "entitlements": 33,
+            "entitlements_pkey": 33,
+            "idx_entitlements_consumer_feature_status": 33,
+            "quiz_item_image_quality_policy": 33,
+            "quiz_items": 33
+          }
+        },
+        "sampled_query_type_counts": {
+          "BEGIN OTHER": 3,
+          "COMMIT OTHER": 1,
+          "INSERT INTO deliveries": 7,
+          "INSERT INTO quota_usage": 2,
+          "INSERT INTO selection_decisions": 3,
+          "SELECT FROM api_credentials": 10,
+          "SELECT FROM consumers": 3,
+          "SELECT FROM deliveries": 13,
+          "SELECT FROM entitlements": 5,
+          "SELECT FROM quiz_items": 34
+        },
+        "wait_events_by_type": {
+          "BEGIN OTHER": {
+            "Client:ClientRead": 1
+          },
+          "INSERT INTO deliveries": {
+            "Client:ClientRead": 3
+          },
+          "INSERT INTO selection_decisions": {
+            "Client:ClientRead": 1
+          },
+          "SELECT FROM api_credentials": {
+            "Client:ClientRead": 2
+          },
+          "SELECT FROM deliveries": {
+            "Client:ClientRead": 4
+          },
+          "SELECT FROM entitlements": {
+            "Client:ClientRead": 2
+          },
+          "SELECT FROM quiz_items": {
+            "Client:ClientRead": 5,
+            "Client:ClientWrite": 5,
+            "LWLock:LockManager": 1
+          }
+        }
+      },
+      "sample_count": 6,
+      "timeline": [
+        {
+          "active_queries": [
+            {
+              "query_age_seconds": 0.206,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.628,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.005,
+              "query_type": "SELECT FROM deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.435,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.082,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.549,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.016,
+              "query_type": "INSERT INTO selection_decisions",
+              "relation_names": "consumers, consumers_pkey, deliveries, entitlements, entitlements_pkey, idx_entitlements_consumer_feature_status, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, idx_selection_decisions_consumer_created, idx_selection_decisions_selected_item, quiz_items, quiz_items_pkey, quota_usage, quota_usage_consumer_id_feature_usage_date_key, quota_usage_pkey, selection_decisions, selection_decisions_pkey, sources, sources_pkey, transactionid, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.328,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.089,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, entitlements, entitlements_pkey, idx_entitlements_consumer_feature_status, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.373,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.099,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.366,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.005,
+              "query_type": "INSERT INTO quota_usage",
+              "relation_names": "quota_usage, quota_usage_consumer_id_feature_usage_date_key, quota_usage_pkey, transactionid, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.1,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.083,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, pg_statistic, pg_statistic_relid_att_inh_index, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.194,
+              "wait_event": "LockManager",
+              "wait_event_type": "LWLock",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.094,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, pg_statistic, pg_statistic_relid_att_inh_index, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.192,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.076,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, pg_attribute, pg_attribute_relid_attnum_index, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.179,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            }
+          ],
+          "api_cpu_percent": 45.67,
+          "blocked_locks": 0,
+          "blocking_sessions": 0,
+          "db_connections": 15,
+          "postgres_cpu_percent": 103.13,
+          "sampled_at": "2026-06-12T10:26:46Z"
+        },
+        {
+          "active_queries": [
+            {
+              "query_age_seconds": 0.104,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.792,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.115,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.818,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.009,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.808,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.102,
+              "query_type": "SELECT FROM deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.716,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.207,
+              "query_type": "SELECT FROM deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.72,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.125,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.519,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.001,
+              "query_type": "SELECT FROM deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.513,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.019,
+              "query_type": "SELECT FROM deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.529,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.108,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.506,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.005,
+              "query_type": "SELECT FROM deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.509,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.119,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.426,
+              "wait_event": "ClientWrite",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.018,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.41,
+              "wait_event": "ClientWrite",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.1,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.407,
+              "wait_event": "ClientWrite",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.017,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.398,
+              "wait_event": "ClientWrite",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.012,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.307,
+              "wait_event": "ClientWrite",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.109,
+              "query_type": "INSERT INTO deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, entitlements, entitlements_pkey, idx_entitlements_consumer_feature_status, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_items, quiz_items_pkey, quota_usage, quota_usage_consumer_id_feature_usage_date_key, quota_usage_pkey, sources, sources_pkey, transactionid, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.205,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.011,
+              "query_type": "SELECT FROM entitlements",
+              "relation_names": "consumers, consumers_pkey, entitlements, pg_cast, pg_cast_source_target_index, pg_opclass, pg_opclass_am_name_nsp_index, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.103,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            }
+          ],
+          "api_cpu_percent": 44.5,
+          "blocked_locks": 0,
+          "blocking_sessions": 0,
+          "db_connections": 18,
+          "postgres_cpu_percent": 100.23,
+          "sampled_at": "2026-06-12T10:26:53Z"
+        },
+        {
+          "active_queries": [
+            {
+              "query_age_seconds": 0.392,
+              "query_type": "SELECT FROM deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.716,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.199,
+              "query_type": "SELECT FROM entitlements",
+              "relation_names": "consumers, consumers_pkey, deliveries, entitlements, entitlements_pkey, idx_entitlements_consumer_feature_status, pg_opclass, pg_opclass_am_name_nsp_index, quiz_item_image_quality_policy, quiz_items, sources, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.308,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.185,
+              "query_type": "SELECT FROM consumers",
+              "relation_names": "consumers, consumers_pkey, entitlements, entitlements_pkey, idx_entitlements_consumer_feature_status, pg_amproc, pg_amproc_fam_proc_index, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.191,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.116,
+              "query_type": "BEGIN OTHER",
+              "relation_names": "api_credentials, api_credentials_consumer_id_key_prefix_key, api_credentials_pkey, consumers, consumers_pkey, idx_api_credentials_consumer_prefix, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.116,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.115,
+              "query_type": "BEGIN OTHER",
+              "relation_names": "consumers, consumers_pkey, entitlements, pg_amop, pg_amop_fam_strat_index, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.115,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.01,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, entitlements, entitlements_pkey, idx_entitlements_consumer_feature_status, pg_operator, pg_operator_oid_index, quiz_item_image_quality_policy, quiz_items, sources, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.289,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.112,
+              "query_type": "BEGIN OTHER",
+              "relation_names": "consumers, consumers_pkey, entitlements, pg_cast, pg_cast_source_target_index, pg_opclass, pg_opclass_am_name_nsp_index, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.112,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.005,
+              "query_type": "SELECT FROM deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.212,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.011,
+              "query_type": "SELECT FROM api_credentials",
+              "relation_names": "api_credentials, api_credentials_consumer_id_key_prefix_key, api_credentials_pkey, consumers, idx_api_credentials_consumer_prefix, pg_attribute, pg_attribute_relid_attnum_index, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.077,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.007,
+              "query_type": "SELECT FROM consumers",
+              "relation_names": "consumers, consumers_pkey, pg_amop, pg_amop_opr_fam_index, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.009,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.005,
+              "query_type": "SELECT FROM consumers",
+              "relation_names": "consumers, consumers_pkey, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.016,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.013,
+              "query_type": "SELECT FROM api_credentials",
+              "relation_names": "api_credentials, api_credentials_consumer_id_key_prefix_key, api_credentials_pkey, consumers, pg_attribute, pg_attribute_relid_attnum_index, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.016,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.005,
+              "query_type": "SELECT FROM api_credentials",
+              "relation_names": "api_credentials, api_credentials_consumer_id_key_prefix_key, api_credentials_pkey, consumers, consumers_pkey, idx_api_credentials_consumer_prefix, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.087,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.01,
+              "query_type": "INSERT INTO deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, pg_tablespace, pg_tablespace_oid_index, quota_usage, quota_usage_consumer_id_feature_usage_date_key, quota_usage_pkey, transactionid, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.088,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.404,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 1.069,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            }
+          ],
+          "api_cpu_percent": 60.77,
+          "blocked_locks": 0,
+          "blocking_sessions": 0,
+          "db_connections": 18,
+          "postgres_cpu_percent": 100.52,
+          "sampled_at": "2026-06-12T10:26:59Z"
+        },
+        {
+          "active_queries": [
+            {
+              "query_age_seconds": 0.086,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 1.184,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.071,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.905,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.176,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.878,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.096,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.796,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.07,
+              "query_type": "SELECT FROM deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.489,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.097,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.497,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.204,
+              "query_type": "INSERT INTO deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, entitlements, entitlements_pkey, idx_entitlements_consumer_feature_status, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_items, quiz_items_pkey, quota_usage, quota_usage_consumer_id_feature_usage_date_key, quota_usage_pkey, sources, sources_pkey, transactionid, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.3,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.002,
+              "query_type": "COMMIT OTHER",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_items, quiz_items_pkey, quota_usage, quota_usage_consumer_id_feature_usage_date_key, quota_usage_pkey, selection_decisions, sources, sources_pkey, transactionid, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.285,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.08,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.271,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.177,
+              "query_type": "INSERT INTO deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, pg_statistic, pg_statistic_relid_att_inh_index, quiz_items, quiz_items_pkey, quota_usage, quota_usage_consumer_id_feature_usage_date_key, quota_usage_pkey, transactionid, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.2,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.094,
+              "query_type": "SELECT FROM entitlements",
+              "relation_names": "consumers, consumers_pkey, deliveries, entitlements, entitlements_pkey, idx_entitlements_consumer_feature_status, pg_opclass, pg_opclass_am_name_nsp_index, quiz_item_image_quality_policy, quiz_items, sources, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.2,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.005,
+              "query_type": "INSERT INTO quota_usage",
+              "relation_names": "pg_attribute, pg_attribute_relid_attnum_index, quota_usage, quota_usage_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.089,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.071,
+              "query_type": "SELECT FROM api_credentials",
+              "relation_names": "api_credentials, api_credentials_consumer_id_key_prefix_key, api_credentials_pkey, consumers, consumers_pkey, idx_api_credentials_consumer_prefix, pg_index, pg_index_indexrelid_index, pg_statistic, pg_statistic_relid_att_inh_index, pg_toast.pg_toast_2619, pg_toast.pg_toast_2619_index, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.074,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.072,
+              "query_type": "SELECT FROM api_credentials",
+              "relation_names": "api_credentials, api_credentials_consumer_id_key_prefix_key, api_credentials_pkey, consumers, consumers_pkey, idx_api_credentials_consumer_prefix, pg_index, pg_index_indrelid_index, pg_statistic, pg_statistic_relid_att_inh_index, pg_toast.pg_toast_2619, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.088,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.002,
+              "query_type": "SELECT FROM entitlements",
+              "relation_names": "consumers, consumers_pkey, entitlements, pg_cast, pg_cast_source_target_index, pg_opclass, pg_opclass_am_name_nsp_index, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.074,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.002,
+              "query_type": "SELECT FROM api_credentials",
+              "relation_names": "api_credentials, api_credentials_consumer_id_key_prefix_key, api_credentials_pkey, consumers, consumers_pkey, idx_api_credentials_consumer_prefix, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.064,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.066,
+              "query_type": "INSERT INTO selection_decisions",
+              "relation_names": "",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.371,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.064,
+              "query_type": "SELECT FROM api_credentials",
+              "relation_names": "",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.098,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            }
+          ],
+          "api_cpu_percent": 45.62,
+          "blocked_locks": 0,
+          "blocking_sessions": 0,
+          "db_connections": 18,
+          "postgres_cpu_percent": 100.71,
+          "sampled_at": "2026-06-12T10:27:05Z"
+        },
+        {
+          "active_queries": [
+            {
+              "query_age_seconds": 0.22,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 1.192,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.027,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 1.087,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.117,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.914,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.202,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.799,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.301,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.426,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.113,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, pg_statistic, pg_statistic_relid_att_inh_index, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.325,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.006,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.315,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.109,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, pg_constraint, pg_constraint_conrelid_contypid_conname_index, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.315,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.017,
+              "query_type": "SELECT FROM entitlements",
+              "relation_names": "consumers, consumers_pkey, entitlements, entitlements_pkey, idx_entitlements_consumer_feature_status, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.111,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.096,
+              "query_type": "SELECT FROM api_credentials",
+              "relation_names": "api_credentials, api_credentials_consumer_id_key_prefix_key, api_credentials_pkey, consumers, idx_api_credentials_consumer_prefix, pg_index, pg_index_indexrelid_index, pg_statistic_ext, pg_statistic_ext_relid_index, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.104,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            }
+          ],
+          "api_cpu_percent": 55.53,
+          "blocked_locks": 0,
+          "blocking_sessions": 0,
+          "db_connections": 15,
+          "postgres_cpu_percent": 100.17,
+          "sampled_at": "2026-06-12T10:27:12Z"
+        },
+        {
+          "active_queries": [
+            {
+              "query_age_seconds": 0.287,
+              "query_type": "SELECT FROM deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.895,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.202,
+              "query_type": "SELECT FROM deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.789,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.184,
+              "query_type": "SELECT FROM deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.788,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.181,
+              "query_type": "SELECT FROM deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.707,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.104,
+              "query_type": "INSERT INTO selection_decisions",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_items, quiz_items_pkey, quota_usage, quota_usage_consumer_id_feature_usage_date_key, quota_usage_pkey, selection_decisions, sources, sources_pkey, transactionid, virtualxid",
+              "state": "idle in transaction",
+              "transaction_age_seconds": 0.383,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.077,
+              "query_type": "SELECT FROM quiz_items",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, entitlements, entitlements_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, idx_entitlements_consumer_feature_status, idx_quiz_item_image_quality_policy_group, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, pg_amop, pg_amop_opr_fam_index, quiz_item_image_quality_policy, quiz_item_image_quality_policy_pkey, quiz_items, quiz_items_pkey, sources, sources_pkey, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.208,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.102,
+              "query_type": "INSERT INTO deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, pg_constraint, pg_constraint_conrelid_contypid_conname_index, quiz_items, quota_usage, quota_usage_consumer_id_feature_usage_date_key, quota_usage_pkey, transactionid, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.191,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.094,
+              "query_type": "INSERT INTO deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, deliveries_pkey, idx_deliveries_consumer_item, idx_deliveries_consumer_item_selected_at, idx_deliveries_consumer_status_item, idx_deliveries_item, idx_deliveries_item_selected_at, pg_index, pg_index_indexrelid_index, quiz_items, quiz_items_pkey, quota_usage, quota_usage_consumer_id_feature_usage_date_key, quota_usage_pkey, transactionid, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.18,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.078,
+              "query_type": "INSERT INTO deliveries",
+              "relation_names": "consumers, consumers_pkey, deliveries, entitlements, entitlements_pkey, idx_entitlements_consumer_feature_status, idx_quiz_items_cell_lookup, idx_quiz_items_delivery_filter, idx_quiz_items_selection_pool, quiz_items, quiz_items_pkey, quota_usage, quota_usage_consumer_id_feature_usage_date_key, quota_usage_pkey, sources, sources_pkey, transactionid, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.094,
+              "wait_event": "ClientRead",
+              "wait_event_type": "Client",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.084,
+              "query_type": "SELECT FROM api_credentials",
+              "relation_names": "api_credentials, consumers, pg_index, pg_index_indrelid_index, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.094,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            },
+            {
+              "query_age_seconds": 0.0,
+              "query_type": "SELECT FROM api_credentials",
+              "relation_names": "api_credentials, api_credentials_consumer_id_key_prefix_key, api_credentials_pkey, consumers, consumers_pkey, idx_api_credentials_consumer_prefix, virtualxid",
+              "state": "active",
+              "transaction_age_seconds": 0.08,
+              "wait_event": "",
+              "wait_event_type": "",
+              "waiting_on_lock": false
+            }
+          ],
+          "api_cpu_percent": 46.13,
+          "blocked_locks": 0,
+          "blocking_sessions": 0,
+          "db_connections": 20,
+          "postgres_cpu_percent": 100.54,
+          "sampled_at": "2026-06-12T10:27:19Z"
+        }
+      ]
+    },
+    "started_at": "2026-06-12T10:26:46Z",
+    "status_counts": {
+      "200": 461
+    },
+    "stop_reason": "postgres_cpu_gt_90_gt_30s",
+    "timeout_count": 0
+  },
+  "cpu_heavy_path": {
+    "evidence": {
+      "explain_costs": {
+        "auth_credential_lookup": {
+          "indexes": [],
+          "plan_rows": 1,
+          "relations": [
+            "api_credentials",
+            "consumers"
+          ],
+          "total_cost": 9.13
+        },
+        "candidate_selection": {
+          "indexes": [
+            "idx_deliveries_consumer_item_selected_at",
+            "idx_quiz_items_selection_pool",
+            "quiz_item_image_quality_policy_pkey",
+            "sources_pkey"
+          ],
+          "plan_rows": 300,
+          "relations": [
+            "deliveries",
+            "quiz_item_image_quality_policy",
+            "quiz_items",
+            "sources"
+          ],
+          "total_cost": 1082.43
+        },
+        "delivery_cell_metrics": {
+          "indexes": [
+            "idx_deliveries_item",
+            "idx_quiz_items_cell_lookup",
+            "idx_quiz_items_selection_pool",
+            "sources_pkey"
+          ],
+          "plan_rows": 198,
+          "relations": [
+            "deliveries",
+            "quiz_items",
+            "sources"
+          ],
+          "total_cost": 1298.81
+        },
+        "delivery_item_metrics": {
+          "indexes": [
+            "idx_quiz_items_selection_pool",
+            "sources_pkey"
+          ],
+          "plan_rows": 1253,
+          "relations": [
+            "deliveries",
+            "quiz_items",
+            "sources"
+          ],
+          "total_cost": 1178.92
+        },
+        "entitlement_lookup": {
+          "indexes": [],
+          "plan_rows": 1,
+          "relations": [
+            "entitlements"
+          ],
+          "total_cost": 5.75
+        },
+        "quota_usage_lookup": {
+          "indexes": [
+            "quota_usage_consumer_id_feature_usage_date_key"
+          ],
+          "plan_rows": 1,
+          "relations": [
+            "quota_usage"
+          ],
+          "total_cost": 8.29
+        }
+      },
+      "live_probe_blocked_locks_max": 0,
+      "live_probe_latency_ms": {
+        "buckets_ms": {
+          "0_250": 5,
+          "1000_1500": 148,
+          "1500_2000": 244,
+          "2000_2500": 56,
+          "2500_plus": 0,
+          "250_500": 1,
+          "500_1000": 7
+        },
+        "count": 461,
+        "max_ms": 2407.067,
+        "p50_ms": 1620.427,
+        "p90_ms": 2061.933,
+        "p95_ms": 2159.653,
+        "p99_ms": 2322.067
+      },
+      "live_probe_postgres_cpu_max_percent": 103.13,
+      "live_probe_stop_reason": "postgres_cpu_gt_90_gt_30s",
+      "live_query_type_counts": {
+        "BEGIN OTHER": 3,
+        "COMMIT OTHER": 1,
+        "INSERT INTO deliveries": 7,
+        "INSERT INTO quota_usage": 2,
+        "INSERT INTO selection_decisions": 3,
+        "SELECT FROM api_credentials": 10,
+        "SELECT FROM consumers": 3,
+        "SELECT FROM deliveries": 13,
+        "SELECT FROM entitlements": 5,
+        "SELECT FROM quiz_items": 34
+      }
+    },
+    "path_classification": {
+      "auth_credential_lookup": "not primary; small table lookup, low EXPLAIN cost",
+      "candidate_selection_query": "involved; indexed but still fetches a 300-row pool per request",
+      "connection_saturation": "not primary; DB connections peaked at worker limit 20 and normalized to 1, with no blocked locks",
+      "delivery_history_grouped_lookup": "primary CPU suspect; two metric reads run per successful request and delivery_item_metrics planned a deliveries Seq Scan in the sanitized EXPLAIN",
+      "delivery_insert": "not primary; 7 active samples, no wait/lock dominance",
+      "diagnostics_logging": "not on successful hot path except selection_decisions insert; not dominant in sampler",
+      "entitlement_lookup": "not primary; small table lookup, low EXPLAIN cost",
+      "missing_indexes": "not proven; expected 011 selection/delivery indexes are present",
+      "quota_reserve_update": "not primary in this repro; no locks, only 2 active INSERT INTO quota_usage samples, max age 0.005s",
+      "selection_decision_insert": "not primary; 3 active samples, no wait/lock dominance",
+      "too_many_roundtrips": "secondary contributor; successful route still performs about 9 DB executions across auth, read/selection and write sections"
+    },
+    "primary_path": "bounded candidate selection plus delivery-history grouped metric lookups",
+    "status": "narrowed_to_specific_read_path"
+  },
+  "existing_report_analysis": {
+    "cpu_timeline_from_existing_artifacts": "not_captured; only max API/Postgres CPU and sample_count are present",
+    "db_connections": {
+      "final": 1,
+      "max": 19
+    },
+    "latency_shape_from_existing_artifacts": {
+      "classification": "not_directly_recoverable_from_existing_reports",
+      "inference": "The high p50 together with high p95 indicates a broad elevated-latency window, not only isolated tail spikes; the live short repro confirms a broad elevated plateau after warm-up.",
+      "reason": "The existing reports store aggregate percentiles and sampler maxima, but not ordered per-request latency or per-sample CPU timeline."
+    },
+    "lock_probe": {
+      "candidate_max": 300,
+      "five_xx": 0,
+      "latency_ms": {
+        "max": 2898.439,
+        "p50": 1713.424,
+        "p95": 2373.93,
+        "p99": 2577.845
+      },
+      "requests": 1200,
+      "sampler": {
+        "api_cpu_percent_max": 58.57,
+        "blocked_locks_max": 0,
+        "db_connections_final": 1,
+        "db_connections_max": 19,
+        "postgres_cpu_percent_max": 101.46,
+        "sample_count": 20
+      },
+      "status_counts": {
+        "200": 1200
+      },
+      "timeouts": 0
+    },
+    "locks": {
+      "blocked_locks_max": 0
+    },
+    "per_consumer_distribution": "not_captured in existing reports; configured profile was 20 isolated consumers and 1200 target requests, so planned mean was 60 requests/consumer",
+    "protected_smoke": {
+      "candidate_max": 300,
+      "five_xx": 0,
+      "latency_ms": {
+        "max": 381.623,
+        "p50": 121.261,
+        "p95": 311.249,
+        "p99": 376.85
+      },
+      "requests": 85,
+      "status_counts": {
+        "200": 85
+      },
+      "timeouts": 0
+    },
+    "source_reports": [
+      "reports/scale/quota_lock_probe_2026-06-12.json",
+      "reports/scale/protected_staged_load_after_quota_fix_2026-06-12.json",
+      "reports/scale/protected_staged_load_after_quota_fix_2026-06-12_summary.md"
+    ]
+  },
+  "explain_and_index_validation": {
+    "analyze_used": false,
+    "index_inventory": {
+      "api_credentials": [
+        "api_credentials_consumer_id_key_prefix_key",
+        "api_credentials_pkey",
+        "idx_api_credentials_consumer_prefix"
+      ],
+      "consumers": [
+        "consumers_pkey"
+      ],
+      "deliveries": [
+        "deliveries_pkey",
+        "idx_deliveries_consumer_item",
+        "idx_deliveries_consumer_item_selected_at",
+        "idx_deliveries_consumer_status_item",
+        "idx_deliveries_item",
+        "idx_deliveries_item_selected_at"
+      ],
+      "entitlements": [
+        "entitlements_pkey",
+        "idx_entitlements_consumer_feature_status"
+      ],
+      "quiz_items": [
+        "idx_quiz_items_cell_lookup",
+        "idx_quiz_items_delivery_filter",
+        "idx_quiz_items_selection_pool",
+        "quiz_items_pkey"
+      ],
+      "quota_usage": [
+        "quota_usage_consumer_id_feature_usage_date_key",
+        "quota_usage_pkey"
+      ],
+      "selection_decisions": [
+        "idx_selection_decisions_consumer_created",
+        "idx_selection_decisions_selected_item",
+        "selection_decisions_pkey"
+      ]
+    },
+    "mode": "EXPLAIN FORMAT JSON without ANALYZE",
+    "profiles": {
+      "auth_credential_lookup": {
+        "available": true,
+        "indexes": {},
+        "node_counts": {
+          "Nested Loop": 1,
+          "Seq Scan": 2
+        },
+        "plan_rows": 1,
+        "relations": {
+          "api_credentials": 1,
+          "consumers": 1
+        },
+        "scan_nodes": [
+          {
+            "index": null,
+            "node_type": "Seq Scan",
+            "plan_rows": 1,
+            "relation": "api_credentials",
+            "total_cost": 6.32
+          },
+          {
+            "index": null,
+            "node_type": "Seq Scan",
+            "plan_rows": 1,
+            "relation": "consumers",
+            "total_cost": 2.8
+          }
+        ],
+        "total_cost": 9.13
+      },
+      "candidate_selection": {
+        "available": true,
+        "indexes": {
+          "idx_deliveries_consumer_item_selected_at": 1,
+          "idx_quiz_items_selection_pool": 1,
+          "quiz_item_image_quality_policy_pkey": 1,
+          "sources_pkey": 1
+        },
+        "node_counts": {
+          "Index Scan": 4,
+          "Limit": 1,
+          "Materialize": 1,
+          "Memoize": 1,
+          "Nested Loop": 3
+        },
+        "plan_rows": 300,
+        "relations": {
+          "deliveries": 1,
+          "quiz_item_image_quality_policy": 1,
+          "quiz_items": 1,
+          "sources": 1
+        },
+        "scan_nodes": [
+          {
+            "index": "idx_quiz_items_selection_pool",
+            "node_type": "Index Scan",
+            "plan_rows": 4208,
+            "relation": "quiz_items",
+            "total_cost": 6317.0
+          },
+          {
+            "index": "sources_pkey",
+            "node_type": "Index Scan",
+            "plan_rows": 1,
+            "relation": "sources",
+            "total_cost": 0.17
+          },
+          {
+            "index": "quiz_item_image_quality_policy_pkey",
+            "node_type": "Index Scan",
+            "plan_rows": 1,
+            "relation": "quiz_item_image_quality_policy",
+            "total_cost": 2.03
+          },
+          {
+            "index": "idx_deliveries_consumer_item_selected_at",
+            "node_type": "Index Scan",
+            "plan_rows": 1,
+            "relation": "deliveries",
+            "total_cost": 8.43
+          }
+        ],
+        "total_cost": 1082.43
+      },
+      "delivery_cell_metrics": {
+        "available": true,
+        "indexes": {
+          "idx_deliveries_item": 1,
+          "idx_quiz_items_cell_lookup": 1,
+          "idx_quiz_items_selection_pool": 1,
+          "sources_pkey": 1
+        },
+        "node_counts": {
+          "Aggregate": 1,
+          "Index Only Scan": 2,
+          "Index Scan": 2,
+          "Limit": 1,
+          "Memoize": 1,
+          "Nested Loop": 3,
+          "Sort": 1,
+          "Subquery Scan": 1,
+          "Unique": 1
+        },
+        "plan_rows": 198,
+        "relations": {
+          "deliveries": 1,
+          "quiz_items": 2,
+          "sources": 1
+        },
+        "scan_nodes": [
+          {
+            "index": null,
+            "node_type": "Subquery Scan",
+            "plan_rows": 300,
+            "relation": null,
+            "total_cost": 470.9
+          },
+          {
+            "index": "idx_quiz_items_selection_pool",
+            "node_type": "Index Scan",
+            "plan_rows": 4208,
+            "relation": "quiz_items",
+            "total_cost": 6317.0
+          },
+          {
+            "index": "sources_pkey",
+            "node_type": "Index Scan",
+            "plan_rows": 1,
+            "relation": "sources",
+            "total_cost": 0.17
+          },
+          {
+            "index": "idx_quiz_items_cell_lookup",
+            "node_type": "Index Only Scan",
+            "plan_rows": 156,
+            "relation": "quiz_items",
+            "total_cost": 11.13
+          },
+          {
+            "index": "idx_deliveries_item",
+            "node_type": "Index Only Scan",
+            "plan_rows": 4,
+            "relation": "deliveries",
+            "total_cost": 0.38
+          }
+        ],
+        "total_cost": 1298.81
+      },
+      "delivery_item_metrics": {
+        "available": true,
+        "indexes": {
+          "idx_quiz_items_selection_pool": 1,
+          "sources_pkey": 1
+        },
+        "node_counts": {
+          "Aggregate": 1,
+          "Hash": 1,
+          "Hash Join": 1,
+          "Index Scan": 2,
+          "Limit": 1,
+          "Memoize": 1,
+          "Nested Loop": 1,
+          "Seq Scan": 1,
+          "Subquery Scan": 1
+        },
+        "plan_rows": 1253,
+        "relations": {
+          "deliveries": 1,
+          "quiz_items": 1,
+          "sources": 1
+        },
+        "scan_nodes": [
+          {
+            "index": null,
+            "node_type": "Seq Scan",
+            "plan_rows": 9058,
+            "relation": "deliveries",
+            "total_cost": 629.58
+          },
+          {
+            "index": null,
+            "node_type": "Subquery Scan",
+            "plan_rows": 300,
+            "relation": null,
+            "total_cost": 470.9
+          },
+          {
+            "index": "idx_quiz_items_selection_pool",
+            "node_type": "Index Scan",
+            "plan_rows": 4208,
+            "relation": "quiz_items",
+            "total_cost": 6317.0
+          },
+          {
+            "index": "sources_pkey",
+            "node_type": "Index Scan",
+            "plan_rows": 1,
+            "relation": "sources",
+            "total_cost": 0.17
+          }
+        ],
+        "total_cost": 1178.92
+      },
+      "entitlement_lookup": {
+        "available": true,
+        "indexes": {},
+        "node_counts": {
+          "Limit": 1,
+          "Seq Scan": 1,
+          "Sort": 1
+        },
+        "plan_rows": 1,
+        "relations": {
+          "entitlements": 1
+        },
+        "scan_nodes": [
+          {
+            "index": null,
+            "node_type": "Seq Scan",
+            "plan_rows": 1,
+            "relation": "entitlements",
+            "total_cost": 5.73
+          }
+        ],
+        "total_cost": 5.75
+      },
+      "quota_usage_lookup": {
+        "available": true,
+        "indexes": {
+          "quota_usage_consumer_id_feature_usage_date_key": 1
+        },
+        "node_counts": {
+          "Index Scan": 1
+        },
+        "plan_rows": 1,
+        "relations": {
+          "quota_usage": 1
+        },
+        "scan_nodes": [
+          {
+            "index": "quota_usage_consumer_id_feature_usage_date_key",
+            "node_type": "Index Scan",
+            "plan_rows": 1,
+            "relation": "quota_usage",
+            "total_cost": 8.29
+          }
+        ],
+        "total_cost": 8.29
+      }
+    },
+    "table_stats": {
+      "api_credentials": {
+        "idx_scan": 969,
+        "n_live_tup_estimate": 94,
+        "seq_scan": 9727
+      },
+      "consumers": {
+        "idx_scan": 597,
+        "n_live_tup_estimate": 84,
+        "seq_scan": 38225
+      },
+      "deliveries": {
+        "idx_scan": 3532024,
+        "n_live_tup_estimate": 8978,
+        "seq_scan": 3887059
+      },
+      "entitlements": {
+        "idx_scan": 285,
+        "n_live_tup_estimate": 97,
+        "seq_scan": 18292
+      },
+      "quiz_items": {
+        "idx_scan": 16725774,
+        "n_live_tup_estimate": 30975,
+        "seq_scan": 131
+      },
+      "quota_usage": {
+        "idx_scan": 10304,
+        "n_live_tup_estimate": 228,
+        "seq_scan": 9167
+      },
+      "selection_decisions": {
+        "idx_scan": 2683,
+        "n_live_tup_estimate": 8959,
+        "seq_scan": 644
+      }
+    }
+  },
+  "explicit_non_claims": {
+    "not_broad_launch_readiness": true,
+    "not_legal_privacy_approval": true,
+    "not_paid_pilot_readiness": true,
+    "stage_4_not_run": true,
+    "stage_5_not_run": true
+  },
+  "generated_at": "2026-06-12T10:27:27Z",
+  "non_test_consumers_unchanged": true,
+  "post_verification_final_sanity": {
+    "active_diagnostic_credentials": 0,
+    "api": {
+      "health": "healthy",
+      "restart_count": 0,
+      "state": "running"
+    },
+    "blocked_locks": 0,
+    "db_connections": 1,
+    "health": 200,
+    "postgres": {
+      "health": "healthy",
+      "restart_count": 0,
+      "state": "running"
+    },
+    "ready": 200
+  },
+  "production_sanity_after_probe_before_explain": {
+    "active_diagnostic_credentials_all_known_prefixes": 0,
+    "api_container": {
+      "health": "healthy",
+      "name": "api-quiz-bank-pilot",
+      "restart_count": 0,
+      "started_at": "2026-06-12T09:57:25.56175087Z",
+      "state": "running"
+    },
+    "blocked_locks": 0,
+    "blocking_sessions": 0,
+    "checked_at": "2026-06-12T10:27:25Z",
+    "db_connections": 1,
+    "health_ready": {
+      "loopback_health_status": 200,
+      "loopback_ready_status": 200,
+      "public_health_status": 200,
+      "public_ready_status": 200
+    },
+    "non_test_consumers": 21,
+    "postgres_container": {
+      "health": "healthy",
+      "name": "api-quiz-bank-postgres",
+      "restart_count": 0,
+      "started_at": "2026-05-11T15:22:22.710037082Z",
+      "state": "running"
+    },
+    "server_git_sha": "3c866492ec2f1a42e9dcb512c980b92ebd1fd7e3",
+    "server_git_status_short": "clean"
+  },
+  "production_sanity_before_probe": {
+    "active_diagnostic_credentials_all_known_prefixes": 0,
+    "api_container": {
+      "health": "healthy",
+      "name": "api-quiz-bank-pilot",
+      "restart_count": 0,
+      "started_at": "2026-06-12T09:57:25.56175087Z",
+      "state": "running"
+    },
+    "blocked_locks": 0,
+    "blocking_sessions": 0,
+    "checked_at": "2026-06-12T10:26:45Z",
+    "db_connections": 1,
+    "health_ready": {
+      "loopback_health_status": 200,
+      "loopback_ready_status": 200,
+      "public_health_status": 200,
+      "public_ready_status": 200
+    },
+    "non_test_consumers": 21,
+    "postgres_container": {
+      "health": "healthy",
+      "name": "api-quiz-bank-postgres",
+      "restart_count": 0,
+      "started_at": "2026-05-11T15:22:22.710037082Z",
+      "state": "running"
+    },
+    "server_git_sha": "3c866492ec2f1a42e9dcb512c980b92ebd1fd7e3",
+    "server_git_status_short": "clean"
+  },
+  "production_sanity_final": {
+    "active_diagnostic_credentials_all_known_prefixes": 0,
+    "api_container": {
+      "health": "healthy",
+      "name": "api-quiz-bank-pilot",
+      "restart_count": 0,
+      "started_at": "2026-06-12T09:57:25.56175087Z",
+      "state": "running"
+    },
+    "blocked_locks": 0,
+    "blocking_sessions": 0,
+    "checked_at": "2026-06-12T10:27:27Z",
+    "db_connections": 1,
+    "health_ready": {
+      "loopback_health_status": 200,
+      "loopback_ready_status": 200,
+      "public_health_status": 200,
+      "public_ready_status": 200
+    },
+    "non_test_consumers": 21,
+    "postgres_container": {
+      "health": "healthy",
+      "name": "api-quiz-bank-postgres",
+      "restart_count": 0,
+      "started_at": "2026-05-11T15:22:22.710037082Z",
+      "state": "running"
+    },
+    "server_git_sha": "3c866492ec2f1a42e9dcb512c980b92ebd1fd7e3",
+    "server_git_status_short": "clean"
+  },
+  "remediation_plan": [
+    {
+      "action": "Reduce CANDIDATE_POOL_LIMIT from 300 to 100-150 for production, then remeasure p95/CPU before Stage 4/Stage 5.",
+      "area": "candidate pool",
+      "basis": "Every live response had candidate_count 300; read path saturated Postgres CPU without locks."
+    },
+    {
+      "action": "Precompute or incrementally maintain item and theme/pattern delivery metrics instead of grouped reads per /next request.",
+      "area": "delivery history metrics",
+      "basis": "delivery_item_metrics and delivery_cell_metrics together have higher planned cost than candidate selection; delivery_item_metrics planned a deliveries Seq Scan."
+    },
+    {
+      "action": "Collapse candidate fetch and metric enrichment into one bounded SQL shape or reuse the candidate CTE once, so each request does fewer DB executions.",
+      "area": "DB roundtrips",
+      "basis": "Current successful route performs auth lookup, consumer lookup, entitlement lookup, candidate fetch, item metrics, cell metrics, quota upsert, delivery insert and decision insert."
+    },
+    {
+      "action": "Use short TTL/process-local cache for active consumer and entitlement metadata after credential validation, if operationally acceptable.",
+      "area": "eligibility and entitlement",
+      "basis": "Not primary, but repeated on every request and visible in sampler."
+    },
+    {
+      "action": "Make non-critical selection_decisions slimmer or asynchronous after delivery durability if the read-path fix is insufficient.",
+      "area": "diagnostics writes",
+      "basis": "Not root cause now, but still one synchronous write per successful delivery."
+    },
+    {
+      "action": "Introduce request-scoped connection reuse or an explicit pool/concurrency cap if CPU remains high after read-path reduction.",
+      "area": "connection management",
+      "basis": "Connections peaked at 20 and normalized, so saturation is not proven, but connection churn remains avoidable overhead."
+    }
+  ],
+  "report_type": "post_quota_fix_cpu_diagnostics",
+  "restart_counts_unchanged": {
+    "api": true,
+    "postgres": true
+  },
+  "sampler_design": {
+    "fields_collected": [
+      "sanitized SQL query type",
+      "query age",
+      "transaction age",
+      "wait_event_type",
+      "wait_event",
+      "relation/table names from locks",
+      "DB connections",
+      "blocked locks",
+      "blocking sessions",
+      "API/Postgres CPU percent"
+    ],
+    "mode": "read_only_pg_stat_activity_pg_locks_plus_docker_stats_during_short_probe",
+    "sanitization": "No literal values, raw headers, raw keys, DB URLs or quiz content are stored. SQL is reduced to operation/table query types."
+  },
+  "status": "diagnosed",
+  "verification": {
+    "git_diff_check": "git diff --check -> passed",
+    "json_parse": "new JSON reports parsed successfully",
+    "no_secrets_scan": "python3 tools/no_secrets_scan.py -> No committed secrets detected.",
+    "python_unittest": "python3 -m unittest discover -s tests -p \"test_*.py\" -> OK, 380 tests",
+    "targeted_scan": "passed for raw keys, DB URL, secret header values, private keys and quiz content markers in new/updated reports"
+  }
+}
