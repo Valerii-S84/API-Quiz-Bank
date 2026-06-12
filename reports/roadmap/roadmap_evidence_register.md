@@ -31,6 +31,8 @@ operation evidence are listed.
   p99 `241.626 ms`, candidate count max `300` and max sampled Postgres CPU
   `8.36%`.
 - Protected staged load status: Partial; stages 0-3 completed, Stage 4 stopped on blocked DB locks, Stage 5 was not run.
+- Blocked-lock diagnosis: `reports/scale/staged_load_lock_diagnostics_2026-06-12.json` and `reports/scale/staged_load_lock_diagnostics_2026-06-12_summary.md` confirm the blocker as the `quota_usage` quota reservation path (`transactionid` lock, blocked query type `INSERT INTO quota_usage`, blocker transaction still open while running `SELECT FROM deliveries`).
+- Stage 4 transient `502`: `reports/scale/staged_load_502_analysis_2026-06-12.md` records that exact per-request timestamp was not captured in the staged-load artifact; API/Postgres logs showed no app-side 5xx or Postgres error in the Stage 4 window.
 - Paid pilot readiness: not claimed.
 - Next gate: blocked-lock follow-up and rerun of strong/soak staged load.
 
@@ -41,6 +43,8 @@ operation evidence are listed.
 - Passed stages: Stage 0 warm-up, Stage 1 single-credential limit check, Stage 2 low multi-consumer load and Stage 3 normal multi-consumer load completed with 4620/4620 `200`, zero timeouts, candidate count max `300`.
 - Stop condition: Stage 4 strong safe load stopped on blocked DB locks after 1943 requests; Stage 5 soak was not run.
 - Cleanup: 20 diagnostic credentials revoked, revoked key check returned `403`, temp key file removed, final health/ready `200/200`, final DB connections `1`, final blocked locks `0`, non-test consumers unchanged at `23`.
+- Follow-up diagnosis: short controlled probe stopped after 31 `200` responses on the first reproduced blocked lock; diagnostic credentials were revoked, revoked key check returned `403`, final DB connections returned to `1`, and blocked locks returned to `0`.
+- Root cause: quota row update lock scope is too broad; quota reservation happens before delivery-history reads and the transaction remains open through the rest of selection and write evidence.
 - Paid pilot readiness: not claimed.
 
 ## Baseline Evidence
