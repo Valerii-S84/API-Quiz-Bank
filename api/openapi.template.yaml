@@ -529,6 +529,182 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+  /v1/admin/languages:
+    get:
+      operationId: listAdminLanguages
+      summary: List supported content languages for admin review.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+      responses:
+        '200':
+          description: Supported content languages.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLanguageListResponse'
+        '401':
+          description: Missing or invalid admin credentials.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /v1/admin/content-banks:
+    get:
+      operationId: listAdminContentBanks
+      summary: List content banks for one language.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminLanguageCodeQuery'
+      responses:
+        '200':
+          description: Content banks for the requested language.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminContentBankListResponse'
+        '401':
+          description: Missing or invalid admin credentials.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /v1/admin/content-banks/{content_bank_id}/versions:
+    get:
+      operationId: listAdminContentBankVersions
+      summary: List versions for one content bank.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminContentBankId'
+      responses:
+        '200':
+          description: Content bank versions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminContentBankVersionListResponse'
+        '404':
+          description: Content bank not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /v1/admin/import-batches:
+    get:
+      operationId: listAdminImportBatches
+      summary: List import batches for admin audit review.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminLanguageCodeQuery'
+        - name: content_bank_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: bank_version_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: import_status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [planned, running, dry_run_passed, committed, rejected, failed, rolled_back]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Import batches for the requested content scope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminImportBatchListResponse'
+        '401':
+          description: Missing or invalid admin credentials.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  /v1/admin/content-bank-versions/{bank_version_id}/mark-audit:
+    post:
+      operationId: markAuditAdminContentBankVersion
+      summary: Move a draft content bank version into audit.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminBankVersionId'
+      requestBody:
+        $ref: '#/components/requestBodies/AdminStatusChange'
+      responses:
+        '200':
+          description: Content bank version moved to audit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBankVersionMarkAuditResponse'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+        '409':
+          $ref: '#/components/responses/AdminInvalidTransition'
+  /v1/admin/content-bank-versions/{bank_version_id}/activate:
+    post:
+      operationId: activateAdminContentBankVersion
+      summary: Activate an audited content bank version as owner.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminBankVersionId'
+      requestBody:
+        $ref: '#/components/requestBodies/AdminStatusChange'
+      responses:
+        '200':
+          description: Content bank version activated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBankVersionActivationResponse'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+        '409':
+          $ref: '#/components/responses/AdminInvalidTransition'
+  /v1/admin/content-bank-versions/{bank_version_id}/rollback:
+    post:
+      operationId: rollbackAdminContentBankVersion
+      summary: Reactivate an archived content bank version as owner rollback.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminBankVersionId'
+      requestBody:
+        $ref: '#/components/requestBodies/AdminStatusChange'
+      responses:
+        '200':
+          description: Archived content bank version reactivated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminBankVersionActivationResponse'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+        '409':
+          $ref: '#/components/responses/AdminInvalidTransition'
   /v1/admin/consumers:
     get:
       operationId: listAdminConsumers
@@ -713,6 +889,28 @@ components:
       required: true
       schema:
         type: string
+    AdminContentBankId:
+      name: content_bank_id
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    AdminBankVersionId:
+      name: bank_version_id
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    AdminLanguageCodeQuery:
+      name: language_code
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [de, en, fr, es, nl]
+        default: de
   requestBodies:
     AdminStatusChange:
       required: true
@@ -1077,6 +1275,9 @@ components:
       required:
         - item_id
         - language
+        - language_code
+        - content_bank_id
+        - bank_version_id
         - cefr_level
         - theme_id
         - objective_id
@@ -1090,6 +1291,13 @@ components:
         item_id:
           type: string
         language:
+          type: string
+        language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+        content_bank_id:
+          type: string
+        bank_version_id:
           type: string
         cefr_level:
           type: string
@@ -1152,6 +1360,233 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AuditLogEntry'
+    AdminLanguageProjection:
+      type: object
+      additionalProperties: false
+      required: [code, name, is_active, created_at]
+      properties:
+        code:
+          type: string
+          enum: [de, en, fr, es, nl]
+        name:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+    AdminLanguageListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminLanguageProjection'
+    AdminContentBankProjection:
+      type: object
+      additionalProperties: false
+      required:
+        - content_bank_id
+        - slug
+        - language_code
+        - language_name
+        - name
+        - status
+        - active_bank_version_id
+        - active_bank_version
+        - version_count
+        - created_at
+      properties:
+        content_bank_id:
+          type: string
+        slug:
+          type: string
+        language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+        language_name:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, archived]
+        active_bank_version_id:
+          type:
+            - string
+            - 'null'
+        active_bank_version:
+          type:
+            - string
+            - 'null'
+        version_count:
+          type: integer
+          minimum: 0
+        created_at:
+          type: string
+    AdminContentBankListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminContentBankProjection'
+    AdminContentBankVersionProjection:
+      type: object
+      additionalProperties: false
+      required:
+        - bank_version_id
+        - content_bank_id
+        - content_bank_slug
+        - language_code
+        - version
+        - status
+        - activated_at
+        - created_at
+      properties:
+        bank_version_id:
+          type: string
+        content_bank_id:
+          type: string
+        content_bank_slug:
+          type: string
+        language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+        version:
+          type: string
+        status:
+          type: string
+          enum: [draft, audit, active, archived]
+        activated_at:
+          type:
+            - string
+            - 'null'
+        created_at:
+          type: string
+    AdminContentBankVersionListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminContentBankVersionProjection'
+    AdminImportBatchProjection:
+      type: object
+      additionalProperties: false
+      required:
+        - import_batch_id
+        - source_id
+        - parser_profile_id
+        - import_mode
+        - import_status
+        - language_code
+        - content_bank_id
+        - bank_version_id
+        - bank_version_status
+        - default_item_status
+        - row_count_detected
+        - accepted_candidate_count
+        - rejected_candidate_count
+        - report_uri
+        - started_at
+        - completed_at
+        - created_by
+      properties:
+        import_batch_id:
+          type: string
+        source_id:
+          type: string
+        parser_profile_id:
+          type: string
+        import_mode:
+          type: string
+          enum: [dry_run, commit]
+        import_status:
+          type: string
+          enum: [planned, running, dry_run_passed, committed, rejected, failed, rolled_back]
+        language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+        content_bank_id:
+          type: string
+        bank_version_id:
+          type: string
+        bank_version_status:
+          type:
+            - string
+            - 'null'
+        default_item_status:
+          type: string
+        row_count_detected:
+          type: integer
+          minimum: 0
+        accepted_candidate_count:
+          type: integer
+          minimum: 0
+        rejected_candidate_count:
+          type: integer
+          minimum: 0
+        report_uri:
+          type: string
+        started_at:
+          type: string
+        completed_at:
+          type:
+            - string
+            - 'null'
+        created_by:
+          type: string
+    AdminImportBatchListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminImportBatchProjection'
+    AdminBankVersionMarkAuditResponse:
+      type: object
+      additionalProperties: false
+      required: [bank_version_id, from_status, to_status]
+      properties:
+        bank_version_id:
+          type: string
+        from_status:
+          type: string
+          const: draft
+        to_status:
+          type: string
+          const: audit
+    AdminBankVersionActivationResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - activation_event_id
+        - content_bank_id
+        - from_bank_version_id
+        - to_bank_version_id
+        - to_status
+      properties:
+        activation_event_id:
+          type: string
+        content_bank_id:
+          type: string
+        from_bank_version_id:
+          type:
+            - string
+            - 'null'
+        to_bank_version_id:
+          type: string
+        to_status:
+          type: string
+          const: active
     AdminDashboardResponse:
       type: object
       additionalProperties: false
