@@ -1,0 +1,286 @@
+{
+  "report_type": "protected_business_route_full_load_test",
+  "generated_at": "2026-06-11T19:38:36Z",
+  "status": "Partial",
+  "route_tested": "/v1/quiz-items/next",
+  "target_url_host": "api.valerchik.de",
+  "state_changing_route_used": true,
+  "payload_profile": {
+    "consumer_id_only": true,
+    "cefr_level_filter": null,
+    "theme_ids_filter": [],
+    "reason": "A2/T10 had only 536 eligible items; the full profile needs a broader isolated test scope without exposing quiz content."
+  },
+  "local_context": {
+    "hostname": "DESKTOP-LLPPQ70",
+    "user": "serputko",
+    "path": "/mnt/c/Users/User/Desktop/API Quiz Bank",
+    "git_sha_before": "de2438f7ee79cb11eaa257279979b6c3ade37b27",
+    "git_status_before": []
+  },
+  "server_context": {
+    "hostname": "ubuntu-8gb-nbg1-1",
+    "user": "root",
+    "path": "/opt/api-quiz-bank",
+    "git_sha": "904babbd998adcf43cfbc7945d5f24d499ec47c4",
+    "git_status_short": [
+      "M src/quizbank_mvp/trusted_delivery.py",
+      " M tests/test_shorts_factory_backend.py"
+    ],
+    "documented_access": "ssh root@valerchik.de"
+  },
+  "runtime": {
+    "containers": [
+      "api-quiz-bank-pilot",
+      "api-quiz-bank-postgres"
+    ],
+    "api_health_pre": {
+      "public_authorized_health_status": 200,
+      "public_authorized_ready_status": 200,
+      "public_no_key_health_status": 401
+    },
+    "api_health_post": {
+      "public_authorized_health_status": 200,
+      "public_authorized_ready_status": 200
+    },
+    "container_health_pre": [
+      "/api-quiz-bank-pilot running healthy restart=0 started=2026-06-08T12:28:26.861683099Z",
+      "/api-quiz-bank-postgres running healthy restart=0 started=2026-05-11T15:22:22.710037082Z"
+    ],
+    "container_health_post": [
+      "/api-quiz-bank-pilot running healthy restart=0 started=2026-06-08T12:28:26.861683099Z",
+      "/api-quiz-bank-postgres running healthy restart=0 started=2026-05-11T15:22:22.710037082Z"
+    ],
+    "rate_limit_effective": {
+      "delivery_requests": 120,
+      "window_seconds": 60,
+      "basis": "queried via FixedWindowRateLimiter.from_environment inside runtime API container"
+    }
+  },
+  "test_consumer": {
+    "name": "load-test-full-2026-06-11",
+    "feature": "quiz_delivery",
+    "allowed_cefr_levels": [
+      "A1",
+      "A2",
+      "B1",
+      "B2",
+      "C1",
+      "C2"
+    ],
+    "allowed_theme_ids": [
+      "T01",
+      "T02",
+      "T03",
+      "T04",
+      "T05",
+      "T06",
+      "T07",
+      "T08",
+      "T09",
+      "T10",
+      "T11",
+      "T12",
+      "T13",
+      "T14",
+      "T15",
+      "T16",
+      "T17",
+      "T18"
+    ],
+    "daily_quota_limit": 30000,
+    "key_hash_prefix": "13e1ce987768c89c",
+    "key_fingerprint": "13e1ce987768c89ccb790ec5",
+    "raw_key_printed": false,
+    "raw_key_file_removed_after_test": true,
+    "credential_final_status": "revoked",
+    "active_credentials_after": 0
+  },
+  "db_sanity": {
+    "non_test_consumers_before": 19,
+    "non_test_consumers_after": 19,
+    "non_test_consumers_unchanged": true,
+    "test_namespace_before": {
+      "consumer_exists": false,
+      "delivery_count": 0,
+      "quota_used_total": 0
+    },
+    "test_namespace_after_creation": {
+      "consumer_exists": true,
+      "consumer_status": "active",
+      "credential_count": 1,
+      "active_credential_count": 1,
+      "entitlement_count": 1,
+      "delivery_count": 0,
+      "quota_used_total": 0,
+      "quota_limit_seen": 0
+    },
+    "test_namespace_after_test": {
+      "consumer_exists": true,
+      "consumer_status": "active",
+      "credential_count": 1,
+      "active_credential_count": 0,
+      "revoked_credential_count": 1,
+      "entitlement_count": 1,
+      "delivery_count": 20,
+      "quota_used_total": 20,
+      "quota_limit_seen": 30000
+    },
+    "approved_or_published_total": 30975,
+    "approved_or_published_a2_t10": 536
+  },
+  "planned_load_profile": [
+    {
+      "stage": "0_warm_up",
+      "concurrency": 1,
+      "planned_requests": "20-50"
+    },
+    {
+      "stage": "1_low_load",
+      "concurrency": 5,
+      "planned_min_duration_seconds": 180,
+      "planned_requests": 500
+    },
+    {
+      "stage": "2_normal_load",
+      "concurrency": 10,
+      "planned_min_duration_seconds": 300,
+      "planned_requests": 1500
+    },
+    {
+      "stage": "3_strong_load",
+      "concurrency": 25,
+      "planned_min_duration_seconds": 300,
+      "planned_requests": 3000
+    },
+    {
+      "stage": "4_high_safe_load",
+      "concurrency": 50,
+      "planned_min_duration_seconds": 300,
+      "planned_requests": 5000
+    },
+    {
+      "stage": "5_stability_soak",
+      "concurrency": 15,
+      "planned_min_duration_seconds": 1200,
+      "planned_requests": 10000
+    }
+  ],
+  "executed_stages": [
+    {
+      "stage": "0_warm_up",
+      "concurrency": 1,
+      "server_side_successful_delivery_writes": 20,
+      "client_status_summary": null,
+      "client_latency_summary_ms": null,
+      "status": "stopped_after_warmup_risk_signal",
+      "notes": [
+        "The warm-up client process was targeted-killed after approximately 96 seconds because it had not printed its final summary.",
+        "DB counters later showed 20 isolated test deliveries and 20 quota increments.",
+        "Because the client summary was lost, exact client-side latency percentiles are not claimed."
+      ]
+    }
+  ],
+  "not_executed_stages": [
+    "1_low_load",
+    "2_normal_load",
+    "3_strong_load",
+    "4_high_safe_load",
+    "5_stability_soak"
+  ],
+  "request_totals": {
+    "planned_full_profile_requests": 20050,
+    "server_side_successful_delivery_writes": 20,
+    "client_recorded_total_requests": null
+  },
+  "status_code_distribution": {
+    "server_side_inferred_2xx_from_delivery_writes": {
+      "200": 20
+    },
+    "client_recorded": null
+  },
+  "errors_timeouts": {
+    "api_log_5xx_error_timeout_matches_30m": 0,
+    "postgres_log_error_matches_30m": 1,
+    "postgres_log_error_classification": "agent diagnostic quoting probe: column none does not exist",
+    "client_timeout_count": null,
+    "client_network_error_count": null,
+    "client_error_count": null
+  },
+  "latency_ms": {
+    "min": null,
+    "avg": null,
+    "p50": null,
+    "p90": null,
+    "p95": null,
+    "p99": null,
+    "max": null,
+    "evidence_status": "client latency summary unavailable because warm-up process was stopped before printing results"
+  },
+  "resource_usage": {
+    "baseline": {
+      "api_container": "0.19% CPU, 62.77MiB / 512MiB, 12.26% memory",
+      "postgres_container": "0.00% CPU, 144MiB / 512MiB, 28.13% memory",
+      "disk": "123G available on /, /opt/api-quiz-bank and /var/lib/api-quiz-bank",
+      "host_load": "0.14, 0.23, 0.26"
+    },
+    "during_warmup_snapshots": [
+      {
+        "api_container": "23.52% CPU, 270.8MiB / 512MiB, 52.90% memory",
+        "postgres_container": "70.87% CPU, 173.1MiB / 512MiB, 33.81% memory"
+      },
+      {
+        "api_container": "2.48% CPU, 350.8MiB / 512MiB, 68.52% memory",
+        "postgres_container": "100.73% CPU, 173.3MiB / 512MiB, 33.85% memory"
+      },
+      {
+        "api_container": "2.55% CPU, 353.8MiB / 512MiB, 69.10% memory",
+        "postgres_container": "100.92% CPU, 171.8MiB / 512MiB, 33.55% memory"
+      }
+    ],
+    "recovered_post_stop": {
+      "api_container": "0.16% CPU, 180.2MiB / 512MiB, 35.20% memory",
+      "postgres_container": "0.00% CPU, 144.4MiB / 512MiB, 28.20% memory",
+      "host_load": "0.52, 0.63, 0.44"
+    }
+  },
+  "stop_condition_result": {
+    "triggered": true,
+    "status": "stopped_resource_risk_during_warmup",
+    "reasons": [
+      "Postgres CPU snapshots reached approximately 100% after only 20 warm-up writes.",
+      "Unfiltered isolated selection did not produce a client summary before the targeted stop at approximately 96 seconds.",
+      "Effective app delivery rate limit is 120 requests per 60 seconds per key, so the requested staged profile cannot be executed safely with a single key without 429s or additional isolated credentials."
+    ],
+    "server_restarted": false,
+    "redeploy_rebuild_migrations_schema_changes": false
+  },
+  "acceptance_criteria": {
+    "success_rate_2xx_at_least_99_5_percent": "not_evaluable_full_profile_not_run",
+    "five_xx_at_most_0_5_percent": "not_evaluable_client_side; api logs show zero 5xx/error/timeout matches",
+    "timeout_at_most_0_5_percent": "not_evaluable_client_side",
+    "p95_latency_threshold": "not_evaluable_client_latency_unavailable",
+    "p99_latency_threshold": "not_evaluable_client_latency_unavailable",
+    "containers_healthy_after": true,
+    "db_sanity_after": true,
+    "non_test_consumers_unchanged": true,
+    "writes_isolated_to_test_namespace": true,
+    "reports_sanitized": "passed_no_secrets_scan_and_targeted_rg"
+  },
+  "explicit_non_claims": {
+    "full_staged_load_passed": false,
+    "paid_pilot_go": false,
+    "broad_public_scale_proven": false,
+    "legal_privacy_approval": false,
+    "support_sla_approval": false,
+    "school_launch_approval": false
+  },
+  "secrets": {
+    "raw_api_key_printed": false,
+    "admin_key_printed": false,
+    "db_url_printed": false,
+    "env_dump_ran": false,
+    "quiz_content_printed": false,
+    "secret_scan_result": "passed_no_committed_secrets_detected"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "allowed_cefr_levels": [
+    "A2"
+  ],
+  "allowed_theme_ids": [
+    "T10"
+  ],
+  "consumer_id": "load-smoke-test-2026-06-11",
+  "created_counts": {
+    "non_test_consumer_count_after": 19,
+    "non_test_consumer_count_before": 19
+  },
+  "creation_status": "created",
+  "daily_quota_limit": 200,
+  "existing_state": {
+    "consumer_exists": true,
+    "consumer_id": "load-smoke-test-2026-06-11",
+    "consumer_status": "active",
+    "credential_count": 1,
+    "daily_quota_limit": 200,
+    "entitlement_count": 1,
+    "non_test_consumer_count": 19
+  },
+  "feature": "quiz_delivery",
+  "generated_at": "2026-06-11T19:05:58Z",
+  "key_fingerprint": "668cf2cbfd80614cd1856424",
+  "key_hash_prefix": "668cf2cbfd80614c",
+  "key_output_mode": "server_file_640_root_65532",
+  "non_test_customer_rows_changed": false,
+  "report_type": "isolated_test_consumer_creation",
+  "secret_printed": false,
+  "test_tenant_key_isolation": true,
+  "write_scope": [
+    "consumers",
+    "api_credentials",
+    "entitlements"
+  ]
+}

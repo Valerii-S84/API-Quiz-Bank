@@ -26,6 +26,9 @@ POSTGRESQL_IMAGE_QUALITY_SQL = (
 POSTGRESQL_VISUAL_MODE_METADATA_SQL = (
     ROOT / "database" / "postgresql" / "010_add_visual_mode_policy_metadata.sql"
 ).read_text(encoding="utf-8")
+POSTGRESQL_NEXT_ROUTE_INDEX_SQL = (
+    ROOT / "database" / "postgresql" / "011_add_next_route_selection_indexes.sql"
+).read_text(encoding="utf-8")
 
 
 class PostgreSQLContractTests(unittest.TestCase):
@@ -178,6 +181,24 @@ class PostgreSQLContractTests(unittest.TestCase):
             self.assertIn(required_fragment, POSTGRESQL_IMAGE_QUALITY_SQL)
         self.assertNotIn("'high'", POSTGRESQL_IMAGE_QUALITY_SQL)
         self.assertNotIn("'auto'", POSTGRESQL_IMAGE_QUALITY_SQL)
+
+    def test_next_route_selection_indexes_cover_hot_path(self) -> None:
+        for required_fragment in [
+            "idx_quiz_items_selection_pool",
+            "ON quiz_items(status, sublevel, theme_id, objective_id, pattern_id, item_id)",
+            "idx_quiz_items_cell_lookup",
+            "ON quiz_items(theme_id, pattern_id, item_id)",
+            "idx_deliveries_item",
+            "ON deliveries(quiz_item_id)",
+            "idx_deliveries_item_selected_at",
+            "ON deliveries(quiz_item_id, selected_at DESC)",
+            "idx_deliveries_consumer_status_item",
+            "ON deliveries(consumer_id, delivery_status, quiz_item_id)",
+            "idx_deliveries_consumer_item_selected_at",
+            "ON deliveries(consumer_id, quiz_item_id, selected_at DESC)",
+            "idx_entitlements_consumer_feature_status",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_NEXT_ROUTE_INDEX_SQL)
 
 
 if __name__ == "__main__":

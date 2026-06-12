@@ -41,6 +41,8 @@ def create_delivery(
     quota_usage: dict[str, Any],
 ) -> dict[str, Any]:
     delivery_id = new_id("deliv")
+    selected_at = utc_now()
+    selection_reason = request.policy.selection_reason_summary()
     connection.execute(
         """
         INSERT INTO deliveries (
@@ -57,17 +59,23 @@ def create_delivery(
             item["source_id"],
             item["resolved_source_type"],
             item["resolved_provenance_note"],
-            request.policy.selection_reason_summary(),
-            utc_now(),
+            selection_reason,
+            selected_at,
             entitlement["entitlement_id"],
             quota_usage["quota_usage_id"],
         ),
     )
-    row = connection.execute(
-        "SELECT * FROM deliveries WHERE delivery_id = ?",
-        (delivery_id,),
-    ).fetchone()
-    return delivery_projection(row_to_dict(row))
+    return delivery_projection(
+        {
+            "delivery_id": delivery_id,
+            "consumer_id": request.consumer_id,
+            "quiz_item_id": item["item_id"],
+            "item_status": item["status"],
+            "delivery_status": "created",
+            "selected_at": selected_at,
+            "selection_reason_summary": selection_reason,
+        }
+    )
 
 
 def delivery_projection(delivery: dict[str, Any]) -> dict[str, Any]:

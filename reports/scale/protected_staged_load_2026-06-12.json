@@ -1,0 +1,729 @@
+{
+  "cleanup": {
+    "credentials_revoked": true,
+    "revoked_key_check_status": 403,
+    "temp_key_file_removed": true,
+    "test_active_credentials_after": 0,
+    "test_revoked_credentials_after": 20
+  },
+  "conclusion": "Protected staged load is partial; inspect stop conditions and cleanup evidence.",
+  "credential_count": 20,
+  "deploy_restart_migration_performed": false,
+  "effective_delivery_rate_limit": {
+    "requests": 120,
+    "scope": "per delivery rate-limit key",
+    "window_seconds": 60
+  },
+  "expected_server_sha": "9cfdc8ebefa452bd41bb094726068379bca748ca",
+  "final_server_state": {
+    "active_db_connections": 1,
+    "blocked_lock_count": 0,
+    "blocking_session_count": 0,
+    "health": {
+      "containers": [
+        {
+          "health": "healthy",
+          "name": "api-quiz-bank-pilot",
+          "restart_count": 0,
+          "started_at": "2026-06-12T05:43:07.260326705Z",
+          "state": "running"
+        },
+        {
+          "health": "healthy",
+          "name": "api-quiz-bank-postgres",
+          "restart_count": 0,
+          "started_at": "2026-05-11T15:22:22.710037082Z",
+          "state": "running"
+        }
+      ],
+      "health_authorized_status": 200,
+      "health_no_edge_key_status": 401,
+      "ready_authorized_status": 200
+    },
+    "logs_error_scan_since_start": [
+      {
+        "container": "api-quiz-bank-pilot",
+        "matched_lines_total": 0,
+        "pattern_counts": {
+          "error": 0,
+          "exception": 0,
+          "fatal": 0,
+          "panic": 0,
+          "traceback": 0
+        },
+        "since": "2026-06-12T07:38:03Z"
+      },
+      {
+        "container": "api-quiz-bank-postgres",
+        "matched_lines_total": 1,
+        "pattern_counts": {
+          "error": 1,
+          "exception": 0,
+          "fatal": 0,
+          "panic": 0,
+          "traceback": 0
+        },
+        "since": "2026-06-12T07:38:03Z"
+      }
+    ],
+    "non_test_consumer_state_hash": "f7e73a823ae99fdd2808e8978c5da6bbb71c72560412def9e92269ae4555282d",
+    "non_test_consumers": 23
+  },
+  "final_status": "Partial",
+  "generated_at": "2026-06-12T08:07:20Z",
+  "isolated_test_consumers": 20,
+  "local_branch": "codex/release-governance-evidence",
+  "local_sha": "de998f2dc158e42b03ac31fa48225553ad7cea21",
+  "migration_011_applied": true,
+  "non_claims": {
+    "not_broad_public_launch": true,
+    "not_legal_privacy_approval": true,
+    "not_paid_pilot_readiness": true,
+    "not_school_launch": true,
+    "not_support_sla_approval": true
+  },
+  "operator_notes": [
+    "One Postgres error-pattern match during Stage 2 came from an operator read-only count probe with a quoting mistake; it did not change data and was not an application runtime error.",
+    "Stage 4 stop condition was triggered by blocked DB locks; production health and DB locks normalized after cleanup."
+  ],
+  "payload_profile": {
+    "cefr_level": "A2",
+    "reason": "A2 inventory supports full staged/soak profile without artificial no-eligible exhaustion",
+    "theme_filter": null
+  },
+  "preflight": {
+    "local": {
+      "branch": "codex/release-governance-evidence",
+      "checks": {
+        "diff_check": {
+          "command": "git diff --check",
+          "result": "passed"
+        },
+        "no_secrets_scan": {
+          "command": "python3 tools/no_secrets_scan.py",
+          "result": "passed"
+        },
+        "unit_tests": {
+          "command": "python3 -m unittest discover -s tests -p \"test_*.py\"",
+          "result": "passed",
+          "tests": 372
+        }
+      },
+      "git_status_short_at_preflight": [],
+      "hostname": "DESKTOP-LLPPQ70",
+      "path": "/mnt/c/Users/User/Desktop/API Quiz Bank",
+      "sha": "de998f2dc158e42b03ac31fa48225553ad7cea21",
+      "user": "serputko"
+    },
+    "server": {
+      "active_db_connections": 1,
+      "blocked_lock_count": 0,
+      "blocking_session_count": 0,
+      "branch": "release/next-route-hotfix-2026-06-11",
+      "deliverable_a2_count": 4218,
+      "deliverable_a2_t10_count": 536,
+      "git_status_short": [],
+      "health": {
+        "containers": [
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-pilot",
+            "restart_count": 0,
+            "started_at": "2026-06-12T05:43:07.260326705Z",
+            "state": "running"
+          },
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-postgres",
+            "restart_count": 0,
+            "started_at": "2026-05-11T15:22:22.710037082Z",
+            "state": "running"
+          }
+        ],
+        "health_authorized_status": 200,
+        "health_no_edge_key_status": 401,
+        "ready_authorized_status": 200
+      },
+      "hostname": "ubuntu-8gb-nbg1-1",
+      "non_test_consumers": 23,
+      "path": "/opt/api-quiz-bank",
+      "user": "root"
+    }
+  },
+  "report_type": "protected_staged_load_next_route",
+  "route_tested": "/v1/quiz-items/next",
+  "runtime_logic_changed": false,
+  "secret_values_printed": false,
+  "server_sha": "9cfdc8ebefa452bd41bb094726068379bca748ca",
+  "server_sha_matches_expected": true,
+  "stage_pause_seconds": 65,
+  "stages": [
+    {
+      "2xx_count": 20,
+      "4xx_count": 0,
+      "5xx_count": 0,
+      "active_db_connections_max": 1.0,
+      "api_cpu_max_percent": 0.2,
+      "api_mem_max_mib": 51.14,
+      "blocked_lock_count_max": 0.0,
+      "blocking_session_count_max": 0.0,
+      "candidate_count_max": 300,
+      "configured_consumers": 1,
+      "delivery_writes": 20,
+      "ended_at": "2026-06-12T07:38:16Z",
+      "health_after": {
+        "containers": [
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-pilot",
+            "restart_count": 0,
+            "started_at": "2026-06-12T05:43:07.260326705Z",
+            "state": "running"
+          },
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-postgres",
+            "restart_count": 0,
+            "started_at": "2026-05-11T15:22:22.710037082Z",
+            "state": "running"
+          }
+        ],
+        "health_authorized_status": 200,
+        "health_no_edge_key_status": 401,
+        "ready_authorized_status": 200
+      },
+      "health_before": {
+        "containers": [
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-pilot",
+            "restart_count": 0,
+            "started_at": "2026-06-12T05:43:07.260326705Z",
+            "state": "running"
+          },
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-postgres",
+            "restart_count": 0,
+            "started_at": "2026-05-11T15:22:22.710037082Z",
+            "state": "running"
+          }
+        ],
+        "health_authorized_status": 200,
+        "health_no_edge_key_status": 401,
+        "ready_authorized_status": 200
+      },
+      "logs_error_scan": [
+        {
+          "container": "api-quiz-bank-pilot",
+          "matched_lines_total": 0,
+          "pattern_counts": {
+            "error": 0,
+            "exception": 0,
+            "fatal": 0,
+            "panic": 0,
+            "traceback": 0
+          },
+          "since": "2026-06-12T07:38:07Z"
+        },
+        {
+          "container": "api-quiz-bank-postgres",
+          "matched_lines_total": 0,
+          "pattern_counts": {
+            "error": 0,
+            "exception": 0,
+            "fatal": 0,
+            "panic": 0,
+            "traceback": 0
+          },
+          "since": "2026-06-12T07:38:07Z"
+        }
+      ],
+      "max_ms": 131.459,
+      "name": "stage_0_warm_up",
+      "non_test_consumer_state_hash_after": "f7e73a823ae99fdd2808e8978c5da6bbb71c72560412def9e92269ae4555282d",
+      "non_test_consumer_state_hash_before": "f7e73a823ae99fdd2808e8978c5da6bbb71c72560412def9e92269ae4555282d",
+      "non_test_consumers_after": 23,
+      "non_test_consumers_before": 23,
+      "p50_ms": 79.239,
+      "p90_ms": 102.524,
+      "p95_ms": 107.811,
+      "p99_ms": 126.729,
+      "planned_duration_seconds": 20,
+      "planned_requests": 20,
+      "postgres_cpu_max_percent": 7.96,
+      "postgres_mem_max_mib": 146.1,
+      "quota_denials": 0,
+      "quota_increments": 20,
+      "rate_limit_responses": 0,
+      "runtime_sample_count": 3,
+      "selection_decision_writes": 20,
+      "started_at": "2026-06-12T07:38:07Z",
+      "status_distribution": {
+        "200": 20
+      },
+      "stop_condition_status": "completed",
+      "target_rps": 1.0,
+      "timeout_count": 0,
+      "total_requests": 20
+    },
+    {
+      "2xx_count": 100,
+      "4xx_count": 0,
+      "5xx_count": 0,
+      "active_db_connections_max": 1.0,
+      "api_cpu_max_percent": 21.58,
+      "api_mem_max_mib": 65.1,
+      "blocked_lock_count_max": 0.0,
+      "blocking_session_count_max": 0.0,
+      "candidate_count_max": 300,
+      "configured_consumers": 1,
+      "delivery_writes": 100,
+      "ended_at": "2026-06-12T07:41:08Z",
+      "health_after": {
+        "containers": [
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-pilot",
+            "restart_count": 0,
+            "started_at": "2026-06-12T05:43:07.260326705Z",
+            "state": "running"
+          },
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-postgres",
+            "restart_count": 0,
+            "started_at": "2026-05-11T15:22:22.710037082Z",
+            "state": "running"
+          }
+        ],
+        "health_authorized_status": 200,
+        "health_no_edge_key_status": 401,
+        "ready_authorized_status": 200
+      },
+      "health_before": {
+        "containers": [
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-pilot",
+            "restart_count": 0,
+            "started_at": "2026-06-12T05:43:07.260326705Z",
+            "state": "running"
+          },
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-postgres",
+            "restart_count": 0,
+            "started_at": "2026-05-11T15:22:22.710037082Z",
+            "state": "running"
+          }
+        ],
+        "health_authorized_status": 200,
+        "health_no_edge_key_status": 401,
+        "ready_authorized_status": 200
+      },
+      "logs_error_scan": [
+        {
+          "container": "api-quiz-bank-pilot",
+          "matched_lines_total": 0,
+          "pattern_counts": {
+            "error": 0,
+            "exception": 0,
+            "fatal": 0,
+            "panic": 0,
+            "traceback": 0
+          },
+          "since": "2026-06-12T07:39:22Z"
+        },
+        {
+          "container": "api-quiz-bank-postgres",
+          "matched_lines_total": 0,
+          "pattern_counts": {
+            "error": 0,
+            "exception": 0,
+            "fatal": 0,
+            "panic": 0,
+            "traceback": 0
+          },
+          "since": "2026-06-12T07:39:22Z"
+        }
+      ],
+      "max_ms": 117.979,
+      "name": "stage_1_single_credential_limit_check",
+      "non_test_consumer_state_hash_after": "f7e73a823ae99fdd2808e8978c5da6bbb71c72560412def9e92269ae4555282d",
+      "non_test_consumer_state_hash_before": "f7e73a823ae99fdd2808e8978c5da6bbb71c72560412def9e92269ae4555282d",
+      "non_test_consumers_after": 23,
+      "non_test_consumers_before": 23,
+      "p50_ms": 101.113,
+      "p90_ms": 110.214,
+      "p95_ms": 111.869,
+      "p99_ms": 114.791,
+      "planned_duration_seconds": 60,
+      "planned_requests": 100,
+      "postgres_cpu_max_percent": 7.46,
+      "postgres_mem_max_mib": 149.2,
+      "quota_denials": 0,
+      "quota_increments": 100,
+      "rate_limit_responses": 0,
+      "runtime_sample_count": 22,
+      "selection_decision_writes": 100,
+      "started_at": "2026-06-12T07:39:22Z",
+      "status_distribution": {
+        "200": 100
+      },
+      "stop_condition_status": "completed",
+      "target_rps": 1.667,
+      "timeout_count": 0,
+      "total_requests": 100
+    },
+    {
+      "2xx_count": 1500,
+      "4xx_count": 0,
+      "5xx_count": 0,
+      "active_db_connections_max": 2.0,
+      "api_cpu_max_percent": 21.8,
+      "api_mem_max_mib": 63.6,
+      "blocked_lock_count_max": 0.0,
+      "blocking_session_count_max": 0.0,
+      "candidate_count_max": 300,
+      "configured_consumers": 5,
+      "delivery_writes": 1500,
+      "ended_at": "2026-06-12T07:51:50Z",
+      "health_after": {
+        "containers": [
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-pilot",
+            "restart_count": 0,
+            "started_at": "2026-06-12T05:43:07.260326705Z",
+            "state": "running"
+          },
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-postgres",
+            "restart_count": 0,
+            "started_at": "2026-05-11T15:22:22.710037082Z",
+            "state": "running"
+          }
+        ],
+        "health_authorized_status": 200,
+        "health_no_edge_key_status": 401,
+        "ready_authorized_status": 200
+      },
+      "health_before": {
+        "containers": [
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-pilot",
+            "restart_count": 0,
+            "started_at": "2026-06-12T05:43:07.260326705Z",
+            "state": "running"
+          },
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-postgres",
+            "restart_count": 0,
+            "started_at": "2026-05-11T15:22:22.710037082Z",
+            "state": "running"
+          }
+        ],
+        "health_authorized_status": 200,
+        "health_no_edge_key_status": 401,
+        "ready_authorized_status": 200
+      },
+      "logs_error_scan": [
+        {
+          "container": "api-quiz-bank-pilot",
+          "matched_lines_total": 0,
+          "pattern_counts": {
+            "error": 0,
+            "exception": 0,
+            "fatal": 0,
+            "panic": 0,
+            "traceback": 0
+          },
+          "since": "2026-06-12T07:42:13Z"
+        },
+        {
+          "container": "api-quiz-bank-postgres",
+          "matched_lines_total": 1,
+          "pattern_counts": {
+            "error": 1,
+            "exception": 0,
+            "fatal": 0,
+            "panic": 0,
+            "traceback": 0
+          },
+          "since": "2026-06-12T07:42:13Z"
+        }
+      ],
+      "max_ms": 147.735,
+      "name": "stage_2_low_multi_consumer_load",
+      "non_test_consumer_state_hash_after": "f7e73a823ae99fdd2808e8978c5da6bbb71c72560412def9e92269ae4555282d",
+      "non_test_consumer_state_hash_before": "f7e73a823ae99fdd2808e8978c5da6bbb71c72560412def9e92269ae4555282d",
+      "non_test_consumers_after": 23,
+      "non_test_consumers_before": 23,
+      "p50_ms": 104.208,
+      "p90_ms": 116.68,
+      "p95_ms": 119.615,
+      "p99_ms": 128.272,
+      "planned_duration_seconds": 300,
+      "planned_requests": 1500,
+      "postgres_cpu_max_percent": 12.82,
+      "postgres_mem_max_mib": 151.7,
+      "quota_denials": 0,
+      "quota_increments": 1500,
+      "rate_limit_responses": 0,
+      "runtime_sample_count": 116,
+      "selection_decision_writes": 1500,
+      "started_at": "2026-06-12T07:42:13Z",
+      "status_distribution": {
+        "200": 1500
+      },
+      "stop_condition_status": "completed",
+      "target_rps": 5.0,
+      "timeout_count": 0,
+      "total_requests": 1500
+    },
+    {
+      "2xx_count": 3000,
+      "4xx_count": 0,
+      "5xx_count": 0,
+      "active_db_connections_max": 1.0,
+      "api_cpu_max_percent": 46.32,
+      "api_mem_max_mib": 72.84,
+      "blocked_lock_count_max": 0.0,
+      "blocking_session_count_max": 0.0,
+      "candidate_count_max": 300,
+      "configured_consumers": 10,
+      "delivery_writes": 3000,
+      "ended_at": "2026-06-12T08:02:43Z",
+      "health_after": {
+        "containers": [
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-pilot",
+            "restart_count": 0,
+            "started_at": "2026-06-12T05:43:07.260326705Z",
+            "state": "running"
+          },
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-postgres",
+            "restart_count": 0,
+            "started_at": "2026-05-11T15:22:22.710037082Z",
+            "state": "running"
+          }
+        ],
+        "health_authorized_status": 200,
+        "health_no_edge_key_status": 401,
+        "ready_authorized_status": 200
+      },
+      "health_before": {
+        "containers": [
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-pilot",
+            "restart_count": 0,
+            "started_at": "2026-06-12T05:43:07.260326705Z",
+            "state": "running"
+          },
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-postgres",
+            "restart_count": 0,
+            "started_at": "2026-05-11T15:22:22.710037082Z",
+            "state": "running"
+          }
+        ],
+        "health_authorized_status": 200,
+        "health_no_edge_key_status": 401,
+        "ready_authorized_status": 200
+      },
+      "logs_error_scan": [
+        {
+          "container": "api-quiz-bank-pilot",
+          "matched_lines_total": 0,
+          "pattern_counts": {
+            "error": 0,
+            "exception": 0,
+            "fatal": 0,
+            "panic": 0,
+            "traceback": 0
+          },
+          "since": "2026-06-12T07:52:55Z"
+        },
+        {
+          "container": "api-quiz-bank-postgres",
+          "matched_lines_total": 0,
+          "pattern_counts": {
+            "error": 0,
+            "exception": 0,
+            "fatal": 0,
+            "panic": 0,
+            "traceback": 0
+          },
+          "since": "2026-06-12T07:52:55Z"
+        }
+      ],
+      "max_ms": 235.564,
+      "name": "stage_3_normal_multi_consumer_load",
+      "non_test_consumer_state_hash_after": "f7e73a823ae99fdd2808e8978c5da6bbb71c72560412def9e92269ae4555282d",
+      "non_test_consumer_state_hash_before": "f7e73a823ae99fdd2808e8978c5da6bbb71c72560412def9e92269ae4555282d",
+      "non_test_consumers_after": 23,
+      "non_test_consumers_before": 23,
+      "p50_ms": 95.276,
+      "p90_ms": 116.404,
+      "p95_ms": 120.511,
+      "p99_ms": 129.311,
+      "planned_duration_seconds": 300,
+      "planned_requests": 3000,
+      "postgres_cpu_max_percent": 8.94,
+      "postgres_mem_max_mib": 156.7,
+      "quota_denials": 0,
+      "quota_increments": 3000,
+      "rate_limit_responses": 0,
+      "runtime_sample_count": 118,
+      "selection_decision_writes": 3000,
+      "started_at": "2026-06-12T07:52:55Z",
+      "status_distribution": {
+        "200": 3000
+      },
+      "stop_condition_status": "completed",
+      "target_rps": 10.0,
+      "timeout_count": 0,
+      "total_requests": 3000
+    },
+    {
+      "2xx_count": 1942,
+      "4xx_count": 0,
+      "5xx_count": 1,
+      "active_db_connections_max": 26.0,
+      "api_cpu_max_percent": 20.28,
+      "api_mem_max_mib": 89.45,
+      "blocked_lock_count_max": 2.0,
+      "blocking_session_count_max": 2.0,
+      "candidate_count_max": 300,
+      "configured_consumers": 20,
+      "delivery_writes": 1942,
+      "ended_at": "2026-06-12T08:07:17Z",
+      "health_after": {
+        "containers": [
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-pilot",
+            "restart_count": 0,
+            "started_at": "2026-06-12T05:43:07.260326705Z",
+            "state": "running"
+          },
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-postgres",
+            "restart_count": 0,
+            "started_at": "2026-05-11T15:22:22.710037082Z",
+            "state": "running"
+          }
+        ],
+        "health_authorized_status": 200,
+        "health_no_edge_key_status": 401,
+        "ready_authorized_status": 200
+      },
+      "health_before": {
+        "containers": [
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-pilot",
+            "restart_count": 0,
+            "started_at": "2026-06-12T05:43:07.260326705Z",
+            "state": "running"
+          },
+          {
+            "health": "healthy",
+            "name": "api-quiz-bank-postgres",
+            "restart_count": 0,
+            "started_at": "2026-05-11T15:22:22.710037082Z",
+            "state": "running"
+          }
+        ],
+        "health_authorized_status": 200,
+        "health_no_edge_key_status": 401,
+        "ready_authorized_status": 200
+      },
+      "logs_error_scan": [
+        {
+          "container": "api-quiz-bank-pilot",
+          "matched_lines_total": 0,
+          "pattern_counts": {
+            "error": 0,
+            "exception": 0,
+            "fatal": 0,
+            "panic": 0,
+            "traceback": 0
+          },
+          "since": "2026-06-12T08:03:48Z"
+        },
+        {
+          "container": "api-quiz-bank-postgres",
+          "matched_lines_total": 0,
+          "pattern_counts": {
+            "error": 0,
+            "exception": 0,
+            "fatal": 0,
+            "panic": 0,
+            "traceback": 0
+          },
+          "since": "2026-06-12T08:03:48Z"
+        }
+      ],
+      "max_ms": 2457.567,
+      "name": "stage_4_strong_safe_load",
+      "non_test_consumer_state_hash_after": "f7e73a823ae99fdd2808e8978c5da6bbb71c72560412def9e92269ae4555282d",
+      "non_test_consumer_state_hash_before": "f7e73a823ae99fdd2808e8978c5da6bbb71c72560412def9e92269ae4555282d",
+      "non_test_consumers_after": 23,
+      "non_test_consumers_before": 23,
+      "p50_ms": 450.02,
+      "p90_ms": 1071.771,
+      "p95_ms": 1241.206,
+      "p99_ms": 1842.176,
+      "planned_duration_seconds": 300,
+      "planned_requests": 6000,
+      "postgres_cpu_max_percent": 35.22,
+      "postgres_mem_max_mib": 156.2,
+      "quota_denials": 0,
+      "quota_increments": 1942,
+      "rate_limit_responses": 0,
+      "runtime_sample_count": 43,
+      "selection_decision_writes": 1942,
+      "started_at": "2026-06-12T08:03:48Z",
+      "status_distribution": {
+        "200": 1942,
+        "502": 1
+      },
+      "stop_condition_status": "stopped_blocked_locks",
+      "target_rps": 20.0,
+      "timeout_count": 0,
+      "total_requests": 1943
+    }
+  ],
+  "stop_condition": {
+    "blocked_lock_count_max": 2.0,
+    "blocking_session_count_max": 2.0,
+    "reason": "stopped_blocked_locks",
+    "stage": "stage_4_strong_safe_load",
+    "triggered": true
+  },
+  "target_host": "api.valerchik.de",
+  "target_indexes_missing": [],
+  "target_indexes_present_count": 7,
+  "totals": {
+    "2xx_count": 6562,
+    "4xx_count": 0,
+    "5xx_count": 1,
+    "candidate_count_max": 300,
+    "delivery_writes": 6562,
+    "quota_increments": 6562,
+    "requests": 6563,
+    "selection_decision_writes": 6562,
+    "timeout_count": 0
+  }
+}

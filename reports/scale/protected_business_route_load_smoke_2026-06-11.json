@@ -1,0 +1,317 @@
+{
+  "auth_gate_result": {
+    "health_no_key": {
+      "actual_status": 401,
+      "expected_statuses": [
+        401
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "health_with_edge_key": {
+      "actual_status": 200,
+      "expected_statuses": [
+        200
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "health_wrong_key": {
+      "actual_status": 401,
+      "expected_statuses": [
+        401
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "ready_with_edge_key": {
+      "actual_status": 200,
+      "expected_statuses": [
+        200
+      ],
+      "ok": true,
+      "timeout": false
+    }
+  },
+  "business_route_path": "/v1/quiz-items/next",
+  "business_route_result": {
+    "load": {
+      "concurrency": 3,
+      "error_count": 0,
+      "five_xx_count": 0,
+      "name": "business_route",
+      "p50_ms": 839.681,
+      "p95_ms": 1332.374,
+      "p95_threshold_ms": 1500.0,
+      "p99_ms": 1472.589,
+      "path_status_counts": {
+        "/v1/quiz-items/next": {
+          "200": 60
+        }
+      },
+      "status_counts": {
+        "200": 60
+      },
+      "stop_condition_status": "completed",
+      "timeout_count": 0,
+      "timeout_seconds": 8.0,
+      "total_requests": 60,
+      "total_requests_executed": 60
+    },
+    "mismatched_consumer": {
+      "actual_status": 403,
+      "expected_statuses": [
+        403
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "missing_consumer_key": {
+      "actual_status": 401,
+      "expected_statuses": [
+        401
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "passed_threshold": true,
+    "path": "/v1/quiz-items/next",
+    "test_key_control": {
+      "actual_status": 200,
+      "expected_statuses": [
+        200
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "tested": true,
+    "wrong_consumer_key": {
+      "actual_status": 401,
+      "expected_statuses": [
+        401
+      ],
+      "ok": true,
+      "timeout": false
+    }
+  },
+  "business_route_tested": true,
+  "conclusion": "GO protected business-route load evidence for tested threshold",
+  "concurrency": 3,
+  "endpoint_list": [
+    {
+      "expected_status": 401,
+      "label": "health_no_key",
+      "method": "GET",
+      "path": "/health"
+    },
+    {
+      "expected_status": 200,
+      "label": "health_with_edge_key",
+      "method": "GET",
+      "path": "/health"
+    },
+    {
+      "expected_status": 200,
+      "label": "ready_with_edge_key",
+      "method": "GET",
+      "path": "/ready"
+    },
+    {
+      "expected_status": 200,
+      "included_in_mode": true,
+      "label": "business_route",
+      "method": "POST",
+      "path": "/v1/quiz-items/next"
+    }
+  ],
+  "error_count": 0,
+  "explicit_non_claims": {
+    "not_legal_privacy_approval": true,
+    "not_paid_launch_approval": true,
+    "not_school_launch_approval": true,
+    "not_support_sla_approval": true,
+    "not_unlimited_broad_scale_proof": true
+  },
+  "five_xx_count": 0,
+  "generated_at": "2026-06-11T19:05:34Z",
+  "health_result": {
+    "authorized": {
+      "actual_status": 200,
+      "expected_statuses": [
+        200
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "load": {
+      "profile": "health_ready",
+      "status_counts": {
+        "200": 50
+      }
+    },
+    "no_key": {
+      "actual_status": 401,
+      "expected_statuses": [
+        401
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "wrong_key": {
+      "actual_status": 401,
+      "expected_statuses": [
+        401
+      ],
+      "ok": true,
+      "timeout": false
+    }
+  },
+  "load_profiles": [
+    {
+      "concurrency": 5,
+      "error_count": 0,
+      "five_xx_count": 0,
+      "name": "health_ready",
+      "p50_ms": 28.233,
+      "p95_ms": 437.247,
+      "p95_threshold_ms": 1000.0,
+      "p99_ms": 488.502,
+      "path_status_counts": {
+        "/health": {
+          "200": 50
+        },
+        "/ready": {
+          "200": 50
+        }
+      },
+      "status_counts": {
+        "200": 100
+      },
+      "stop_condition_status": "completed",
+      "timeout_count": 0,
+      "timeout_seconds": 5.0,
+      "total_requests": 100,
+      "total_requests_executed": 100
+    },
+    {
+      "concurrency": 3,
+      "error_count": 0,
+      "five_xx_count": 0,
+      "name": "business_route",
+      "p50_ms": 839.681,
+      "p95_ms": 1332.374,
+      "p95_threshold_ms": 1500.0,
+      "p99_ms": 1472.589,
+      "path_status_counts": {
+        "/v1/quiz-items/next": {
+          "200": 60
+        }
+      },
+      "status_counts": {
+        "200": 60
+      },
+      "stop_condition_status": "completed",
+      "timeout_count": 0,
+      "timeout_seconds": 8.0,
+      "total_requests": 60,
+      "total_requests_executed": 60
+    }
+  ],
+  "local_git_commit_sha": "933ae94f5269976c8acb9501f24025ba80dd07da",
+  "negative_controls": {
+    "mismatched_consumer": {
+      "actual_status": 403,
+      "expected_statuses": [
+        403
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "missing_consumer_key": {
+      "actual_status": 401,
+      "expected_statuses": [
+        401
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "no_key_health": {
+      "actual_status": 401,
+      "expected_statuses": [
+        401
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "wrong_consumer_key": {
+      "actual_status": 401,
+      "expected_statuses": [
+        401
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "wrong_edge_key_health": {
+      "actual_status": 401,
+      "expected_statuses": [
+        401
+      ],
+      "ok": true,
+      "timeout": false
+    }
+  },
+  "p50_ms": 839.681,
+  "p95_ms": 1332.374,
+  "p99_ms": 1472.589,
+  "quota_counter_pollution_risk": "isolated",
+  "quota_entitlement_control_result": {
+    "business_load_completed": true,
+    "expected_daily_quota_limit": 200,
+    "expected_feature": "quiz_delivery",
+    "positive_business_control": {
+      "actual_status": 200,
+      "expected_statuses": [
+        200
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "quota_counter_pollution_risk": "isolated",
+    "test_consumer_id": "load-smoke-test-2026-06-11",
+    "test_tenant_key_isolation": true,
+    "validation_basis": "isolated test consumer/key plus successful protected business route responses"
+  },
+  "ready_result": {
+    "authorized": {
+      "actual_status": 200,
+      "expected_statuses": [
+        200
+      ],
+      "ok": true,
+      "timeout": false
+    },
+    "load": {
+      "profile": "health_ready",
+      "status_counts": {
+        "200": 50
+      }
+    }
+  },
+  "report_type": "protected_business_route_load_smoke",
+  "route_profile": "business_route_with_test_tenant",
+  "server_git_commit_sha": "904babbd998adcf43cfbc7945d5f24d499ec47c4",
+  "state_changing_route_used": true,
+  "status_counts": {
+    "200": 60
+  },
+  "stop_condition_status": "completed",
+  "target_host": "api.valerchik.de",
+  "test_consumer_id": "load-smoke-test-2026-06-11",
+  "test_key_fingerprint": "668cf2cbfd80614cd1856424",
+  "test_key_hash_prefix": "668cf2cbfd80614c",
+  "test_tenant_key_isolation": true,
+  "test_tenant_ref": "load-smoke-test-2026-06-11",
+  "timeout_count": 0,
+  "total_requests": 60,
+  "total_requests_executed": 60
+}

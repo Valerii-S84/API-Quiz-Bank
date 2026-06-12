@@ -1,6 +1,6 @@
 # Phase 7-9 External Evidence Blockers
 
-Updated: 2026-05-11
+Updated: 2026-06-12
 
 This file lists blockers that cannot be closed by local repository work alone.
 They must remain separate from local pre-pilot evidence.
@@ -42,7 +42,19 @@ They must remain separate from local pre-pilot evidence.
 | Production corpus volume | Closed for the owner-approved active corpus by `reports/publication/owner_corpus_approval_2026-05-11.json`, `reports/publication/verified_corpus_promotion_2026-05-11.json`, `reports/imports/production_corpus_postgresql_smoke_2026-05-11.json` and `reports/publication/production_corpus_gate_2026-05-11.json`; broad launch still depends on the separate legal/privacy, release-governance and scale gates. |
 | Production privacy/legal approval | Closed only for owner-operated protected production API runtime in `reports/compliance/legal_review_record.md` section 4.3 and `reports/compliance/legal_privacy_gate_2026-05-10.json`. Exact public legal entity/jurisdiction, vendors, broad public launch, school deployment and paid launch remain separate approval scopes. |
 | Release governance | Repository-side controls are defined by `.github/branch_protection_main.json`, `.github/workflows/ci.yml`, `CHANGELOG.md`, `runbooks/migration_approval_checklist.md` and `reports/release/release_governance_gate_2026-05-10.json`; actual GitHub branch-protection enforcement and release tag creation must be verified on remote/release execution. |
-| Scale/load | Local protected-runtime concurrent smoke is recorded in `reports/scale/protected_runtime_load_smoke_2026-05-10.json` with 8 concurrent deliveries, auth denial, repeat denial, quota denial and resource-limit evidence. External load test under real traffic remains required before real scale claim. |
+| Scale/load | Smoke threshold remains closed for the earlier owner-operated protected business-route check and the 2026-06-12 postfix smoke. Protected staged load was executed after the hotfix with 20 isolated consumers and sanitized reports in `reports/scale/protected_staged_load_2026-06-12.json`, `reports/scale/protected_staged_load_2026-06-12_summary.md`, `reports/scale/protected_staged_load_consumers_2026-06-12.json` and `reports/scale/protected_staged_load_server_sanity_2026-06-12.json`; stages 0-3 completed with 4620/4620 `200`, zero timeouts and candidate count max `300`, but Stage 4 stopped at 1943 requests on blocked DB locks with 1942 `200` and 1 `502`; Stage 5 was not run. Cleanup succeeded: diagnostic credentials revoked, temp key file removed, final health/ready `200/200`, DB connections normalized and non-test consumers remained unchanged at `23`. Follow-up lock diagnosis in `reports/scale/staged_load_lock_diagnostics_2026-06-12.json` and `reports/scale/staged_load_lock_diagnostics_2026-06-12_summary.md` reproduced the lock in a short controlled probe and narrowed the root cause to `quota_usage` quota reservation transaction scope; `reports/scale/staged_load_502_analysis_2026-06-12.md` records the transient `502` as not app-side in available logs and not reproduced in the short probe. Full scale remains open until the quota-lock finding is fixed and strong/soak staged load is rerun. This is not broad public scale, paid launch, school launch, support/SLA or legal/privacy approval. |
+
+## 2026-06-12 Quota Lock Remediation Boundary
+
+Local code remediation and local proof are recorded in
+`reports/scale/quota_lock_remediation_2026-06-12.md`,
+`reports/scale/quota_transaction_before_after_2026-06-12.md` and
+`reports/scale/quota_lock_perf_after_fix_2026-06-12.json`.
+
+This reduces the Stage 4 blocker by moving candidate selection,
+delivery-history reads, scoring and eligibility before the atomic quota reserve.
+The scale/load blocker remains external until an approved production deploy,
+small protected smoke and separate Stage 4/Stage 5 rerun are completed.
 
 ## Guardrail
 

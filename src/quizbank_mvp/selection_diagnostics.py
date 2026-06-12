@@ -33,6 +33,14 @@ def blocked_reason_counts(connection, request: Any) -> dict[str, int]:
     }
 
 
+def success_blocked_reason_counts(request: Any) -> dict[str, int]:
+    return {
+        "non_deliverable_status": 0,
+        "repeat_policy": 0,
+        "explicit_exclusion": len(request.excluded_item_ids),
+    }
+
+
 def non_deliverable_status_count(connection, request: Any) -> int:
     query = [
         """

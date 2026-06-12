@@ -1,0 +1,66 @@
+{
+  "api_cpu": {
+    "before_percent": 0.19,
+    "during_percent": null,
+    "after_percent": null
+  },
+  "candidate_count_max": null,
+  "consumer": {
+    "credential_revoked": null,
+    "key_fingerprint": null,
+    "key_hash_prefix": null,
+    "name": "postfix-smoke-next-route-2026-06-11",
+    "non_test_consumers_after": null,
+    "non_test_consumers_before": 11,
+    "raw_key_file_removed": null,
+    "secret_available": false
+  },
+  "db": {
+    "connections_before": 1,
+    "connections_during": null,
+    "connections_after": null,
+    "ungranted_locks_before": 0,
+    "ungranted_locks_during": null,
+    "ungranted_locks_after": null
+  },
+  "decision": "Partial: production deploy was not executed, so protected postfix smoke was not run",
+  "delivery_writes": 0,
+  "endpoint": "/v1/quiz-items/next",
+  "generated_at": "2026-06-11T00:00:00Z",
+  "health": {
+    "before": {
+      "api_container": "running/healthy",
+      "postgres_container": "running/healthy",
+      "health_status": 200,
+      "ready_status": 200
+    },
+    "after": {
+      "api_container": "running/healthy",
+      "postgres_container": "running/healthy",
+      "health_status": 200,
+      "ready_status": 200
+    }
+  },
+  "latency_ms": {
+    "max": null,
+    "p50": null,
+    "p90": null,
+    "p95": null,
+    "p99": null
+  },
+  "local_sha": "9cfdc8ebefa452bd41bb094726068379bca748ca",
+  "migrations_applied": [],
+  "postgres_cpu": {
+    "before_percent": 3.83,
+    "during_percent": null,
+    "after_percent": null
+  },
+  "quota_increments": 0,
+  "request_count": 0,
+  "selection_decision_writes": 0,
+  "server_new_sha": null,
+  "server_old_sha": "904babbd998adcf43cfbc7945d5f24d499ec47c4",
+  "status": "partial_not_run",
+  "status_codes": {},
+  "timeouts": 0
+}

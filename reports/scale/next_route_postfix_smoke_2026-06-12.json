@@ -1,0 +1,170 @@
+{
+  "report_type": "next_route_postfix_smoke",
+  "status": "passed",
+  "date": "2026-06-12",
+  "production_host": "valerchik.de",
+  "production_path": "/opt/api-quiz-bank",
+  "route": "/v1/quiz-items/next",
+  "release_branch": "release/next-route-hotfix-2026-06-11",
+  "server_sha": "9cfdc8ebefa452bd41bb094726068379bca748ca",
+  "consumer": {
+    "name": "postfix-smoke-next-route-2026-06-12",
+    "key_fingerprint_sha256_16": "491f0e93a18ca623",
+    "raw_key_printed": false,
+    "temp_raw_key_file_removed": true,
+    "credential_status_after_cleanup": "revoked",
+    "revoked_key_http_status": 403
+  },
+  "profile": {
+    "warmup_sequential": 5,
+    "main_sequential": 50,
+    "small_concurrency": {
+      "concurrency": 3,
+      "total": 30
+    },
+    "max_total_requests": 85,
+    "full_load_test": false
+  },
+  "requests": {
+    "executed": 85,
+    "status_distribution": {
+      "200": 85
+    },
+    "timeouts": 0,
+    "server_errors_5xx": 0
+  },
+  "latency_ms": {
+    "p50": 90.95348231494427,
+    "p90": 200.21222233772278,
+    "p95": 211.44478917121887,
+    "p99": 241.62619359791256,
+    "max": 296.0014399141073
+  },
+  "selection": {
+    "candidate_count_max": 300,
+    "candidate_count_values_recorded": 85,
+    "candidate_count_gt_300": false
+  },
+  "writes": {
+    "deliveries_before": 0,
+    "deliveries_after": 85,
+    "delivery_writes": 85,
+    "selection_decisions_before": 0,
+    "selection_decisions_after": 85,
+    "selection_decision_writes": 85,
+    "quota_used_before": 0,
+    "quota_used_after": 85,
+    "quota_increments": 85
+  },
+  "health": {
+    "before": {
+      "health": 200,
+      "ready": 200
+    },
+    "after": {
+      "health": 200,
+      "ready": 200
+    },
+    "final": {
+      "health": 200,
+      "ready": 200
+    }
+  },
+  "non_test_consumers": {
+    "before": 22,
+    "after_create": 22,
+    "after_cleanup": 22,
+    "unchanged": true
+  },
+  "cpu_samples": [
+    {
+      "label": "before",
+      "sampled_at_utc": "2026-06-12T05:48:32Z",
+      "api_cpu_percent": 2.24,
+      "postgres_cpu_percent": 8.36,
+      "api_mem_usage": "47.92MiB / 512MiB",
+      "postgres_mem_usage": "147.8MiB / 512MiB"
+    },
+    {
+      "label": "after_warmup",
+      "sampled_at_utc": "2026-06-12T05:48:34Z",
+      "api_cpu_percent": 0.18,
+      "postgres_cpu_percent": 0.03,
+      "api_mem_usage": "49.48MiB / 512MiB",
+      "postgres_mem_usage": "145.5MiB / 512MiB"
+    },
+    {
+      "label": "after_main",
+      "sampled_at_utc": "2026-06-12T05:48:40Z",
+      "api_cpu_percent": 0.17,
+      "postgres_cpu_percent": 0.02,
+      "api_mem_usage": "49.54MiB / 512MiB",
+      "postgres_mem_usage": "145.7MiB / 512MiB"
+    },
+    {
+      "label": "after_concurrency",
+      "sampled_at_utc": "2026-06-12T05:48:45Z",
+      "api_cpu_percent": 0.18,
+      "postgres_cpu_percent": 0.04,
+      "api_mem_usage": "51.25MiB / 512MiB",
+      "postgres_mem_usage": "145.8MiB / 512MiB"
+    }
+  ],
+  "db_activity_samples": [
+    {
+      "label": "before",
+      "sampled_at_utc": "2026-06-12T05:48:32Z",
+      "active_connections": 1,
+      "non_granted_locks": 0
+    },
+    {
+      "label": "after_warmup",
+      "sampled_at_utc": "2026-06-12T05:48:34Z",
+      "active_connections": 1,
+      "non_granted_locks": 0
+    },
+    {
+      "label": "after_main",
+      "sampled_at_utc": "2026-06-12T05:48:40Z",
+      "active_connections": 1,
+      "non_granted_locks": 0
+    },
+    {
+      "label": "after_concurrency",
+      "sampled_at_utc": "2026-06-12T05:48:45Z",
+      "active_connections": 1,
+      "non_granted_locks": 0
+    },
+    {
+      "label": "final",
+      "sampled_at_utc": "2026-06-12T05:52:00Z",
+      "active_connections": 1,
+      "non_granted_locks": 0
+    }
+  ],
+  "failure_flags": {
+    "has_5xx": false,
+    "has_timeout": false,
+    "has_non_200": false,
+    "candidate_count_gt_300": false,
+    "p95_gt_1500_ms": false,
+    "p99_gt_3000_ms": false,
+    "postgres_cpu_stable_near_100": false,
+    "postgres_cpu_max_percent": 8.36
+  },
+  "logs": {
+    "api_errors_after_smoke": 0,
+    "postgres_runtime_failures_after_0552_utc": 0,
+    "operator_sql_quoting_errors_recorded": [
+      "2026-06-12T05:39:05Z",
+      "2026-06-12T05:41:51Z",
+      "2026-06-12T05:49:33Z",
+      "2026-06-12T05:51:11Z"
+    ]
+  },
+  "rollback": {
+    "needed": false,
+    "performed": false
+  },
+  "acceptance_passed": true
+}

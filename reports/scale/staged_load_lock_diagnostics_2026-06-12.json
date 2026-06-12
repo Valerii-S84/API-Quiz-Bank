@@ -1,0 +1,269 @@
+{
+  "report_type": "staged_load_lock_diagnostics",
+  "generated_at": "2026-06-12T08:38:29Z",
+  "status": "diagnosed",
+  "scope": {
+    "route": "/v1/quiz-items/next",
+    "server_sha": "9cfdc8ebefa452bd41bb094726068379bca748ca",
+    "production_actions_not_performed": {
+      "deploy": true,
+      "rebuild": true,
+      "restart": true,
+      "migration": true,
+      "postgres_restart": true,
+      "full_staged_load": true,
+      "stage_5_soak": true
+    },
+    "real_consumers_touched": false,
+    "secret_values_printed": false,
+    "raw_quiz_content_printed": false
+  },
+  "existing_report_analysis": {
+    "source_reports": [
+      "reports/scale/protected_staged_load_2026-06-12.json",
+      "reports/scale/protected_staged_load_2026-06-12_summary.md",
+      "reports/scale/protected_staged_load_server_sanity_2026-06-12.json"
+    ],
+    "stage_4": {
+      "name": "stage_4_strong_safe_load",
+      "started_at": "2026-06-12T08:03:48Z",
+      "stopped_at": "2026-06-12T08:07:17Z",
+      "stop_condition": "stopped_blocked_locks",
+      "configured_consumers": 20,
+      "target_rps": 20.0,
+      "total_requests": 1943,
+      "status_distribution": {
+        "200": 1942,
+        "502": 1
+      },
+      "timeout_count": 0,
+      "latency_ms": {
+        "p50": 450.02,
+        "p90": 1071.771,
+        "p95": 1241.206,
+        "p99": 1842.176,
+        "max": 2457.567
+      },
+      "runtime_max": {
+        "candidate_count": 300,
+        "active_db_connections": 26,
+        "blocked_locks": 2,
+        "blocking_sessions": 2,
+        "postgres_cpu_percent": 35.22,
+        "postgres_mem_mib": 156.2,
+        "api_cpu_percent": 20.28,
+        "api_mem_mib": 89.45
+      },
+      "writes": {
+        "deliveries": 1942,
+        "selection_decisions": 1942,
+        "quota_increments": 1942
+      },
+      "exact_502_time": "not_captured_in_existing_reports",
+      "api_log_5xx_in_stage_4_window": 0,
+      "postgres_error_log_matches_in_stage_4_window": 0
+    },
+    "active_request_scope": {
+      "consumer_prefix": "staged-load-next-route-2026-06-12-",
+      "consumer_count": 20,
+      "payload_profile": {
+        "cefr_level": "A2",
+        "theme_filter": null
+      }
+    }
+  },
+  "production_sanity_before_probe": {
+    "checked_at": "2026-06-12T08:30:09Z",
+    "health_status": 200,
+    "ready_status": 200,
+    "api_container": {
+      "state": "running",
+      "health": "healthy",
+      "restart_count": 0,
+      "started_at": "2026-06-12T05:43:07.260326705Z"
+    },
+    "postgres_container": {
+      "state": "running",
+      "health": "healthy",
+      "restart_count": 0,
+      "started_at": "2026-05-11T15:22:22.710037082Z"
+    },
+    "db_connections": 1,
+    "blocked_locks": 0,
+    "blocking_sessions": 0,
+    "non_test_consumers": 23
+  },
+  "lock_sampler": {
+    "mode": "read_only_pg_stat_activity_pg_locks",
+    "interval_seconds": 0.2,
+    "fields_collected": [
+      "blocked_pid",
+      "blocker_pid",
+      "lock_type",
+      "blocked_lock_mode",
+      "blocker_lock_mode",
+      "relation_name",
+      "blocked_wait_event",
+      "blocker_wait_event",
+      "blocked_query_age_seconds",
+      "blocker_query_age_seconds",
+      "blocked_transaction_age_seconds",
+      "blocker_transaction_age_seconds",
+      "sanitized_blocked_query_type",
+      "sanitized_blocker_query_type"
+    ],
+    "sanitization": "SQL text was reduced to operation and relation/table path only; literal values, credentials, headers and quiz content were not emitted.",
+    "monitoring_caused_lock": false
+  },
+  "controlled_probe": {
+    "run_id": "lock_diag_20260612T083653Z_700f4f98",
+    "started_at": "2026-06-12T08:36:53Z",
+    "ended_at": "2026-06-12T08:36:59Z",
+    "route": "/v1/quiz-items/next",
+    "access_path": "production host loopback",
+    "consumer_count": 20,
+    "target_rps": 20.0,
+    "max_duration_seconds": 90.0,
+    "stop_reason": "blocked_locks_detected",
+    "requests_total": 31,
+    "status_counts": {
+      "200": 31
+    },
+    "timeouts_or_errors": 0,
+    "latency_ms": {
+      "p50": 682.009,
+      "p90": 1070.832,
+      "p95": 1157.611,
+      "p99": 1223.814,
+      "max": 1225.562
+    },
+    "max_db_connections": 11,
+    "max_blocked_locks": 1,
+    "max_blocking_sessions": 1,
+    "max_postgres_cpu_percent": 105.73,
+    "postgres_cpu_gt_80_seconds": "not_sustained_probe_stopped_on_lock",
+    "diagnostic_credentials": {
+      "created": 20,
+      "revoked": 20,
+      "active_after_cleanup": 0,
+      "revoked_key_check_status": 403,
+      "temp_raw_key_file_created": false
+    },
+    "lock_events": [
+      {
+        "sampled_at": "2026-06-12T08:36:55.048Z",
+        "blocked_pid": 2784254,
+        "blocker_pid": 2784258,
+        "lock_type": "transactionid",
+        "blocked_lock_mode": "ShareLock",
+        "blocker_lock_mode": "ExclusiveLock",
+        "relation_name": "",
+        "blocked_wait_event_type": "Lock",
+        "blocked_wait_event": "transactionid",
+        "blocker_wait_event_type": "",
+        "blocker_wait_event": "",
+        "blocked_query_age_seconds": 0.399,
+        "blocker_query_age_seconds": 0.021,
+        "blocked_transaction_age_seconds": 0.42,
+        "blocker_transaction_age_seconds": 0.284,
+        "blocked_query_type": "INSERT INTO quota_usage",
+        "blocker_query_type": "SELECT FROM deliveries"
+      }
+    ],
+    "slowest_request_window": [
+      {
+        "started_at": "2026-06-12T08:36:54.527Z",
+        "sequence": 15,
+        "consumer_index": 8,
+        "status": 200,
+        "latency_ms": 1225.562
+      },
+      {
+        "started_at": "2026-06-12T08:36:55.028Z",
+        "sequence": 25,
+        "consumer_index": 11,
+        "status": 200,
+        "latency_ms": 1219.734
+      },
+      {
+        "started_at": "2026-06-12T08:36:55.077Z",
+        "sequence": 26,
+        "consumer_index": 8,
+        "status": 200,
+        "latency_ms": 1095.487
+      }
+    ]
+  },
+  "root_cause": {
+    "blocked_table_or_path": "quota_usage",
+    "lock_type": "transactionid",
+    "blocked_query_type": "INSERT INTO quota_usage",
+    "blocking_query_type_at_sample_time": "SELECT FROM deliveries",
+    "classification": "quota row update lock held across the rest of the selection transaction",
+    "details": "The blocked request was waiting on a transactionid ShareLock while inserting/updating quota_usage. The blocker held the transaction ExclusiveLock from its own quota reservation and had already moved on to delivery-history reads. This proves the quota row update occurs before selection and delivery evidence work, and the row lock remains held until the transaction commits after delivery and selection_decision writes.",
+    "quota_update": true,
+    "delivery_insert": false,
+    "selection_decision_insert": false,
+    "entitlement_lookup_or_update": false,
+    "diagnostics_or_logging_write": false,
+    "transaction_too_long_after_quota_update": true,
+    "monitoring_probe_caused_lock": false
+  },
+  "transient_502_analysis": {
+    "stage_4_502_count": 1,
+    "exact_502_time": "not_captured_in_existing_reports",
+    "api_container_5xx_or_traceback_in_stage_4_window": false,
+    "postgres_error_in_stage_4_window": false,
+    "controlled_probe_reproduced_502": false,
+    "narrowed_to": "non_app_exception_transient_during_stage_4_lock_latency_window",
+    "most_likely_relation_to_lock_root_cause": "secondary symptom of quota-lock pressure and rising request latency; not proven as an application exception because API logs show no app-side 5xx for the Stage 4 window"
+  },
+  "production_sanity_after_probe": {
+    "checked_at": "2026-06-12T08:37:00Z",
+    "health_status": 200,
+    "ready_status": 200,
+    "api_container": {
+      "state": "running",
+      "health": "healthy",
+      "restart_count": 0,
+      "started_at": "2026-06-12T05:43:07.260326705Z"
+    },
+    "postgres_container": {
+      "state": "running",
+      "health": "healthy",
+      "restart_count": 0,
+      "started_at": "2026-05-11T15:22:22.710037082Z"
+    },
+    "db_connections": 1,
+    "blocked_locks": 0,
+    "blocking_sessions": 0,
+    "non_test_consumers": 23,
+    "active_probe_credentials": 0
+  },
+  "remediation_plan": [
+    {
+      "area": "quota row update",
+      "action": "Move quota reservation later or split it into a short atomic transaction so the quota_usage row lock is not held while candidate selection and delivery-history reads run."
+    },
+    {
+      "area": "transaction boundary",
+      "action": "Shorten the /next write transaction: perform read-only candidate selection outside the quota row lock, then reserve quota and insert delivery plus selection decision in the smallest possible write section."
+    },
+    {
+      "area": "atomic quota accounting",
+      "action": "Keep the ON CONFLICT quota increment atomic, but return immediately after the increment and avoid holding the same transaction through delivery metrics reads."
+    },
+    {
+      "area": "selection decisions",
+      "action": "If the shortened transaction is still lock-heavy, make selection_decisions insert cheap or asynchronous after delivery creation is durable."
+    },
+    {
+      "area": "diagnostics",
+      "action": "Do not add synchronous diagnostics writes to the /next path; keep lock sampling out-of-band and read-only."
+    },
+    {
+      "area": "verification",
+      "action": "After a scoped code fix and approved deploy window, rerun only the short lock probe first, then rerun Stage 4 and Stage 5 gates separately."
+    }
+  ]
+}

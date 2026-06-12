@@ -1,0 +1,101 @@
+{
+  "auth_gate": {
+    "health_no_key": {
+      "actual_status": 401,
+      "expected_status": 401,
+      "ok": true,
+      "timeout": false
+    },
+    "health_with_edge_key": {
+      "actual_status": 200,
+      "expected_status": 200,
+      "ok": true,
+      "timeout": false
+    },
+    "ready_with_edge_key": {
+      "actual_status": 200,
+      "expected_status": 200,
+      "ok": true,
+      "timeout": false
+    }
+  },
+  "auth_gate_result": {
+    "health_no_key": {
+      "actual_status": 401,
+      "expected_status": 401,
+      "ok": true,
+      "timeout": false
+    },
+    "health_with_edge_key": {
+      "actual_status": 200,
+      "expected_status": 200,
+      "ok": true,
+      "timeout": false
+    },
+    "ready_with_edge_key": {
+      "actual_status": 200,
+      "expected_status": 200,
+      "ok": true,
+      "timeout": false
+    }
+  },
+  "batch_size": 20,
+  "conclusion": "GO protected edge/health/ready load smoke",
+  "concurrency": 5,
+  "endpoint_list": [
+    {
+      "expected_status": 401,
+      "method": "GET",
+      "path": "/health"
+    },
+    {
+      "auth": "edge",
+      "expected_status": 200,
+      "method": "GET",
+      "path": "/health"
+    },
+    {
+      "auth": "edge",
+      "expected_status": 200,
+      "method": "GET",
+      "path": "/ready"
+    }
+  ],
+  "five_xx_count": 0,
+  "generated_at": "2026-06-11T17:37:14Z",
+  "git_commit_sha": "933ae94f5269976c8acb9501f24025ba80dd07da",
+  "health_result": {
+    "no_key_status": 401,
+    "with_edge_key_status": 200
+  },
+  "non_claims": {
+    "not_broad_scale_readiness": true,
+    "not_legal_privacy_approval": true,
+    "not_paid_launch_readiness": true,
+    "not_school_launch_readiness": true,
+    "not_support_sla_approval": true
+  },
+  "p50_ms": 303.333,
+  "p95_ms": 476.339,
+  "p99_ms": 491.837,
+  "ready_health_result": {
+    "health_no_key_status": 401,
+    "health_with_edge_key_status": 200,
+    "ready_with_edge_key_status": 200
+  },
+  "ready_result": 200,
+  "report_path": "-",
+  "report_type": "protected_public_route_load_smoke",
+  "route_profile": "health_ready_only",
+  "server_git_commit_sha": "904babbd998adcf43cfbc7945d5f24d499ec47c4",
+  "state_changing_route_used": false,
+  "state_route_tenant_isolated": false,
+  "status_counts": {
+    "200": 100
+  },
+  "stop_condition_status": "completed",
+  "target_host": "api.valerchik.de",
+  "timeout_count": 0,
+  "total_requests": 100,
+  "total_requests_executed": 100
+}

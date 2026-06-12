@@ -11,7 +11,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from quizbank_mvp import database_connection, database_runtime  # noqa: E402
+from quizbank_mvp import database_connection, database_runtime, selection as selection_module  # noqa: E402
 from quizbank_mvp.database_connection import (  # noqa: E402
     PostgreSQLConnection,
     PostgreSQLUnsupportedSQLError,
@@ -178,7 +178,40 @@ class DatabaseBackendContractTests(unittest.TestCase):
         self.assertNotIn("?", executed_sql)
         self.assertNotIn(":selection_request_id", executed_sql)
         self.assertIn("%(selection_request_id)s", executed_sql)
+        self.assertIn("LEFT JOIN deliveries d_repeat", executed_sql)
+        self.assertIn("LIMIT %s", executed_sql)
+        self.assertIn("GROUP BY quiz_item_id", executed_sql)
+        self.assertNotIn("d_all", executed_sql)
+        self.assertNotIn("d_last", executed_sql)
+        self.assertNotIn("d_cell", executed_sql)
         self.assertPostgreSQLBoundary(executed_sql)
+
+    def test_postgresql_next_item_keeps_delivery_reads_out_of_quota_write_scope(self) -> None:
+        read_connection = FakePostgreSQLRuntimeConnection()
+        write_connection = FakePostgreSQLRuntimeConnection()
+        connections = iter(
+            [
+                PostgreSQLConnection(read_connection),
+                PostgreSQLConnection(write_connection),
+            ]
+        )
+        request = SelectionRequest(
+            "consumer_pg",
+            filters=SelectionFilters(cefr_level="A2", theme_ids=("T10",)),
+            selection_strategy="first_eligible",
+        )
+
+        with mock.patch.object(selection_module, "connect", side_effect=lambda _db_path: next(connections)):
+            result = selection_module.select_next_item(None, request)
+
+        read_sql = read_connection.executed_sql()
+        write_sql = write_connection.executed_sql()
+        self.assertEqual(result["delivery"]["consumer_id"], "consumer_pg")
+        self.assertIn("FROM deliveries", read_sql)
+        self.assertNotIn("INSERT INTO quota_usage", read_sql)
+        self.assertIn("INSERT INTO quota_usage", write_sql)
+        self.assertNotIn("FROM deliveries", write_sql)
+        self.assertPostgreSQLBoundary(read_sql + "\n" + write_sql)
 
     def test_postgresql_telegram_result_runtime_path_uses_supported_sql(self) -> None:
         raw_connection = FakePostgreSQLRuntimeConnection()
@@ -332,14 +365,18 @@ def postgresql_entitlement_row() -> dict[str, object]:
 def postgresql_quiz_item_row() -> dict[str, object]:
     return {
         "item_id": "item_pg",
+        "language": "de",
         "status": "approved",
         "source_id": "source_pg",
         "resolved_source_type": "fixture",
         "resolved_provenance_note": "contract path",
         "sublevel": "A2",
         "theme_id": "T10",
-        "objective_id": "O1",
-        "pattern_id": "P1",
+        "objective_id": "O02",
+        "pattern_id": "P01",
+        "prompt": "",
+        "stem_text": "Contract projection stem.",
+        "options_json": '["eins", "zwei"]',
         "answer_key": "0",
         "explanation": "Because.",
         "delivery_count": 0,

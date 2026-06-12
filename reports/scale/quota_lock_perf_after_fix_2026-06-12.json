@@ -1,0 +1,91 @@
+{
+  "baseline_reference": {
+    "previous_protected_postfix_smoke_p95_ms": 211.445,
+    "source": "reports/scale/next_route_postfix_smoke_2026-06-12.json"
+  },
+  "decision": "GO local quota-lock remediation proof",
+  "environment": "local_sqlite_testclient_and_instrumented_concurrency",
+  "explicit_non_claims": {
+    "not_broad_scale_approval": true,
+    "not_paid_pilot_readiness": true,
+    "not_postgresql_pg_locks_sampler": true,
+    "not_production_deploy": true,
+    "not_production_load_test": true,
+    "not_production_restart_or_rebuild": true
+  },
+  "generated_at": "2026-06-12T09:09:30Z",
+  "lock_boundary_probe": {
+    "deliveries": 2,
+    "first_duration_ms": 137.355,
+    "first_request_reached_delivery_history_phase": true,
+    "first_result": "ok",
+    "lock_observation_mode": "local_instrumented_boundary_probe",
+    "postgresql_blocked_locks_observed": null,
+    "quota_rows_while_first_in_delivery_history": 0,
+    "quota_used_count": 2,
+    "second_duration_ms": 62.01,
+    "second_finished_before_first_released": true,
+    "second_result": "ok"
+  },
+  "postgresql_local_probe": {
+    "docker_available": false,
+    "psql_available": false,
+    "psycopg_available": true,
+    "reason_not_run": "Local Docker and psql were unavailable in this WSL environment; production and staging were not touched."
+  },
+  "production_load_test_performed": false,
+  "production_redeploy_performed": false,
+  "production_touched": false,
+  "quota_correctness": {
+    "concurrent_no_over_quota_test": "passed",
+    "delivery_not_written_if_quota_denied": "passed",
+    "exhausted_quota_precedes_no_candidate_without_increment": "passed",
+    "quota_not_incremented_if_delivery_insert_fails": "passed",
+    "quota_still_enforced": "passed"
+  },
+  "report_type": "quota_lock_perf_after_fix",
+  "route_probe": {
+    "candidate_count_limit": 300,
+    "candidate_count_max": 300,
+    "deliveries": 60,
+    "exception_count": 0,
+    "five_xx_count": 0,
+    "max_ms": 130.873,
+    "p50_ms": 97.873,
+    "p95_ms": 112.823,
+    "p95_not_worse_than_previous_smoke": true,
+    "p99_ms": 130.873,
+    "quota_used_count": 60,
+    "requests": 60,
+    "selection_decisions": 60,
+    "status_counts": {
+      "200": 60
+    },
+    "timeout_count": 0
+  },
+  "secret_or_quiz_content_printed": false,
+  "transaction_boundary": {
+    "delivery_history_reads_after_quota_reserve": false,
+    "quota_reservation_phase": "short_write_transaction",
+    "read_phase_before_quota": [
+      "entitlement",
+      "bounded_candidates",
+      "delivery_history_metrics",
+      "scoring",
+      "eligibility"
+    ],
+    "write_phase": [
+      "quota_usage_atomic_reserve",
+      "delivery_insert",
+      "selection_decision_insert"
+    ]
+  },
+  "verification_commands_recorded": [
+    "python3 -m unittest tests.test_next_route_quota_lock -v",
+    "python3 -m unittest tests.test_database_backend_contract tests.test_next_route_quota_lock",
+    "python3 -m unittest tests.test_mvp_selection_decisions tests.test_mvp_selection_policy tests.test_next_route_selection_performance tests.test_mvp_runtime",
+    "python3 -m unittest discover -s tests -p \"test_*.py\"",
+    "python3 tools/no_secrets_scan.py",
+    "git diff --check"
+  ]
+}

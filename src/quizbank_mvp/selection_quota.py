@@ -37,6 +37,22 @@ def reserve_quota(
     return {"quota_usage_id": reservation["quota_usage_id"]}
 
 
+def raise_if_quota_exhausted(
+    connection,
+    consumer: dict[str, Any],
+    request: "SelectionRequest",
+) -> None:
+    quota_limit = int(consumer["daily_quota_limit"])
+    if quota_limit <= 0:
+        raise quota_exceeded_problem(0, quota_limit)
+    usage_date = today_usage_date()
+    feature = quota_feature(request)
+    row = load_quota_usage(connection, consumer["consumer_id"], usage_date, feature)
+    used_count = 0 if row is None else int(row["used_count"])
+    if used_count >= quota_limit:
+        raise quota_exceeded_problem(used_count, quota_limit)
+
+
 def quota_feature(request: "SelectionRequest") -> str:
     if not request.quota_scope_key:
         return "quiz_delivery"

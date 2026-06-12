@@ -1,0 +1,180 @@
+{
+  "generated_at": "2026-06-12T08:07:20Z",
+  "local_preflight": {
+    "branch": "codex/release-governance-evidence",
+    "checks": {
+      "diff_check": {
+        "command": "git diff --check",
+        "result": "passed"
+      },
+      "no_secrets_scan": {
+        "command": "python3 tools/no_secrets_scan.py",
+        "result": "passed"
+      },
+      "unit_tests": {
+        "command": "python3 -m unittest discover -s tests -p \"test_*.py\"",
+        "result": "passed",
+        "tests": 372
+      }
+    },
+    "git_status_short_at_preflight": [],
+    "hostname": "DESKTOP-LLPPQ70",
+    "path": "/mnt/c/Users/User/Desktop/API Quiz Bank",
+    "sha": "de998f2dc158e42b03ac31fa48225553ad7cea21",
+    "user": "serputko"
+  },
+  "migration_011_applied": true,
+  "operator_notes": [
+    "One Postgres error-pattern match during Stage 2 came from an operator read-only count probe with a quoting mistake; it did not change data and was not an application runtime error.",
+    "Stage 4 stop condition was triggered by blocked DB locks; production health and DB locks normalized after cleanup."
+  ],
+  "production_actions_not_performed": {
+    "deploy": true,
+    "migration": true,
+    "postgres_restart": true,
+    "rebuild": true,
+    "restart": true,
+    "runtime_logic_change": true
+  },
+  "report_type": "protected_staged_load_server_sanity",
+  "server_final": {
+    "active_db_connections": 1,
+    "blocked_lock_count": 0,
+    "blocking_session_count": 0,
+    "health": {
+      "containers": [
+        {
+          "health": "healthy",
+          "name": "api-quiz-bank-pilot",
+          "restart_count": 0,
+          "started_at": "2026-06-12T05:43:07.260326705Z",
+          "state": "running"
+        },
+        {
+          "health": "healthy",
+          "name": "api-quiz-bank-postgres",
+          "restart_count": 0,
+          "started_at": "2026-05-11T15:22:22.710037082Z",
+          "state": "running"
+        }
+      ],
+      "health_authorized_status": 200,
+      "health_no_edge_key_status": 401,
+      "ready_authorized_status": 200
+    },
+    "logs_error_scan_since_start": [
+      {
+        "container": "api-quiz-bank-pilot",
+        "matched_lines_total": 0,
+        "pattern_counts": {
+          "error": 0,
+          "exception": 0,
+          "fatal": 0,
+          "panic": 0,
+          "traceback": 0
+        },
+        "since": "2026-06-12T07:38:03Z"
+      },
+      {
+        "container": "api-quiz-bank-postgres",
+        "matched_lines_total": 1,
+        "pattern_counts": {
+          "error": 1,
+          "exception": 0,
+          "fatal": 0,
+          "panic": 0,
+          "traceback": 0
+        },
+        "since": "2026-06-12T07:38:03Z"
+      }
+    ],
+    "non_test_consumer_state_hash": "f7e73a823ae99fdd2808e8978c5da6bbb71c72560412def9e92269ae4555282d",
+    "non_test_consumers": 23
+  },
+  "server_host": {
+    "branch": "release/next-route-hotfix-2026-06-11",
+    "containers": [
+      {
+        "health": "healthy",
+        "name": "api-quiz-bank-pilot",
+        "restart_count": 0,
+        "started_at": "2026-06-12T05:43:07.260326705Z",
+        "state": "running"
+      },
+      {
+        "health": "healthy",
+        "name": "api-quiz-bank-postgres",
+        "restart_count": 0,
+        "started_at": "2026-05-11T15:22:22.710037082Z",
+        "state": "running"
+      }
+    ],
+    "df_h_root": [
+      "Filesystem      Size  Used Avail Use% Mounted on",
+      "/dev/sda1       150G   22G  123G  16% /"
+    ],
+    "docker_stats": {
+      "api-quiz-bank-pilot": {
+        "cpu_percent": 0.2,
+        "mem_mib": 84.23,
+        "mem_percent": 16.45,
+        "mem_usage": "84.23MiB / 512MiB",
+        "pids": "40"
+      },
+      "api-quiz-bank-postgres": {
+        "cpu_percent": 1.15,
+        "mem_mib": 155.9,
+        "mem_percent": 30.45,
+        "mem_usage": "155.9MiB / 512MiB",
+        "pids": "6"
+      }
+    },
+    "free_m": [
+      "total        used        free      shared  buff/cache   available",
+      "Mem:            7745        3950         436         282        4019        3794",
+      "Swap:              0           0           0"
+    ],
+    "git_status_short": [],
+    "hostname": "ubuntu-8gb-nbg1-1",
+    "path": "/opt/api-quiz-bank",
+    "sha": "9cfdc8ebefa452bd41bb094726068379bca748ca",
+    "uptime": "08:07:18 up 109 days, 13:33,  1 user,  load average: 11.34, 5.12, 2.28",
+    "user": "root"
+  },
+  "server_preflight": {
+    "active_db_connections": 1,
+    "blocked_lock_count": 0,
+    "blocking_session_count": 0,
+    "branch": "release/next-route-hotfix-2026-06-11",
+    "deliverable_a2_count": 4218,
+    "deliverable_a2_t10_count": 536,
+    "git_status_short": [],
+    "health": {
+      "containers": [
+        {
+          "health": "healthy",
+          "name": "api-quiz-bank-pilot",
+          "restart_count": 0,
+          "started_at": "2026-06-12T05:43:07.260326705Z",
+          "state": "running"
+        },
+        {
+          "health": "healthy",
+          "name": "api-quiz-bank-postgres",
+          "restart_count": 0,
+          "started_at": "2026-05-11T15:22:22.710037082Z",
+          "state": "running"
+        }
+      ],
+      "health_authorized_status": 200,
+      "health_no_edge_key_status": 401,
+      "ready_authorized_status": 200
+    },
+    "hostname": "ubuntu-8gb-nbg1-1",
+    "non_test_consumers": 23,
+    "path": "/opt/api-quiz-bank",
+    "user": "root"
+  },
+  "target_indexes_missing": [],
+  "target_indexes_present_count": 7
+}
