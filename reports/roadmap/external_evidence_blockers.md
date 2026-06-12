@@ -123,6 +123,38 @@ lock behavior. This does not claim paid pilot readiness, broad launch
 readiness, school launch readiness, support/SLA readiness or additional
 legal/privacy approval.
 
+## 2026-06-12 Read Path CPU Production Deploy Boundary
+
+Production was updated from GitHub `main` at
+`a46d33f41fabf685dcfbc2cda98f5967f906cbc2` with an API-only rebuild/restart.
+Postgres was not restarted and no migrations were applied because there were no
+new migration files relative to the previous production checkout
+`3c866492ec2f1a42e9dcb512c980b92ebd1fd7e3`.
+
+Evidence is recorded in:
+
+- `reports/scale/read_path_cpu_production_deploy_2026-06-12.md`
+- `reports/scale/read_path_postfix_smoke_2026-06-12.json`
+- `reports/scale/read_path_cpu_lock_probe_2026-06-12.json`
+- `reports/scale/protected_staged_load_after_read_path_fix_2026-06-12.json`
+- `reports/scale/protected_staged_load_after_read_path_fix_2026-06-12_summary.md`
+
+The protected smoke passed with 85/85 `200`, zero 5xx/timeouts, p95
+`268.541 ms`, candidate max `150` and blocked locks max `0`. The CPU/lock probe
+returned 1200/1200 `200`, zero 5xx/timeouts and blocked locks max `0`, but
+failed the gate with p95 `1696.847 ms` and sampled Postgres CPU above `90%` for
+`64 s` with max `103.01%`.
+
+Stage 4 and Stage 5 were therefore not run. Cleanup revoked all diagnostic
+credentials, revoked-key checks returned `403`, active diagnostic credentials
+ended at `0`, non-test consumers remained `42`, final health/ready was
+`200/200`, final DB connections returned to `1`, and final blocked locks were
+`0`.
+
+The scale/load blocker remains open. This does not claim paid pilot readiness,
+broad launch readiness, school launch readiness, support/SLA readiness or
+additional legal/privacy approval.
+
 ## Guardrail
 
 None of these blockers may be marked `Done` from local docs, SQLite evidence,
