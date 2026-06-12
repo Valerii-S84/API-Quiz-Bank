@@ -47,6 +47,16 @@ operation evidence are listed.
 - Root cause: quota row update lock scope is too broad; quota reservation happens before delivery-history reads and the transaction remains open through the rest of selection and write evidence.
 - Paid pilot readiness: not claimed.
 
+## 2026-06-12 Quota Lock Remediation
+
+- Status: `Done local remediation proof`; production deploy and production load were not run.
+- Evidence: `reports/scale/quota_lock_remediation_2026-06-12.md`, `reports/scale/quota_transaction_before_after_2026-06-12.md`, `reports/scale/quota_lock_perf_after_fix_2026-06-12.json`, `tests/test_next_route_quota_lock.py`, `tests/test_database_backend_contract.py`.
+- Code boundary: `/v1/quiz-items/next` now completes entitlement/scope reads, bounded candidate selection, delivery-history metrics, scoring and eligibility before quota reservation; the short write transaction contains atomic quota reserve, delivery insert and required selection-decision insert.
+- Local proof: 60/60 local route probe responses were `200`, 0 exceptions/5xx/timeouts, p95 `112.823 ms`, candidate count max `300`, quota used count `60`; local instrumented boundary probe showed 0 quota rows while the first request was held in delivery-history metrics and the peer request completed before the first was released.
+- PostgreSQL boundary: fake adapter regression confirms delivery-history reads are outside the quota write connection scope; local Docker and `psql` were unavailable, so no local `pg_locks` sampler was produced.
+- Verification: `python3 -m unittest discover -s tests -p "test_*.py"` -> 380 tests OK; `python3 tools/no_secrets_scan.py` -> no committed secrets detected; `git diff --check` -> pass.
+- Remaining external gate: approved production deploy, protected smoke, and rerun of Stage 4/Stage 5 remain separate tasks.
+
 ## Baseline Evidence
 
 Verified at start of this execution pass:
