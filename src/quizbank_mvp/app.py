@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import FastAPI, Header, Request
+from fastapi import FastAPI, Header, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -41,6 +41,7 @@ PatternId = Literal[
     "P01", "P02", "P03", "P04", "P05", "P06",
     "P07", "P08", "P09", "P10", "P11", "P12",
 ]
+TopicLanguageCode = Literal["de"]
 
 
 class NextQuizRequest(BaseModel):
@@ -112,8 +113,8 @@ def register_operations_routes(app: FastAPI, database_path: Path) -> None:
         return {"data": level_catalog()}
 
     @app.get("/v1/topics", tags=["taxonomy"])
-    def topics() -> dict[str, object]:
-        return {"data": topic_catalog()}
+    def topics(language_code: TopicLanguageCode = Query(default="de")) -> dict[str, object]:
+        return {"data": topic_catalog(language_code)}
 
 
 def readiness_checks(database_path: Path | None) -> list[dict[str, str]]:

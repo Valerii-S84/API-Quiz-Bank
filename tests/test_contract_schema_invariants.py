@@ -35,6 +35,7 @@ REQUIRED_CONTRACT_PATHS = [
     "data/taxonomy/objectives.csv",
     "data/taxonomy/patterns.csv",
     "schemas/canonical_quiz_item.schema.json",
+    "schemas/runtime_canonical_quiz_item.schema.json",
     "api/openapi.yaml",
     "database/migrations/001_create_mvp_runtime.sql",
     "database/migrations/002_add_api_credentials.sql",
@@ -116,6 +117,8 @@ class ContractSchemaInvariantTests(unittest.TestCase):
     def test_json_schema_matches_canonical_header_contract(self) -> None:
         schema = json.loads((ROOT / "schemas/canonical_quiz_item.schema.json").read_text())
         self.assertEqual(schema["$schema"], "https://json-schema.org/draft/2020-12/schema")
+        self.assertEqual(schema["title"], "API Quiz Bank Raw Canonical CSV Row")
+        self.assertIn("Raw source CSV row contract", schema["description"])
         self.assertFalse(schema["additionalProperties"])
         self.assertEqual(schema["required"], EXPECTED_HEADER)
         self.assertEqual(list(schema["properties"].keys()), EXPECTED_HEADER)
@@ -125,6 +128,26 @@ class ContractSchemaInvariantTests(unittest.TestCase):
         )
         self.assertEqual(schema["properties"]["sublevel"]["enum"], list(CANONICAL_LEVELS))
         self.assertEqual(schema["properties"]["status"]["enum"], list(ITEM_STATUSES))
+
+    def test_runtime_json_schema_carries_explicit_content_scope(self) -> None:
+        schema = json.loads((ROOT / "schemas/runtime_canonical_quiz_item.schema.json").read_text())
+
+        self.assertEqual(schema["$schema"], "https://json-schema.org/draft/2020-12/schema")
+        self.assertEqual(schema["title"], "API Quiz Bank Runtime Canonical Quiz Item")
+        self.assertFalse(schema["additionalProperties"])
+        self.assertIn("source_id", schema["required"])
+        self.assertIn("options_json", schema["required"])
+        self.assertIn("language_code", schema["required"])
+        self.assertIn("content_bank_id", schema["required"])
+        self.assertIn("bank_version_id", schema["required"])
+        self.assertNotIn("options", schema["properties"])
+        self.assertNotIn("source_type", schema["properties"])
+        self.assertEqual(schema["properties"]["language_code"]["default"], "de")
+        self.assertEqual(schema["properties"]["content_bank_id"]["default"], "german-core")
+        self.assertEqual(
+            schema["properties"]["bank_version_id"]["default"],
+            "german-core:2026-06-12-baseline",
+        )
 
     def test_theme_taxonomy_uses_canonical_titles(self) -> None:
         theme_rows = read_csv_dicts("data/taxonomy/themes.csv")
@@ -141,6 +164,9 @@ class ContractSchemaInvariantTests(unittest.TestCase):
         )[0]
         self.assertIn("/v1/levels:", openapi)
         self.assertIn("/v1/topics:", openapi)
+        self.assertIn("operationId: listTopics", openapi)
+        self.assertIn("theme_code:", openapi)
+        self.assertIn("language_code:", openapi)
         self.assertIn("/v1/quiz-items/next:", openapi)
         self.assertIn("NextQuizRequest:", openapi)
         self.assertIn("QuizItemPublicProjection:", openapi)

@@ -1,13 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://api-quiz-bank.local/schemas/canonical_quiz_item.schema.json",
-  "title": "API Quiz Bank Raw Canonical CSV Row",
-  "description": "Raw source CSV row contract. Runtime canonical item rows are described by runtime_canonical_quiz_item.schema.json.",
+  "$id": "https://api-quiz-bank.local/schemas/runtime_canonical_quiz_item.schema.json",
+  "title": "API Quiz Bank Runtime Canonical Quiz Item",
+  "description": "Persisted runtime quiz_items row contract with explicit content-bank scope.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "item_id",
+    "source_id",
     "language",
+    "language_code",
+    "content_bank_id",
+    "bank_version_id",
     "level_band",
     "sublevel",
     "theme_id",
@@ -18,15 +22,13 @@
     "register",
     "prompt",
     "stem_text",
-    "options",
+    "options_json",
     "answer_key",
     "explanation",
     "tags",
     "coverage_cell_id",
     "status",
     "version",
-    "source_type",
-    "provenance_note",
     "created_at",
     "updated_at",
     "reviewed_at",
@@ -35,6 +37,10 @@
   ],
   "properties": {
     "item_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_id": {
       "type": "string",
       "minLength": 1
     },
@@ -47,6 +53,27 @@
         "es",
         "nl"
       ]
+    },
+    "language_code": {
+      "type": "string",
+      "enum": [
+        "de",
+        "en",
+        "fr",
+        "es",
+        "nl"
+      ],
+      "default": "de"
+    },
+    "content_bank_id": {
+      "type": "string",
+      "minLength": 1,
+      "default": "german-core"
+    },
+    "bank_version_id": {
+      "type": "string",
+      "minLength": 1,
+      "default": "german-core:2026-06-12-baseline"
     },
     "level_band": {
       "type": "string",
@@ -92,7 +119,7 @@
       "type": "string",
       "minLength": 1
     },
-    "options": {
+    "options_json": {
       "type": "string",
       "minLength": 1
     },
@@ -124,12 +151,6 @@
       ]
     },
     "version": {
-      "type": "string"
-    },
-    "source_type": {
-      "type": "string"
-    },
-    "provenance_note": {
       "type": "string"
     },
     "created_at": {

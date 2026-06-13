@@ -56,6 +56,8 @@ SIMPLE_CONTENT_SCOPE_TABLES = (
     "deliveries",
     "selection_decisions",
     "visual_assets",
+    "visual_prompt_audit",
+    "visual_usage_events",
 )
 SCOPED_COLUMN_SQL = {
     "language_code": f"TEXT NOT NULL DEFAULT '{DEFAULT_LANGUAGE_CODE}' CHECK (language_code <> '')",

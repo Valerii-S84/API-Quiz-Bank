@@ -35,10 +35,7 @@ def list_languages(db_path: Path | None) -> dict[str, Any]:
     return {"data": [language_projection(row_to_dict(row)) for row in rows]}
 
 
-def list_content_banks(
-    db_path: Path | None,
-    language_code: str = DEFAULT_LANGUAGE_CODE,
-) -> dict[str, Any]:
+def list_content_banks(db_path: Path | None, language_code: str = DEFAULT_LANGUAGE_CODE) -> dict[str, Any]:
     with connect(db_path) as connection:
         rows = connection.execute(
             """
@@ -88,6 +85,85 @@ def list_content_bank_versions(db_path: Path | None, content_bank_id: str) -> di
             (content_bank_id,),
         ).fetchall()
     return {"data": [content_bank_version_projection(row_to_dict(row)) for row in rows]}
+
+
+def create_content_bank(
+    db_path: Path | None,
+    payload: dict[str, Any],
+    actor: str,
+) -> dict[str, Any]:
+    content_bank_id = str(payload["content_bank_id"]).strip()
+    slug = str(payload.get("slug") or content_bank_id).strip()
+    language_code = str(payload["language_code"]).strip()
+    name = str(payload["name"]).strip()
+    status = str(payload.get("status") or "draft").strip()
+    reason = str(payload["reason"]).strip()
+    now = utc_now()
+    with connect(db_path) as connection:
+        ensure_language_exists(connection, language_code)
+        try:
+            connection.execute(
+                """
+                INSERT INTO content_banks (
+                    id, slug, language_code, name, status, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (content_bank_id, slug, language_code, name, status, now),
+            )
+        except sqlite3.IntegrityError as error:
+            raise ContentBankVersionError(f"content_bank_create_conflict:{content_bank_id}") from error
+        write_entity_audit_log(
+            connection,
+            "content_bank_create",
+            "content_bank",
+            content_bank_id,
+            "",
+            status,
+            actor,
+            reason,
+            now,
+        )
+        row = load_content_bank_projection(connection, content_bank_id)
+    return content_bank_projection(row_to_dict(row))
+
+
+def create_content_bank_version(
+    db_path: Path | None,
+    content_bank_id: str,
+    payload: dict[str, Any],
+    actor: str,
+) -> dict[str, Any]:
+    version = str(payload["version"]).strip()
+    bank_version_id = str(payload.get("bank_version_id") or f"{content_bank_id}:{version}").strip()
+    status = str(payload.get("status") or "draft").strip()
+    reason = str(payload["reason"]).strip()
+    now = utc_now()
+    with connect(db_path) as connection:
+        ensure_content_bank_exists(connection, content_bank_id)
+        try:
+            connection.execute(
+                """
+                INSERT INTO content_bank_versions (
+                    id, content_bank_id, version, status, activated_at, created_at
+                ) VALUES (?, ?, ?, ?, NULL, ?)
+                """,
+                (bank_version_id, content_bank_id, version, status, now),
+            )
+        except sqlite3.IntegrityError as error:
+            raise ContentBankVersionError(f"content_bank_version_create_conflict:{bank_version_id}") from error
+        write_entity_audit_log(
+            connection,
+            "content_bank_version_create",
+            "content_bank_version",
+            bank_version_id,
+            "",
+            status,
+            actor,
+            reason,
+            now,
+        )
+        row = load_bank_version_projection(connection, bank_version_id)
+    return content_bank_version_projection(row_to_dict(row))
 
 
 def list_import_batches(
@@ -232,11 +308,63 @@ def ensure_content_bank_exists(connection: Any, content_bank_id: str) -> None:
         raise ContentBankVersionError(f"unknown_content_bank:{content_bank_id}")
 
 
+def ensure_language_exists(connection: Any, language_code: str) -> None:
+    row = connection.execute(
+        "SELECT code FROM languages WHERE code = ?",
+        (language_code,),
+    ).fetchone()
+    if row is None:
+        raise ContentBankVersionError(f"unknown_language:{language_code}")
+
+
+def load_content_bank_projection(connection: Any, content_bank_id: str) -> Any:
+    row = connection.execute(
+        """
+        SELECT cb.id, cb.slug, cb.language_code, lang.name AS language_name,
+               cb.name, cb.status, cb.created_at,
+               active.id AS active_bank_version_id,
+               active.version AS active_bank_version,
+               COUNT(cbv.id) AS version_count
+        FROM content_banks cb
+        JOIN languages lang ON lang.code = cb.language_code
+        LEFT JOIN content_bank_versions active
+          ON active.content_bank_id = cb.id
+         AND active.status = 'active'
+        LEFT JOIN content_bank_versions cbv
+          ON cbv.content_bank_id = cb.id
+        WHERE cb.id = ?
+        GROUP BY cb.id, cb.slug, cb.language_code, lang.name, cb.name,
+                 cb.status, cb.created_at, active.id, active.version
+        """,
+        (content_bank_id,),
+    ).fetchone()
+    if row is None:
+        raise ContentBankVersionError(f"unknown_content_bank:{content_bank_id}")
+    return row
+
+
 def load_bank_version(connection: Any, bank_version_id: str) -> Any:
     row = connection.execute(
         """
         SELECT cbv.id, cbv.content_bank_id, cbv.version, cbv.status,
                cbv.activated_at, cbv.created_at, cb.language_code
+        FROM content_bank_versions cbv
+        JOIN content_banks cb ON cb.id = cbv.content_bank_id
+        WHERE cbv.id = ?
+        """,
+        (bank_version_id,),
+    ).fetchone()
+    if row is None:
+        raise ContentBankVersionError(f"unknown_bank_version:{bank_version_id}")
+    return row
+
+
+def load_bank_version_projection(connection: Any, bank_version_id: str) -> Any:
+    row = connection.execute(
+        """
+        SELECT cbv.id, cbv.content_bank_id, cb.slug AS content_bank_slug,
+               cb.language_code, cbv.version, cbv.status, cbv.activated_at,
+               cbv.created_at
         FROM content_bank_versions cbv
         JOIN content_banks cb ON cb.id = cbv.content_bank_id
         WHERE cbv.id = ?
@@ -330,6 +458,38 @@ def write_audit_log(
     )
 
 
+def write_entity_audit_log(
+    connection: Any,
+    action: str,
+    entity_type: str,
+    entity_id: str,
+    from_status: str,
+    to_status: str,
+    actor: str,
+    reason: str,
+    created_at: str,
+) -> None:
+    connection.execute(
+        """
+        INSERT INTO audit_log (
+            audit_id, actor, action, entity_type, entity_id, from_status,
+            to_status, reason, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            new_id("audit"),
+            actor,
+            action,
+            entity_type,
+            entity_id,
+            from_status,
+            to_status,
+            reason,
+            created_at,
+        ),
+    )
+
+
 def import_batch_filter_clauses(filters: dict[str, str | None]) -> tuple[list[str], list[str]]:
     clauses: list[str] = []
     parameters: list[str] = []
@@ -390,10 +550,8 @@ def language_projection(row: dict[str, Any]) -> dict[str, Any]:
 def content_bank_projection(row: dict[str, Any]) -> dict[str, Any]:
     return {
         "content_bank_id": str(row["id"]),
-        "slug": str(row["slug"]),
-        "language_code": str(row["language_code"]),
-        "language_name": str(row["language_name"]),
-        "name": str(row["name"]),
+        "slug": str(row["slug"]), "language_code": str(row["language_code"]),
+        "language_name": str(row["language_name"]), "name": str(row["name"]),
         "status": str(row["status"]),
         "active_bank_version_id": optional_str(row["active_bank_version_id"]),
         "active_bank_version": optional_str(row["active_bank_version"]),
@@ -405,10 +563,8 @@ def content_bank_projection(row: dict[str, Any]) -> dict[str, Any]:
 def content_bank_version_projection(row: dict[str, Any]) -> dict[str, Any]:
     return {
         "bank_version_id": str(row["id"]),
-        "content_bank_id": str(row["content_bank_id"]),
-        "content_bank_slug": str(row["content_bank_slug"]),
-        "language_code": str(row["language_code"]),
-        "version": str(row["version"]),
+        "content_bank_id": str(row["content_bank_id"]), "content_bank_slug": str(row["content_bank_slug"]),
+        "language_code": str(row["language_code"]), "version": str(row["version"]),
         "status": str(row["status"]),
         "activated_at": optional_str(row["activated_at"]),
         "created_at": str(row["created_at"]),

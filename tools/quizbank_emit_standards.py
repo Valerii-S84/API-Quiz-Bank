@@ -9,6 +9,9 @@ from pathlib import Path
 
 from quizbank_common import (
     CANONICAL_LEVELS,
+    DEFAULT_CONTENT_BANK_ID,
+    DEFAULT_LANGUAGE_CODE,
+    DEFAULT_RUNTIME_BANK_VERSION_ID,
     EXPECTED_HEADER,
     ITEM_STATUSES,
     SUPPORTED_LANGUAGE_CODES,
@@ -16,6 +19,38 @@ from quizbank_common import (
     counter_for,
     load_inventory,
 )
+
+
+RUNTIME_CANONICAL_FIELDS = [
+    "item_id",
+    "source_id",
+    "language",
+    "language_code",
+    "content_bank_id",
+    "bank_version_id",
+    "level_band",
+    "sublevel",
+    "theme_id",
+    "subtheme_id",
+    "objective_id",
+    "pattern_id",
+    "difficulty_band",
+    "register",
+    "prompt",
+    "stem_text",
+    "options_json",
+    "answer_key",
+    "explanation",
+    "tags",
+    "coverage_cell_id",
+    "status",
+    "version",
+    "created_at",
+    "updated_at",
+    "reviewed_at",
+    "level_locked",
+    "locked_at",
+]
 
 
 def write_text(path: Path, content: str) -> None:
@@ -43,7 +78,11 @@ def canonical_schema() -> dict[str, object]:
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "https://api-quiz-bank.local/schemas/canonical_quiz_item.schema.json",
-        "title": "API Quiz Bank Canonical Quiz Item",
+        "title": "API Quiz Bank Raw Canonical CSV Row",
+        "description": (
+            "Raw source CSV row contract. Runtime canonical item rows are described by "
+            "runtime_canonical_quiz_item.schema.json."
+        ),
         "type": "object",
         "additionalProperties": False,
         "required": EXPECTED_HEADER,
@@ -75,6 +114,60 @@ def canonical_schema() -> dict[str, object]:
             "level_locked": {"type": "string"},
             "locked_at": {"type": "string"},
         },
+    }
+
+
+def runtime_canonical_schema() -> dict[str, object]:
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://api-quiz-bank.local/schemas/runtime_canonical_quiz_item.schema.json",
+        "title": "API Quiz Bank Runtime Canonical Quiz Item",
+        "description": "Persisted runtime quiz_items row contract with explicit content-bank scope.",
+        "type": "object",
+        "additionalProperties": False,
+        "required": RUNTIME_CANONICAL_FIELDS,
+        "properties": runtime_canonical_properties(),
+    }
+
+
+def runtime_canonical_properties() -> dict[str, object]:
+    return {
+        "item_id": {"type": "string", "minLength": 1},
+        "source_id": {"type": "string", "minLength": 1},
+        "language": {"type": "string", "enum": list(SUPPORTED_LANGUAGE_CODES)},
+        "language_code": {
+            "type": "string",
+            "enum": list(SUPPORTED_LANGUAGE_CODES),
+            "default": DEFAULT_LANGUAGE_CODE,
+        },
+        "content_bank_id": {"type": "string", "minLength": 1, "default": DEFAULT_CONTENT_BANK_ID},
+        "bank_version_id": {
+            "type": "string",
+            "minLength": 1,
+            "default": DEFAULT_RUNTIME_BANK_VERSION_ID,
+        },
+        "level_band": {"type": "string", "minLength": 1},
+        "sublevel": {"type": "string", "enum": list(CANONICAL_LEVELS)},
+        "theme_id": {"type": "string", "pattern": "^T(0[1-9]|1[0-8])$"},
+        "subtheme_id": {"type": "string"},
+        "objective_id": {"type": "string", "pattern": "^O(0[1-9]|1[0-6])$"},
+        "pattern_id": {"type": "string", "pattern": "^P(0[1-9]|1[0-2])$"},
+        "difficulty_band": {"type": "string"},
+        "register": {"type": "string"},
+        "prompt": {"type": "string", "minLength": 1},
+        "stem_text": {"type": "string", "minLength": 1},
+        "options_json": {"type": "string", "minLength": 1},
+        "answer_key": {"type": "string", "minLength": 1},
+        "explanation": {"type": "string"},
+        "tags": {"type": "string"},
+        "coverage_cell_id": {"type": "string"},
+        "status": {"type": "string", "enum": list(ITEM_STATUSES)},
+        "version": {"type": "string"},
+        "created_at": {"type": "string"},
+        "updated_at": {"type": "string"},
+        "reviewed_at": {"type": "string"},
+        "level_locked": {"type": "string"},
+        "locked_at": {"type": "string"},
     }
 
 
@@ -167,6 +260,10 @@ def main() -> int:
     write_text(
         Path("schemas/canonical_quiz_item.schema.json"),
         json.dumps(canonical_schema(), ensure_ascii=False, indent=2) + "\n",
+    )
+    write_text(
+        Path("schemas/runtime_canonical_quiz_item.schema.json"),
+        json.dumps(runtime_canonical_schema(), ensure_ascii=False, indent=2) + "\n",
     )
     write_text(Path("api/openapi.yaml"), openapi_seed())
     print("wrote schema, taxonomy and OpenAPI seed artifacts")

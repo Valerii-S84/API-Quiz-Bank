@@ -89,12 +89,20 @@ paths:
   /v1/topics:
     get:
       operationId: listTopics
-      summary: List canonical quiz topics.
+      summary: List German-scoped canonical quiz topics.
       tags:
         - taxonomy
+      parameters:
+        - name: language_code
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [de]
+            default: de
       responses:
         '200':
-          description: Canonical quiz topics mapped to theme IDs.
+          description: German canonical quiz topics mapped to theme codes and legacy theme IDs.
           content:
             application/json:
               schema:
@@ -594,6 +602,34 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+    post:
+      operationId: createAdminContentBank
+      summary: Create a draft content bank for future import workflow.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminContentBankCreateRequest'
+      responses:
+        '200':
+          description: Created content bank.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminContentBankProjection'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+        '409':
+          description: Content bank create conflict.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
   /v1/admin/content-banks/{content_bank_id}/versions:
     get:
       operationId: listAdminContentBankVersions
@@ -612,6 +648,41 @@ paths:
                 $ref: '#/components/schemas/AdminContentBankVersionListResponse'
         '404':
           description: Content bank not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+    post:
+      operationId: createAdminContentBankVersion
+      summary: Create a draft or audit content bank version.
+      tags:
+        - admin
+      parameters:
+        - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminContentBankId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminContentBankVersionCreateRequest'
+      responses:
+        '200':
+          description: Created content bank version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminContentBankVersionProjection'
+        '403':
+          $ref: '#/components/responses/AdminForbidden'
+        '404':
+          description: Content bank not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: Content bank version create conflict.
           content:
             application/problem+json:
               schema:
@@ -1026,16 +1097,26 @@ components:
     TopicProjection:
       type: object
       additionalProperties: false
-      required: [topic_id, theme_id, title, status]
+      required: [topic_id, theme_code, theme_id, language_code, title, label_status, status]
       properties:
         topic_id:
+          type: string
+          pattern: '^T(0[1-9]|1[0-8])$'
+        theme_code:
           type: string
           pattern: '^T(0[1-9]|1[0-8])$'
         theme_id:
           type: string
           pattern: '^T(0[1-9]|1[0-8])$'
+          deprecated: true
+        language_code:
+          type: string
+          const: de
         title:
           type: string
+        label_status:
+          type: string
+          const: canonical
         status:
           type: string
           const: active
@@ -1456,6 +1537,34 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AdminContentBankProjection'
+    AdminContentBankCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [content_bank_id, language_code, name, reason]
+      properties:
+        content_bank_id:
+          type: string
+          minLength: 1
+          maxLength: 120
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 120
+        language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        status:
+          type: string
+          enum: [draft]
+          default: draft
+        reason:
+          type: string
+          minLength: 3
+          maxLength: 500
     AdminContentBankVersionProjection:
       type: object
       additionalProperties: false
@@ -1498,6 +1607,27 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AdminContentBankVersionProjection'
+    AdminContentBankVersionCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [version, reason]
+      properties:
+        bank_version_id:
+          type: string
+          minLength: 1
+          maxLength: 160
+        version:
+          type: string
+          minLength: 1
+          maxLength: 120
+        status:
+          type: string
+          enum: [draft, audit]
+          default: draft
+        reason:
+          type: string
+          minLength: 3
+          maxLength: 500
     AdminImportBatchProjection:
       type: object
       additionalProperties: false
@@ -1765,6 +1895,33 @@ components:
           items:
             type: string
             pattern: '^T(0[1-9]|1[0-8])$'
+        default_language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+          default: de
+        default_content_bank_id:
+          type: string
+          default: german-core
+        default_bank_version_id:
+          type:
+            - string
+            - 'null'
+        allowed_language_codes:
+          type: array
+          items:
+            type: string
+            enum: [de, en, fr, es, nl]
+          default: [de]
+        allowed_content_bank_ids:
+          type: array
+          items:
+            type: string
+          default: [german-core]
+        allowed_bank_version_ids:
+          type: array
+          items:
+            type: string
+          default: []
         api_key:
           type: string
           minLength: 8
@@ -1782,6 +1939,12 @@ components:
         - daily_quota_limit
         - allowed_cefr_levels
         - allowed_theme_ids
+        - default_language_code
+        - default_content_bank_id
+        - default_bank_version_id
+        - allowed_language_codes
+        - allowed_content_bank_ids
+        - allowed_bank_version_ids
         - delivery_count
         - today_quota_used
         - last_delivery_at
@@ -1801,6 +1964,26 @@ components:
           items:
             type: string
         allowed_theme_ids:
+          type: array
+          items:
+            type: string
+        default_language_code:
+          type: string
+          enum: [de, en, fr, es, nl]
+        default_content_bank_id:
+          type: string
+        default_bank_version_id:
+          type: string
+        allowed_language_codes:
+          type: array
+          items:
+            type: string
+            enum: [de, en, fr, es, nl]
+        allowed_content_bank_ids:
+          type: array
+          items:
+            type: string
+        allowed_bank_version_ids:
           type: array
           items:
             type: string

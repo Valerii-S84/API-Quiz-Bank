@@ -49,6 +49,7 @@ class GeneratedArtifactsInvariantTests(unittest.TestCase):
         artifact_paths = [
             "api/openapi.yaml",
             "schemas/canonical_quiz_item.schema.json",
+            "schemas/runtime_canonical_quiz_item.schema.json",
             "data/taxonomy/cefr_levels.csv",
             "data/taxonomy/themes.csv",
             "data/taxonomy/objectives.csv",

@@ -66,6 +66,11 @@ CREATE TABLE IF NOT EXISTS visual_prompt_audit (
     asset_id TEXT REFERENCES visual_assets(asset_id),
     quiz_item_id TEXT NOT NULL REFERENCES quiz_items(item_id),
     consumer_id TEXT REFERENCES consumers(consumer_id),
+    language_code TEXT NOT NULL DEFAULT 'de' CHECK (language_code <> ''),
+    content_bank_id TEXT NOT NULL DEFAULT 'german-core' CHECK (content_bank_id <> ''),
+    bank_version_id TEXT NOT NULL DEFAULT 'german-core:2026-06-12-baseline' CHECK (
+        bank_version_id <> ''
+    ),
     prompt_type TEXT NOT NULL CHECK (prompt_type <> ''),
     visual_mode TEXT NOT NULL DEFAULT 'target_object' CHECK (
         visual_mode IN (
@@ -115,6 +120,11 @@ CREATE TABLE IF NOT EXISTS visual_usage_events (
     consumer_id TEXT NOT NULL REFERENCES consumers(consumer_id),
     delivery_id TEXT REFERENCES deliveries(delivery_id),
     asset_id TEXT REFERENCES visual_assets(asset_id),
+    language_code TEXT NOT NULL DEFAULT 'de' CHECK (language_code <> ''),
+    content_bank_id TEXT NOT NULL DEFAULT 'german-core' CHECK (content_bank_id <> ''),
+    bank_version_id TEXT NOT NULL DEFAULT 'german-core:2026-06-12-baseline' CHECK (
+        bank_version_id <> ''
+    ),
     event_type TEXT NOT NULL CHECK (
         event_type IN (
             'cache_hit',

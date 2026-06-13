@@ -136,6 +136,18 @@ ALTER TABLE visual_assets
     ADD COLUMN IF NOT EXISTS bank_version_id TEXT NOT NULL DEFAULT 'german-core:2026-06-12-baseline'
         REFERENCES content_bank_versions(id);
 
+ALTER TABLE visual_prompt_audit
+    ADD COLUMN IF NOT EXISTS language_code TEXT NOT NULL DEFAULT 'de' REFERENCES languages(code),
+    ADD COLUMN IF NOT EXISTS content_bank_id TEXT NOT NULL DEFAULT 'german-core' REFERENCES content_banks(id),
+    ADD COLUMN IF NOT EXISTS bank_version_id TEXT NOT NULL DEFAULT 'german-core:2026-06-12-baseline'
+        REFERENCES content_bank_versions(id);
+
+ALTER TABLE visual_usage_events
+    ADD COLUMN IF NOT EXISTS language_code TEXT NOT NULL DEFAULT 'de' REFERENCES languages(code),
+    ADD COLUMN IF NOT EXISTS content_bank_id TEXT NOT NULL DEFAULT 'german-core' REFERENCES content_banks(id),
+    ADD COLUMN IF NOT EXISTS bank_version_id TEXT NOT NULL DEFAULT 'german-core:2026-06-12-baseline'
+        REFERENCES content_bank_versions(id);
+
 CREATE UNIQUE INDEX IF NOT EXISTS uq_import_batch_items_bank_source_item
     ON import_batch_items(bank_version_id, source_id, source_item_id);
 
@@ -167,3 +179,9 @@ CREATE INDEX IF NOT EXISTS idx_deliveries_scope_item
 
 CREATE INDEX IF NOT EXISTS idx_selection_decisions_scope_created
     ON selection_decisions(consumer_id, language_code, bank_version_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_visual_prompt_audit_scope_created
+    ON visual_prompt_audit(language_code, content_bank_id, bank_version_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_visual_usage_events_scope_created
+    ON visual_usage_events(consumer_id, language_code, content_bank_id, bank_version_id, created_at);

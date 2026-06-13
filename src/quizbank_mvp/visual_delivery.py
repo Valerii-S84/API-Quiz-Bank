@@ -14,6 +14,7 @@ from .visual_access import (
     check_visual_generation_access,
     reserve_visual_delivery_quota,
     reserve_visual_generation_quota,
+    visual_scope_values,
 )
 from .visual_cache import (
     DEFAULT_ASSET_ROOT,
@@ -207,17 +208,21 @@ def insert_prompt_audit(
     prompt: VisualPrompt,
     result: ImageGenerationResult,
 ) -> None:
+    language_code, content_bank_id, bank_version_id = visual_scope_values(
+        delivery_content_scope({}, quiz_item)
+    )
     with connect(db_path) as connection:
         connection.execute(
             """
             INSERT INTO visual_prompt_audit (
                 prompt_id, asset_id, quiz_item_id, consumer_id, prompt_type,
+                language_code, content_bank_id, bank_version_id,
                 visual_mode, visual_target, visual_context_hint,
                 generated_prompt, negative_prompt, prompt_policy_version,
                 visual_prompt_policy_version,
                 provider_name, provider_model, provider_response_id,
                 provider_revised_prompt, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 new_id("vprompt"),
@@ -225,6 +230,9 @@ def insert_prompt_audit(
                 quiz_item["item_id"],
                 settings.consumer_id,
                 prompt.visual_mode,
+                language_code,
+                content_bank_id,
+                bank_version_id,
                 prompt.visual_mode,
                 prompt.visual_target,
                 prompt.visual_context_hint,
@@ -249,13 +257,17 @@ def record_usage(
     event_type: str,
     feature: str,
 ) -> None:
+    language_code, content_bank_id, bank_version_id = visual_scope_values(
+        delivery_content_scope(delivery, {})
+    )
     with connect(db_path) as connection:
         connection.execute(
             """
             INSERT INTO visual_usage_events (
                 usage_event_id, consumer_id, delivery_id, asset_id, event_type,
+                language_code, content_bank_id, bank_version_id,
                 feature, quantity, estimated_cost_minor, provider_name, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
             """,
             (
                 new_id("vusage"),
@@ -263,6 +275,9 @@ def record_usage(
                 delivery.get("delivery_id"),
                 asset.asset_id if asset else None,
                 event_type,
+                language_code,
+                content_bank_id,
+                bank_version_id,
                 feature,
                 asset.provider_name if asset else "local",
                 utc_now(),

@@ -7,10 +7,16 @@ import argparse
 import ast
 import json
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from quizbank_common import THEME_TITLES, load_inventory
+from quizbank_common import (
+    IMPORT_CONTENT_BANK_LANGUAGE_CODES,
+    SUPPORTED_LANGUAGE_CODES,
+    THEME_TITLES,
+    load_inventory,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -44,10 +50,27 @@ QUOTA_CONSUMER_ID = "production_corpus_quota_blocked"
 QUOTA_API_KEY = "production_corpus_quota_blocked_api_key"
 NO_ENTITLEMENT_CONSUMER_ID = "consumer_no_entitlement"
 NO_ENTITLEMENT_API_KEY = "no_entitlement_api_key"
+TARGET_BANK_VERSION_STATUSES = ("draft", "audit", "active")
 
 
 class RuntimeImportError(RuntimeError):
     """Raised when the runtime import preconditions or checks fail."""
+
+
+@dataclass(frozen=True)
+class RuntimeImportScope:
+    language_code: str
+    content_bank_id: str
+    bank_version_id: str
+    target_version_status: str
+
+    def as_report(self) -> dict[str, str]:
+        return {
+            "language_code": self.language_code,
+            "content_bank_id": self.content_bank_id,
+            "bank_version_id": self.bank_version_id,
+            "target_version_status": self.target_version_status,
+        }
 
 
 def parse_args() -> argparse.Namespace:
@@ -62,8 +85,58 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--expected-active-sources", default=DEFAULT_EXPECTED_SOURCES, type=int)
     parser.add_argument("--retire-non-corpus-items", action="store_true")
     parser.add_argument("--seed-smoke-consumers", action="store_true")
-    parser.add_argument("--dry-run", action="store_true")
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument("--commit", action="store_true")
+    mode_group.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--language-code")
+    parser.add_argument("--content-bank-id")
+    parser.add_argument("--bank-version-id")
+    parser.add_argument("--target-version-status", choices=TARGET_BANK_VERSION_STATUSES)
+    parser.add_argument("--approved-active-repair", action="store_true")
     return parser.parse_args()
+
+
+def effective_dry_run(args: argparse.Namespace) -> bool:
+    return not args.commit
+
+
+def parse_runtime_import_scope(args: argparse.Namespace) -> RuntimeImportScope:
+    missing = [
+        flag_name
+        for flag_name, value in (
+            ("language-code", args.language_code),
+            ("content-bank-id", args.content_bank_id),
+            ("bank-version-id", args.bank_version_id),
+            ("target-version-status", args.target_version_status),
+        )
+        if not str(value or "").strip()
+    ]
+    if missing:
+        raise RuntimeImportError(f"missing_content_scope_args:{','.join(missing)}")
+    return RuntimeImportScope(
+        language_code=str(args.language_code).strip(),
+        content_bank_id=str(args.content_bank_id).strip(),
+        bank_version_id=str(args.bank_version_id).strip(),
+        target_version_status=str(args.target_version_status).strip(),
+    )
+
+
+def validate_runtime_import_mode(
+    args: argparse.Namespace,
+    content_scope: RuntimeImportScope,
+) -> None:
+    if content_scope.language_code not in SUPPORTED_LANGUAGE_CODES:
+        raise RuntimeImportError(f"unsupported_language_code:{content_scope.language_code}")
+    expected_language = IMPORT_CONTENT_BANK_LANGUAGE_CODES.get(content_scope.content_bank_id)
+    if expected_language is not None and expected_language != content_scope.language_code:
+        raise RuntimeImportError(
+            f"content_bank_language_mismatch:{content_scope.content_bank_id}:"
+            f"{expected_language}!={content_scope.language_code}"
+        )
+    if content_scope.target_version_status == "active" and not args.approved_active_repair:
+        raise RuntimeImportError("active_import_requires_approved_repair_mode")
+    if args.retire_non_corpus_items and not args.approved_active_repair:
+        raise RuntimeImportError("retire_non_corpus_requires_approved_repair_mode")
 
 
 def parse_options(raw_options: str) -> list[object]:
@@ -76,21 +149,36 @@ def parse_options(raw_options: str) -> list[object]:
     return parsed
 
 
-def runtime_item(row: dict[str, str], theme_groups: dict[str, str]) -> dict[str, object]:
+def runtime_item(
+    row: dict[str, str],
+    theme_groups: dict[str, str],
+    content_scope: RuntimeImportScope,
+) -> dict[str, object]:
     item = dict(row)
     item["options"] = json.dumps(parse_options(row["options"]), ensure_ascii=False)
+    item["language_code"] = content_scope.language_code
+    item["content_bank_id"] = content_scope.content_bank_id
+    item["bank_version_id"] = content_scope.bank_version_id
     item.update(enriched_image_quality_fields(row, theme_groups))
     return item
 
 
-def validate_inventory(inventory, expected_rows: int, expected_sources: int) -> None:
+def validate_inventory(
+    inventory,
+    expected_rows: int,
+    expected_sources: int,
+    content_scope: RuntimeImportScope,
+) -> None:
     status_counts = Counter(row.get("status", "").strip() for row in inventory.rows)
+    language_counts = Counter(row.get("language", "").strip() for row in inventory.rows)
     if inventory.active_row_count != expected_rows:
         raise RuntimeImportError(f"unexpected_active_rows:{inventory.active_row_count}")
     if len(inventory.active_sources) != expected_sources:
         raise RuntimeImportError(f"unexpected_active_sources:{len(inventory.active_sources)}")
     if status_counts.get("published", 0) != expected_rows:
         raise RuntimeImportError(f"unexpected_status_counts:{dict(status_counts)}")
+    if set(language_counts) != {content_scope.language_code}:
+        raise RuntimeImportError(f"language_scope_mismatch:{dict(language_counts)}")
 
 
 def validate_image_quality_config(inventory, theme_groups: dict[str, str]) -> None:
@@ -129,7 +217,12 @@ def create_temp_id_tables(connection, item_ids: list[str], source_ids: list[str]
         )
 
 
-def import_sources_and_items(connection, inventory, now: str) -> None:
+def import_sources_and_items(
+    connection,
+    inventory,
+    now: str,
+    content_scope: RuntimeImportScope,
+) -> None:
     source_ids_by_filename = {source.filename: source.source_id for source in inventory.active_sources}
     load_theme_groups.cache_clear()
     theme_groups = load_theme_groups(DEFAULT_THEME_GROUP_CONFIG_PATH)
@@ -137,13 +230,17 @@ def import_sources_and_items(connection, inventory, now: str) -> None:
         connection.execute(
             """
             INSERT INTO sources (
-                source_id, source_type, provenance_note, checksum_sha256, status, created_at
-            ) VALUES (?, ?, ?, ?, 'active', ?)
+                source_id, source_type, provenance_note, checksum_sha256, status,
+                created_at, language_code, content_bank_id, bank_version_id
+            ) VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?)
             ON CONFLICT(source_id) DO UPDATE SET
                 source_type = excluded.source_type,
                 provenance_note = excluded.provenance_note,
                 checksum_sha256 = excluded.checksum_sha256,
-                status = excluded.status
+                status = excluded.status,
+                language_code = excluded.language_code,
+                content_bank_id = excluded.content_bank_id,
+                bank_version_id = excluded.bank_version_id
             """,
             (
                 source.source_id,
@@ -151,12 +248,20 @@ def import_sources_and_items(connection, inventory, now: str) -> None:
                 f"production_promotion:QuizBank/{source.filename}",
                 source.checksum_sha256,
                 now,
+                content_scope.language_code,
+                content_scope.content_bank_id,
+                content_scope.bank_version_id,
             ),
         )
     for filename, rows in inventory.rows_by_file.items():
         source_id = source_ids_by_filename[filename]
         for row in rows:
-            upsert_quiz_item(connection, runtime_item(row, theme_groups), row["status"], source_id)
+            upsert_quiz_item(
+                connection,
+                runtime_item(row, theme_groups, content_scope),
+                row["status"],
+                source_id,
+            )
 
 
 def retire_non_corpus_rows(connection, now: str) -> None:
@@ -280,13 +385,21 @@ def write_report(path: Path, report: dict[str, Any]) -> None:
 
 
 def run_import(args: argparse.Namespace) -> dict[str, Any]:
+    content_scope = parse_runtime_import_scope(args)
+    validate_runtime_import_mode(args, content_scope)
+    is_dry_run = effective_dry_run(args)
     inventory = load_inventory(args.quizbank_dir)
     load_theme_groups.cache_clear()
     theme_groups = load_theme_groups(DEFAULT_THEME_GROUP_CONFIG_PATH)
-    validate_inventory(inventory, args.expected_published_items, args.expected_active_sources)
+    validate_inventory(
+        inventory,
+        args.expected_published_items,
+        args.expected_active_sources,
+        content_scope,
+    )
     validate_image_quality_config(inventory, theme_groups)
     before_counts = database_counts(args.db_path) if database_exists(args.db_path) else {}
-    if args.dry_run:
+    if is_dry_run:
         after_counts = before_counts
     else:
         initialize_database(args.db_path)
@@ -295,7 +408,7 @@ def run_import(args: argparse.Namespace) -> dict[str, Any]:
         now = utc_now()
         with connect(args.db_path) as connection:
             create_temp_id_tables(connection, item_ids, source_ids)
-            import_sources_and_items(connection, inventory, now)
+            import_sources_and_items(connection, inventory, now, content_scope)
             if args.retire_non_corpus_items:
                 retire_non_corpus_rows(connection, now)
         if args.seed_smoke_consumers:
@@ -309,8 +422,11 @@ def run_import(args: argparse.Namespace) -> dict[str, Any]:
     return {
         "report_type": "production_corpus_runtime_import",
         "executed_at": args.executed_at,
-        "decision": "production_corpus_import_dry_run" if args.dry_run else "production_corpus_import_committed",
+        "decision": "production_corpus_import_dry_run" if is_dry_run else "production_corpus_import_committed",
         "quizbank_dir": str(args.quizbank_dir),
+        "content_scope": content_scope.as_report(),
+        "commit_requested": args.commit,
+        "approved_active_repair": args.approved_active_repair,
         "expected_published_items": args.expected_published_items,
         "expected_active_sources": args.expected_active_sources,
         "source_active_rows": inventory.active_row_count,
@@ -335,7 +451,7 @@ def main() -> int:
     except RuntimeImportError as error:
         print(f"production corpus runtime import failed: {error}")
         return 1
-    if not args.dry_run:
+    if not effective_dry_run(args):
         write_report(args.report_out, report)
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     return 0

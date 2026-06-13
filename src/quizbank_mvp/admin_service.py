@@ -12,6 +12,7 @@ from .database_connection import (
     row_to_dict,
     utc_now,
 )
+from .content_scope_defaults import DEFAULT_CONTENT_BANK_ID, DEFAULT_LANGUAGE_CODE
 from .database_seed import (
     seed_api_credential,
     seed_consumer,
@@ -132,6 +133,9 @@ def list_admin_consumers(db_path: Path | None, limit: int) -> dict[str, object]:
             """
             SELECT c.consumer_id, c.status, c.daily_quota_limit,
                    c.allowed_cefr_levels_json, c.allowed_theme_ids_json,
+                   c.default_language_code, c.default_content_bank_id,
+                   c.default_bank_version_id, c.allowed_language_codes_json,
+                   c.allowed_content_bank_ids_json, c.allowed_bank_version_ids_json,
                    COALESCE(cap.display_name, '') AS display_name,
                    COALESCE(cap.consumer_kind, 'api_client') AS consumer_kind,
                    COUNT(d.delivery_id) AS delivery_count,
@@ -146,6 +150,9 @@ def list_admin_consumers(db_path: Path | None, limit: int) -> dict[str, object]:
              AND qu.usage_date = ?
             GROUP BY c.consumer_id, c.status, c.daily_quota_limit,
                      c.allowed_cefr_levels_json, c.allowed_theme_ids_json,
+                     c.default_language_code, c.default_content_bank_id,
+                     c.default_bank_version_id, c.allowed_language_codes_json,
+                     c.allowed_content_bank_ids_json, c.allowed_bank_version_ids_json,
                      cap.display_name, cap.consumer_kind
             ORDER BY c.created_at DESC
             LIMIT ?
@@ -157,12 +164,14 @@ def list_admin_consumers(db_path: Path | None, limit: int) -> dict[str, object]:
 
 def create_admin_consumer(db_path: Path | None, payload: dict[str, Any], actor: str) -> dict[str, object]:
     consumer_id = str(payload["consumer_id"])
+    content_scope = consumer_content_scope(payload)
     seed_consumer(
         db_path,
         consumer_id,
         int(payload["daily_quota_limit"]),
         payload["allowed_cefr_levels"],
         payload["allowed_theme_ids"],
+        content_scope,
     )
     seed_api_credential(db_path, consumer_id, str(payload["api_key"]))
     seed_entitlement(
@@ -170,6 +179,7 @@ def create_admin_consumer(db_path: Path | None, payload: dict[str, Any], actor: 
         consumer_id,
         payload["allowed_cefr_levels"],
         payload["allowed_theme_ids"],
+        content_scope=content_scope,
         actor=actor,
         reason=str(payload["reason"]),
     )
@@ -227,6 +237,9 @@ def get_admin_consumer(db_path: Path | None, consumer_id: str) -> dict[str, obje
             """
             SELECT c.consumer_id, c.status, c.daily_quota_limit,
                    c.allowed_cefr_levels_json, c.allowed_theme_ids_json,
+                   c.default_language_code, c.default_content_bank_id,
+                   c.default_bank_version_id, c.allowed_language_codes_json,
+                   c.allowed_content_bank_ids_json, c.allowed_bank_version_ids_json,
                    COALESCE(cap.display_name, '') AS display_name,
                    COALESCE(cap.consumer_kind, 'api_client') AS consumer_kind,
                    COUNT(d.delivery_id) AS delivery_count,
@@ -242,6 +255,9 @@ def get_admin_consumer(db_path: Path | None, consumer_id: str) -> dict[str, obje
             WHERE c.consumer_id = ?
             GROUP BY c.consumer_id, c.status, c.daily_quota_limit,
                      c.allowed_cefr_levels_json, c.allowed_theme_ids_json,
+                     c.default_language_code, c.default_content_bank_id,
+                     c.default_bank_version_id, c.allowed_language_codes_json,
+                     c.allowed_content_bank_ids_json, c.allowed_bank_version_ids_json,
                      cap.display_name, cap.consumer_kind
             """,
             (utc_now()[:10], consumer_id),
@@ -365,9 +381,26 @@ def consumer_projection(row: dict[str, Any]) -> dict[str, object]:
         "daily_quota_limit": int(row["daily_quota_limit"]),
         "allowed_cefr_levels": decode_json_list(row["allowed_cefr_levels_json"]),
         "allowed_theme_ids": decode_json_list(row["allowed_theme_ids_json"]),
+        "default_language_code": str(row["default_language_code"]),
+        "default_content_bank_id": str(row["default_content_bank_id"]),
+        "default_bank_version_id": str(row["default_bank_version_id"] or ""),
+        "allowed_language_codes": decode_json_list(row["allowed_language_codes_json"]),
+        "allowed_content_bank_ids": decode_json_list(row["allowed_content_bank_ids_json"]),
+        "allowed_bank_version_ids": decode_json_list(row["allowed_bank_version_ids_json"]),
         "delivery_count": int(row["delivery_count"]),
         "today_quota_used": int(row["today_quota_used"]),
         "last_delivery_at": row["last_delivery_at"],
+    }
+
+
+def consumer_content_scope(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "default_language_code": payload.get("default_language_code") or DEFAULT_LANGUAGE_CODE,
+        "default_content_bank_id": payload.get("default_content_bank_id") or DEFAULT_CONTENT_BANK_ID,
+        "default_bank_version_id": payload.get("default_bank_version_id") or "",
+        "allowed_language_codes": payload.get("allowed_language_codes") or [DEFAULT_LANGUAGE_CODE],
+        "allowed_content_bank_ids": payload.get("allowed_content_bank_ids") or [DEFAULT_CONTENT_BANK_ID],
+        "allowed_bank_version_ids": payload.get("allowed_bank_version_ids") or [],
     }
 
 

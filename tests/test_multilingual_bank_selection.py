@@ -95,6 +95,30 @@ class MultilingualBankSelectionTests(unittest.TestCase):
         self.assertEqual(error.exception.status, 403)
         self.assertEqual(error.exception.reason_code, "LANGUAGE_NOT_ACTIVE")
 
+    def test_inactive_english_draft_bank_cannot_be_selected_even_if_allowed(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        self.insert_english_draft_bank_item()
+        self.seed_access(
+            content_scope={
+                "allowed_language_codes": ["de", "en"],
+                "allowed_content_bank_ids": ["german-core", "english-core"],
+                "allowed_bank_version_ids": ["english-core:stage6-draft"],
+            },
+        )
+
+        with self.assertRaises(QuizBankProblem) as error:
+            select_next_item(
+                self.db_path,
+                self.selection_request(
+                    language_code="en",
+                    content_bank_id="english-core",
+                    bank_version_id="english-core:stage6-draft",
+                ),
+            )
+
+        self.assertEqual(error.exception.status, 403)
+        self.assertEqual(error.exception.reason_code, "LANGUAGE_NOT_ACTIVE")
+
     def test_explicit_unsupported_language_is_controlled_error(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         self.seed_access()
@@ -105,21 +129,27 @@ class MultilingualBankSelectionTests(unittest.TestCase):
         self.assertEqual(error.exception.status, 400)
         self.assertEqual(error.exception.reason_code, "LANGUAGE_UNSUPPORTED")
 
-    def seed_access(self, with_api_key: bool = False) -> None:
-        seed_consumer(self.db_path, "consumer_allowed", 5, ["A2"], ["T10"])
-        seed_entitlement(self.db_path, "consumer_allowed", ["A2"], ["T10"])
+    def seed_access(
+        self,
+        with_api_key: bool = False,
+        content_scope: dict[str, object] | None = None,
+    ) -> None:
+        seed_consumer(self.db_path, "consumer_allowed", 5, ["A2"], ["T10"], content_scope)
+        seed_entitlement(self.db_path, "consumer_allowed", ["A2"], ["T10"], content_scope=content_scope)
         if with_api_key:
             seed_api_credential(self.db_path, "consumer_allowed", "consumer_allowed_key")
 
     def selection_request(
         self,
         language_code: str | None = None,
+        content_bank_id: str | None = None,
         bank_version_id: str | None = None,
     ) -> SelectionRequest:
         return SelectionRequest(
             consumer_id="consumer_allowed",
             filters=SelectionFilters(cefr_level="A2", theme_ids=("T10",)),
             language_code=language_code,
+            content_bank_id=content_bank_id,
             bank_version_id=bank_version_id,
             deterministic=True,
         )

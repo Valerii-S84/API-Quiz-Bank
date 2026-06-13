@@ -67,6 +67,13 @@ class VisualDatabaseTests(unittest.TestCase):
                 table_columns(self.db_path, "visual_prompt_audit")
             )
         )
+        for table_name in ("visual_prompt_audit", "visual_usage_events"):
+            with self.subTest(table_name=table_name):
+                self.assertTrue(
+                    {"language_code", "content_bank_id", "bank_version_id"}.issubset(
+                        table_columns(self.db_path, table_name)
+                    )
+                )
 
     def test_runtime_readiness_reports_visual_database_check(self) -> None:
         ready = TestClient(create_app(self.db_path)).get("/ready").json()

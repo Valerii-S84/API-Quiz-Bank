@@ -55,9 +55,13 @@ ADMIN_PANEL_HTML = """<!doctype html>
           </select>
         </label>
         <label>Bank ID <input id="contentBankId" value="german-core"></label>
+        <label>Bank name <input id="contentBankName" placeholder="English Core"></label>
+        <label>Version <input id="bankVersion" placeholder="stage6-draft"></label>
         <label>Version ID <input id="bankVersionId" placeholder="german-core:2026-06-12-baseline"></label>
         <label>Reason <input id="bankReason" placeholder="workflow reason"></label>
         <button class="secondary" id="loadBanks">Load banks</button>
+        <button id="createBank">Create bank</button>
+        <button id="createVersion">Create version</button>
         <button id="markAudit">Mark audit</button>
         <button id="activateBank">Activate</button>
         <button id="rollbackBank">Rollback</button>
@@ -328,8 +332,39 @@ ADMIN_PANEL_HTML = """<!doctype html>
       bankReason.value = '';
       await load();
     }
+    async function createContentBank() {
+      await api('/v1/admin/content-banks', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          content_bank_id: contentBankId.value.trim(),
+          slug: contentBankId.value.trim(),
+          language_code: bankLanguage.value,
+          name: contentBankName.value.trim(),
+          status: 'draft',
+          reason: bankReason.value.trim()
+        })
+      });
+      await loadContentBankWorkflow();
+    }
+    async function createContentBankVersion() {
+      const bankId = contentBankId.value.trim();
+      await api('/v1/admin/content-banks/' + encodeURIComponent(bankId) + '/versions', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          bank_version_id: bankVersionId.value.trim() || undefined,
+          version: bankVersion.value.trim(),
+          status: 'draft',
+          reason: bankReason.value.trim()
+        })
+      });
+      await loadContentBankWorkflow();
+    }
     document.getElementById('load').addEventListener('click', load);
     document.getElementById('loadBanks').addEventListener('click', () => loadContentBankWorkflow());
+    document.getElementById('createBank').addEventListener('click', createContentBank);
+    document.getElementById('createVersion').addEventListener('click', createContentBankVersion);
     document.getElementById('markAudit').addEventListener('click', () => runBankAction('mark-audit'));
     document.getElementById('activateBank').addEventListener('click', () => runBankAction('activate'));
     document.getElementById('rollbackBank').addEventListener('click', () => runBankAction('rollback'));

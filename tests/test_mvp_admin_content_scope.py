@@ -8,12 +8,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from quizbank_mvp.database import connect, seed_control_fixture
 
-from tests.test_mvp_admin import (
-    APPROVED_FIXTURE,
-    BASELINE_VERSION_ID,
-    MvpAdminCase,
-    insert_bank_version,
-)
+from tests.test_mvp_admin import APPROVED_FIXTURE, BASELINE_VERSION_ID, MvpAdminCase
+from tests.test_mvp_admin_content_bank_workflow import insert_bank_version
 
 
 class MvpAdminContentScopeTests(MvpAdminCase):

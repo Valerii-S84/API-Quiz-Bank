@@ -47,6 +47,15 @@ VALID_ROW = {
 
 
 class MultilingualBankImportFlowTests(unittest.TestCase):
+    def test_import_manifest_declares_default_bank_scope(self) -> None:
+        manifest = (ROOT / "data/manifests/import_manifest.yml").read_text(encoding="utf-8")
+
+        self.assertIn("content_scope_defaults:", manifest)
+        self.assertIn("  language_code: de", manifest)
+        self.assertIn("  content_bank_id: german-core", manifest)
+        self.assertIn("  bank_version_id: german-core:2026-06-12-baseline", manifest)
+        self.assertIn("  source_inheritance: explicit_default_scope", manifest)
+
     def test_non_production_english_load_plan_targets_draft_version(self) -> None:
         row = valid_row(item_id="stage6_en_001", language="en")
         with tempfile.TemporaryDirectory() as directory:
@@ -137,6 +146,27 @@ class MultilingualBankImportFlowTests(unittest.TestCase):
             runtime_item_id("german-core:control-sample-draft", "control_sample_001"),
         )
 
+    def test_import_validation_results_inherit_scope_through_batch_id(self) -> None:
+        row = valid_row()
+        with tempfile.TemporaryDirectory() as directory:
+            report_path, canonical_path = write_import_artifacts(
+                Path(directory),
+                [row],
+                ImportContentScope(),
+                validation_errors=["invalid_status:2:oops"],
+            )
+
+            plan = build_load_plan(report_path, canonical_path)
+
+        batch = plan["tables"]["import_batches"][0]
+        validation_result = plan["tables"]["import_validation_results"][0]
+
+        self.assertEqual(batch["language_code"], "de")
+        self.assertEqual(batch["content_bank_id"], "german-core")
+        self.assertEqual(batch["bank_version_id"], "german-core:control-sample-draft")
+        self.assertEqual(validation_result["import_batch_id"], batch["import_batch_id"])
+        self.assertEqual(plan["lineage"]["bank_version_id"], batch["bank_version_id"])
+
 
 def valid_row(**overrides: str) -> dict[str, str]:
     row = copy.deepcopy(VALID_ROW)
@@ -148,11 +178,15 @@ def write_import_artifacts(
     directory: Path,
     rows: list[dict[str, str]],
     content_scope: ImportContentScope,
+    validation_errors: list[str] | None = None,
 ) -> tuple[Path, Path]:
     report_path = directory / "stage6_import.json"
     canonical_path = directory / "stage6_items.jsonl"
     report_path.write_text(
-        json.dumps(import_report(rows, canonical_path, content_scope), ensure_ascii=False),
+        json.dumps(
+            import_report(rows, canonical_path, content_scope, validation_errors or []),
+            ensure_ascii=False,
+        ),
         encoding="utf-8",
     )
     canonical_path.write_text(
@@ -166,7 +200,10 @@ def import_report(
     rows: list[dict[str, str]],
     canonical_path: Path,
     content_scope: ImportContentScope,
+    validation_errors: list[str],
 ) -> dict[str, object]:
+    accepted_count = 0 if validation_errors else len(rows)
+    rejected_count = len(rows) if validation_errors else 0
     return {
         "import_mode": "dry_run",
         "source_id": "stage6_english_sample",
@@ -178,9 +215,9 @@ def import_report(
         "canonical_output_path": canonical_path.as_posix(),
         "validation_summary": {
             "canonical_item_count": len(rows),
-            "accepted_candidate_count": len(rows),
-            "rejected_candidate_count": 0,
-            "validation_errors": [],
+            "accepted_candidate_count": accepted_count,
+            "rejected_candidate_count": rejected_count,
+            "validation_errors": validation_errors,
         },
         "generated_at": "2026-06-13T00:00:00Z",
     }

@@ -2,6 +2,11 @@
 # Source CSV files are source assets; this manifest is import planning metadata.
 manifest_version: 1
 generated_at: 2026-05-07
+content_scope_defaults:
+  language_code: de
+  content_bank_id: german-core
+  bank_version_id: german-core:2026-06-12-baseline
+  source_inheritance: explicit_default_scope
 parser_profiles:
   default: csv_quiz_bank_v1
 sources:

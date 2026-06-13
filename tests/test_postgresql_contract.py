@@ -253,6 +253,8 @@ class PostgreSQLMultilingualBankContractTests(unittest.TestCase):
             "import_batch_items",
             "scheduled_delivery_slots",
             "visual_assets",
+            "visual_prompt_audit",
+            "visual_usage_events",
         ]:
             with self.subTest(table_name=table_name):
                 self.assertIn(f"ALTER TABLE {table_name}", POSTGRESQL_MULTILINGUAL_BANK_SQL)
@@ -275,6 +277,10 @@ class PostgreSQLMultilingualBankContractTests(unittest.TestCase):
             "ON deliveries(\n        consumer_id,\n        language_code,\n        bank_version_id,",
             "idx_selection_decisions_scope_created",
             "ON selection_decisions(consumer_id, language_code, bank_version_id, created_at)",
+            "idx_visual_prompt_audit_scope_created",
+            "ON visual_prompt_audit(language_code, content_bank_id, bank_version_id, created_at)",
+            "idx_visual_usage_events_scope_created",
+            "ON visual_usage_events(consumer_id, language_code, content_bank_id, bank_version_id, created_at)",
         ]:
             self.assertIn(required_fragment, POSTGRESQL_MULTILINGUAL_BANK_SQL)
 

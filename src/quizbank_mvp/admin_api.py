@@ -26,6 +26,8 @@ from .admin_service import (
 from .content_bank_service import (
     ContentBankVersionError,
     activate_bank_version,
+    create_content_bank,
+    create_content_bank_version,
     list_content_bank_versions,
     list_content_banks,
     list_import_batches,
@@ -65,6 +67,8 @@ ImportStatus = Literal[
     "failed",
     "rolled_back",
 ]
+ContentBankCreateStatus = Literal["draft"]
+BankVersionCreateStatus = Literal["draft", "audit"]
 
 
 class AdminStatusChangeRequest(BaseModel):
@@ -82,7 +86,36 @@ class AdminConsumerCreateRequest(BaseModel):
     daily_quota_limit: int = Field(ge=0, le=10000)
     allowed_cefr_levels: list[AdminLevel] = Field(min_length=1)
     allowed_theme_ids: list[AdminTheme] = Field(min_length=1)
+    default_language_code: LanguageCode = "de"
+    default_content_bank_id: str = Field(default="german-core", min_length=1, max_length=120)
+    default_bank_version_id: str | None = Field(default=None, max_length=160)
+    allowed_language_codes: list[LanguageCode] = Field(default_factory=lambda: ["de"], min_length=1)
+    allowed_content_bank_ids: list[str] = Field(
+        default_factory=lambda: ["german-core"],
+        min_length=1,
+    )
+    allowed_bank_version_ids: list[str] = Field(default_factory=list)
     api_key: str = Field(min_length=8, max_length=200)
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class AdminContentBankCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content_bank_id: str = Field(min_length=1, max_length=120)
+    slug: str | None = Field(default=None, min_length=1, max_length=120)
+    language_code: LanguageCode
+    name: str = Field(min_length=1, max_length=160)
+    status: ContentBankCreateStatus = "draft"
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class AdminContentBankVersionCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    bank_version_id: str | None = Field(default=None, min_length=1, max_length=160)
+    version: str = Field(min_length=1, max_length=120)
+    status: BankVersionCreateStatus = "draft"
     reason: str = Field(min_length=3, max_length=500)
 
 
@@ -177,6 +210,15 @@ def register_dashboard_route(app: FastAPI, database_path: Path) -> None:
 
 
 def register_content_bank_routes(app: FastAPI, database_path: Path) -> None:
+    register_language_and_bank_routes(app, database_path)
+    register_bank_version_routes(app, database_path)
+    register_import_batch_route(app, database_path)
+    register_content_bank_action_route(app, database_path, "mark-audit")
+    register_content_bank_action_route(app, database_path, "activate")
+    register_content_bank_action_route(app, database_path, "rollback")
+
+
+def register_language_and_bank_routes(app: FastAPI, database_path: Path) -> None:
     @app.get("/v1/admin/languages", tags=["admin"])
     def languages(x_quizbank_admin_key: AdminKeyHeader = None) -> dict[str, object]:
         require_admin_read(authenticate_admin(database_path, x_quizbank_admin_key))
@@ -190,6 +232,20 @@ def register_content_bank_routes(app: FastAPI, database_path: Path) -> None:
         require_admin_read(authenticate_admin(database_path, x_quizbank_admin_key))
         return list_content_banks(database_path, language_code)
 
+    @app.post("/v1/admin/content-banks", tags=["admin"])
+    def create_bank(
+        payload: AdminContentBankCreateRequest,
+        x_quizbank_admin_key: AdminKeyHeader = None,
+    ) -> dict[str, object]:
+        admin = authenticate_admin(database_path, x_quizbank_admin_key)
+        require_owner(admin)
+        try:
+            return create_content_bank(database_path, payload.model_dump(), admin.actor)
+        except ContentBankVersionError as error:
+            raise content_bank_problem(str(error)) from error
+
+
+def register_bank_version_routes(app: FastAPI, database_path: Path) -> None:
     @app.get("/v1/admin/content-banks/{content_bank_id}/versions", tags=["admin"])
     def content_bank_versions(
         content_bank_id: str,
@@ -201,6 +257,26 @@ def register_content_bank_routes(app: FastAPI, database_path: Path) -> None:
         except ContentBankVersionError as error:
             raise content_bank_problem(str(error)) from error
 
+    @app.post("/v1/admin/content-banks/{content_bank_id}/versions", tags=["admin"])
+    def create_bank_version(
+        content_bank_id: str,
+        payload: AdminContentBankVersionCreateRequest,
+        x_quizbank_admin_key: AdminKeyHeader = None,
+    ) -> dict[str, object]:
+        admin = authenticate_admin(database_path, x_quizbank_admin_key)
+        require_owner(admin)
+        try:
+            return create_content_bank_version(
+                database_path,
+                content_bank_id,
+                payload.model_dump(exclude_none=True),
+                admin.actor,
+            )
+        except ContentBankVersionError as error:
+            raise content_bank_problem(str(error)) from error
+
+
+def register_import_batch_route(app: FastAPI, database_path: Path) -> None:
     @app.get("/v1/admin/import-batches", tags=["admin"])
     def import_batches(
         x_quizbank_admin_key: AdminKeyHeader = None,
@@ -221,10 +297,6 @@ def register_content_bank_routes(app: FastAPI, database_path: Path) -> None:
             },
             limit,
         )
-
-    register_content_bank_action_route(app, database_path, "mark-audit")
-    register_content_bank_action_route(app, database_path, "activate")
-    register_content_bank_action_route(app, database_path, "rollback")
 
 
 def register_consumer_routes(app: FastAPI, database_path: Path) -> None:
