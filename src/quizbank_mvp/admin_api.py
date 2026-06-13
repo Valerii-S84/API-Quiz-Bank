@@ -105,11 +105,6 @@ def register_admin_routes(app: FastAPI, database_path: Path) -> None:
     def admin_panel() -> str:
         return ADMIN_PANEL_HTML
 
-    @app.get("/v1/admin/dashboard", tags=["admin"])
-    def dashboard(x_quizbank_admin_key: AdminKeyHeader = None) -> dict[str, object]:
-        require_admin_read(authenticate_admin(database_path, x_quizbank_admin_key))
-        return admin_dashboard(database_path)
-
     @app.get("/v1/admin/quiz-items", tags=["admin"])
     def quiz_items(
         x_quizbank_admin_key: AdminKeyHeader = None,
@@ -117,6 +112,9 @@ def register_admin_routes(app: FastAPI, database_path: Path) -> None:
         cefr_level: AdminLevel | None = None,
         theme_id: AdminTheme | None = None,
         source_id: str | None = None,
+        language_code: LanguageCode = "de",
+        content_bank_id: str | None = None,
+        bank_version_id: str | None = None,
         limit: int = Query(default=50, ge=1, le=100),
     ) -> dict[str, object]:
         require_admin_read(authenticate_admin(database_path, x_quizbank_admin_key))
@@ -127,6 +125,9 @@ def register_admin_routes(app: FastAPI, database_path: Path) -> None:
                 "cefr_level": cefr_level,
                 "theme_id": theme_id,
                 "source_id": source_id,
+                "language_code": language_code,
+                "content_bank_id": content_bank_id,
+                "bank_version_id": bank_version_id,
             },
             limit,
         )
@@ -144,6 +145,7 @@ def register_admin_routes(app: FastAPI, database_path: Path) -> None:
         require_admin_read(authenticate_admin(database_path, x_quizbank_admin_key))
         return list_audit_log(database_path, limit)
 
+    register_dashboard_route(app, database_path)
     register_content_bank_routes(app, database_path)
     register_consumer_routes(app, database_path)
     register_status_route(app, database_path, "approve")
@@ -153,6 +155,25 @@ def register_admin_routes(app: FastAPI, database_path: Path) -> None:
 
 
 AdminKeyHeader = Annotated[str | None, Header(alias="X-QuizBank-Admin-Key")]
+
+
+def register_dashboard_route(app: FastAPI, database_path: Path) -> None:
+    @app.get("/v1/admin/dashboard", tags=["admin"])
+    def dashboard(
+        x_quizbank_admin_key: AdminKeyHeader = None,
+        language_code: LanguageCode = "de",
+        content_bank_id: str | None = None,
+        bank_version_id: str | None = None,
+    ) -> dict[str, object]:
+        require_admin_read(authenticate_admin(database_path, x_quizbank_admin_key))
+        return admin_dashboard(
+            database_path,
+            {
+                "language_code": language_code,
+                "content_bank_id": content_bank_id,
+                "bank_version_id": bank_version_id,
+            },
+        )
 
 
 def register_content_bank_routes(app: FastAPI, database_path: Path) -> None:

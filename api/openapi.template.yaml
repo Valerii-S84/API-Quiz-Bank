@@ -343,6 +343,17 @@ paths:
         - admin
       parameters:
         - $ref: '#/components/parameters/AdminKeyHeader'
+        - $ref: '#/components/parameters/AdminLanguageCodeQuery'
+        - name: content_bank_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: bank_version_id
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: Admin dashboard counts.
@@ -381,6 +392,17 @@ paths:
             pattern: '^T(0[1-9]|1[0-8])$'
         - name: source_id
           in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/AdminLanguageCodeQuery'
+        - name: content_bank_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: bank_version_id
+          in: query
+          required: false
           schema:
             type: string
         - name: limit

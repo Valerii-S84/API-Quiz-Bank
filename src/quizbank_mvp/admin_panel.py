@@ -130,8 +130,15 @@ ADMIN_PANEL_HTML = """<!doctype html>
         if (status.value) params.set('status', status.value);
         if (level.value) params.set('cefr_level', level.value);
         if (theme.value) params.set('theme_id', theme.value);
+        if (bankLanguage.value) params.set('language_code', bankLanguage.value);
+        if (contentBankId.value.trim()) params.set('content_bank_id', contentBankId.value.trim());
+        if (bankVersionId.value.trim()) params.set('bank_version_id', bankVersionId.value.trim());
+        const dashboardParams = new URLSearchParams();
+        if (bankLanguage.value) dashboardParams.set('language_code', bankLanguage.value);
+        if (contentBankId.value.trim()) dashboardParams.set('content_bank_id', contentBankId.value.trim());
+        if (bankVersionId.value.trim()) dashboardParams.set('bank_version_id', bankVersionId.value.trim());
         const [dashboard, items] = await Promise.all([
-          api('/v1/admin/dashboard'),
+          api('/v1/admin/dashboard?' + dashboardParams.toString()),
           api('/v1/admin/quiz-items?' + params.toString())
         ]);
         renderMetrics(dashboard);
