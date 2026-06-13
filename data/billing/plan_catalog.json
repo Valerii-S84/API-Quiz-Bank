@@ -14,7 +14,12 @@
           "feature_code": "quiz_delivery",
           "is_enabled": true,
           "limit_value": 2,
-          "limit_period": "day"
+          "limit_period": "day",
+          "scope": {
+            "language_codes": ["de"],
+            "content_bank_slugs": ["german-core"],
+            "content_types": ["text_quiz"]
+          }
         }
       ]
     },
@@ -30,7 +35,12 @@
           "feature_code": "quiz_delivery",
           "is_enabled": true,
           "limit_value": 10,
-          "limit_period": "day"
+          "limit_period": "day",
+          "scope": {
+            "language_codes": ["de"],
+            "content_bank_slugs": ["german-core"],
+            "content_types": ["text_quiz"]
+          }
         }
       ]
     },
@@ -46,19 +56,34 @@
           "feature_code": "quiz_delivery",
           "is_enabled": true,
           "limit_value": 2,
-          "limit_period": "day"
+          "limit_period": "day",
+          "scope": {
+            "language_codes": ["de"],
+            "content_bank_slugs": ["german-core"],
+            "content_types": ["text_quiz"]
+          }
         },
         {
           "feature_code": "visual_delivery.standard",
           "is_enabled": true,
           "limit_value": 2,
-          "limit_period": "day"
+          "limit_period": "day",
+          "scope": {
+            "language_codes": ["de"],
+            "content_bank_slugs": ["german-core"],
+            "content_types": ["visual_asset"]
+          }
         },
         {
           "feature_code": "visual_generation.standard",
           "is_enabled": true,
           "limit_value": 2,
-          "limit_period": "day"
+          "limit_period": "day",
+          "scope": {
+            "language_codes": ["de"],
+            "content_bank_slugs": ["german-core"],
+            "content_types": ["visual_asset"]
+          }
         }
       ]
     },
@@ -74,19 +99,34 @@
           "feature_code": "quiz_delivery",
           "is_enabled": true,
           "limit_value": 10,
-          "limit_period": "day"
+          "limit_period": "day",
+          "scope": {
+            "language_codes": ["de"],
+            "content_bank_slugs": ["german-core"],
+            "content_types": ["text_quiz"]
+          }
         },
         {
           "feature_code": "visual_delivery.standard",
           "is_enabled": true,
           "limit_value": 10,
-          "limit_period": "day"
+          "limit_period": "day",
+          "scope": {
+            "language_codes": ["de"],
+            "content_bank_slugs": ["german-core"],
+            "content_types": ["visual_asset"]
+          }
         },
         {
           "feature_code": "visual_generation.standard",
           "is_enabled": true,
           "limit_value": 50,
-          "limit_period": "month"
+          "limit_period": "month",
+          "scope": {
+            "language_codes": ["de"],
+            "content_bank_slugs": ["german-core"],
+            "content_types": ["visual_asset"]
+          }
         }
       ]
     },
@@ -102,25 +142,45 @@
           "feature_code": "quiz_delivery",
           "is_enabled": true,
           "limit_value": 20,
-          "limit_period": "day"
+          "limit_period": "day",
+          "scope": {
+            "language_codes": ["de"],
+            "content_bank_slugs": ["german-core"],
+            "content_types": ["text_quiz"]
+          }
         },
         {
           "feature_code": "visual_delivery.branded",
           "is_enabled": true,
           "limit_value": 20,
-          "limit_period": "day"
+          "limit_period": "day",
+          "scope": {
+            "language_codes": ["de"],
+            "content_bank_slugs": ["german-core"],
+            "content_types": ["visual_asset"]
+          }
         },
         {
           "feature_code": "visual_generation.branded",
           "is_enabled": true,
           "limit_value": 100,
-          "limit_period": "month"
+          "limit_period": "month",
+          "scope": {
+            "language_codes": ["de"],
+            "content_bank_slugs": ["german-core"],
+            "content_types": ["visual_asset"]
+          }
         },
         {
           "feature_code": "branding_preset.access",
           "is_enabled": true,
           "limit_value": 1,
-          "limit_period": "manual"
+          "limit_period": "manual",
+          "scope": {
+            "language_codes": ["de"],
+            "content_bank_slugs": ["german-core"],
+            "content_types": ["visual_branding"]
+          }
         }
       ]
     }

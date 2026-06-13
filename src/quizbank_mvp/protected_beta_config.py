@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from .database_runtime import DEFAULT_CONTENT_BANK_ID, DEFAULT_LANGUAGE_CODE
+from .selection_models import ContentScope
 from .visual_models import VisualDeliveryMode, VisualFallbackPolicy, VisualSettings
 
 
@@ -23,6 +25,9 @@ class ProtectedBetaScheduleSlot:
     theme_id: str
     quiz_count: int
     slot_id: str | None = None
+    language_code: str | None = None
+    content_bank_slug: str | None = None
+    bank_version_id: str | None = None
 
     def stable_slot_id(self, consumer_id: str) -> str:
         if self.slot_id:
@@ -69,6 +74,12 @@ class ProtectedBetaTelegramChannel:
     timezone: str
     daily_quota_limit: int
     schedule_batches: tuple[ProtectedBetaScheduleBatch, ...]
+    default_language_code: str = DEFAULT_LANGUAGE_CODE
+    default_content_bank_slug: str = DEFAULT_CONTENT_BANK_ID
+    default_bank_version_id: str | None = None
+    allowed_language_codes: tuple[str, ...] = (DEFAULT_LANGUAGE_CODE,)
+    allowed_content_bank_slugs: tuple[str, ...] = (DEFAULT_CONTENT_BANK_ID,)
+    allowed_bank_version_ids: tuple[str, ...] = ()
     visual_config: ProtectedBetaVisualConfig | None = None
     credential_env: str | None = None
 
@@ -81,6 +92,23 @@ class ProtectedBetaTelegramChannel:
 
     def allowed_theme_ids(self) -> list[str]:
         return sorted({slot.theme_id for slot in self.schedule_slots})
+
+    def content_scope_for_slot(self, slot: ProtectedBetaScheduleSlot) -> ContentScope:
+        return ContentScope(
+            language_code=slot.language_code or self.default_language_code,
+            content_bank_id=slot.content_bank_slug or self.default_content_bank_slug,
+            bank_version_id=slot.bank_version_id or self.default_bank_version_id,
+        )
+
+    def seed_content_scope(self) -> dict[str, object]:
+        return {
+            "default_language_code": self.default_language_code,
+            "default_content_bank_id": self.default_content_bank_slug,
+            "default_bank_version_id": self.default_bank_version_id or "",
+            "allowed_language_codes": list(self.allowed_language_codes),
+            "allowed_content_bank_ids": list(self.allowed_content_bank_slugs),
+            "allowed_bank_version_ids": list(self.allowed_bank_version_ids),
+        }
 
 
 def load_protected_beta_channels(
@@ -113,16 +141,42 @@ def protected_beta_channel_by_id(
 def parse_channel(raw_channel: object, context: str) -> ProtectedBetaTelegramChannel:
     channel = require_mapping(raw_channel, context)
     timezone = require_timezone(require_str(channel, "timezone", context), context)
-    return ProtectedBetaTelegramChannel(
+    default_language = optional_str(channel, "default_language_code", context) or DEFAULT_LANGUAGE_CODE
+    default_bank = optional_str(channel, "default_content_bank_slug", context) or DEFAULT_CONTENT_BANK_ID
+    parsed_channel = ProtectedBetaTelegramChannel(
         consumer_id=require_str(channel, "consumer_id", context),
         chat_id=require_str(channel, "chat_id", context),
         display_name=require_str(channel, "display_name", context),
         timezone=timezone,
         daily_quota_limit=require_int(channel, "daily_quota_limit", context, minimum=1),
         schedule_batches=parse_batches(channel.get("schedule_batches"), context),
+        default_language_code=normalized_language(default_language, f"{context}.default_language_code"),
+        default_content_bank_slug=default_bank,
+        default_bank_version_id=optional_str(channel, "default_bank_version_id", context),
+        allowed_language_codes=parse_string_list(
+            channel,
+            "allowed_language_codes",
+            context,
+            (normalized_language(default_language, f"{context}.default_language_code"),),
+        ),
+        allowed_content_bank_slugs=parse_string_list(
+            channel,
+            "allowed_content_bank_slugs",
+            context,
+            (default_bank,),
+        ),
+        allowed_bank_version_ids=parse_string_list(
+            channel,
+            "allowed_bank_version_ids",
+            context,
+            (),
+            allow_empty=True,
+        ),
         visual_config=parse_visual_config(channel.get("visual_config"), context),
         credential_env=optional_str(channel, "credential_env", context),
     )
+    ensure_channel_content_scope_allowed(parsed_channel, context)
+    return parsed_channel
 
 
 def parse_batches(raw_batches: object, context: str) -> tuple[ProtectedBetaScheduleBatch, ...]:
@@ -152,6 +206,9 @@ def parse_slot(raw_slot: object, context: str) -> ProtectedBetaScheduleSlot:
         theme_id=require_str(slot, "theme_id", context),
         quiz_count=require_int(slot, "quiz_count", context, minimum=1),
         slot_id=optional_str(slot, "slot_id", context),
+        language_code=optional_language(slot, "language_code", context),
+        content_bank_slug=optional_str(slot, "content_bank_slug", context),
+        bank_version_id=optional_str(slot, "bank_version_id", context),
     )
 
 
@@ -198,6 +255,66 @@ def ensure_unique_consumer_ids(channels: tuple[ProtectedBetaTelegramChannel, ...
         seen.add(channel.consumer_id)
 
 
+def ensure_channel_content_scope_allowed(
+    channel: ProtectedBetaTelegramChannel,
+    context: str,
+) -> None:
+    ensure_allowed_value(
+        channel.default_language_code,
+        channel.allowed_language_codes,
+        f"{context}.default_language_code",
+        "allowed_language_codes",
+    )
+    ensure_allowed_value(
+        channel.default_content_bank_slug,
+        channel.allowed_content_bank_slugs,
+        f"{context}.default_content_bank_slug",
+        "allowed_content_bank_slugs",
+    )
+    ensure_optional_allowed_value(
+        channel.default_bank_version_id,
+        channel.allowed_bank_version_ids,
+        f"{context}.default_bank_version_id",
+        "allowed_bank_version_ids",
+    )
+    for index, slot in enumerate(channel.schedule_slots):
+        slot_context = f"{context}.schedule_slots[{index}]"
+        ensure_optional_allowed_value(
+            slot.language_code,
+            channel.allowed_language_codes,
+            f"{slot_context}.language_code",
+            "allowed_language_codes",
+        )
+        ensure_optional_allowed_value(
+            slot.content_bank_slug,
+            channel.allowed_content_bank_slugs,
+            f"{slot_context}.content_bank_slug",
+            "allowed_content_bank_slugs",
+        )
+        ensure_optional_allowed_value(
+            slot.bank_version_id,
+            channel.allowed_bank_version_ids,
+            f"{slot_context}.bank_version_id",
+            "allowed_bank_version_ids",
+        )
+
+
+def ensure_allowed_value(value: str, allowed: tuple[str, ...], context: str, allowed_name: str) -> None:
+    if value not in allowed:
+        raise ValueError(f"{context} must be listed in {allowed_name}")
+
+
+def ensure_optional_allowed_value(
+    value: str | None,
+    allowed: tuple[str, ...],
+    context: str,
+    allowed_name: str,
+) -> None:
+    if value is None or not allowed:
+        return
+    ensure_allowed_value(value, allowed, context, allowed_name)
+
+
 def require_mapping(value: object, context: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise ValueError(f"{context} must be an object")
@@ -224,6 +341,48 @@ def optional_str(raw: Mapping[str, Any], key: str, context: str) -> str | None:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{context}.{key} must be a non-empty string when set")
     return value.strip()
+
+
+def optional_language(raw: Mapping[str, Any], key: str, context: str) -> str | None:
+    value = optional_str(raw, key, context)
+    if value is None:
+        return None
+    return normalized_language(value, f"{context}.{key}")
+
+
+def parse_string_list(
+    raw: Mapping[str, Any],
+    key: str,
+    context: str,
+    default: tuple[str, ...],
+    allow_empty: bool = False,
+) -> tuple[str, ...]:
+    value = raw.get(key)
+    if value is None:
+        return default
+    values = require_sequence(value, f"{context}.{key}")
+    if not values and not allow_empty:
+        raise ValueError(f"{context}.{key} must not be empty")
+    parsed = tuple(parse_list_string(item, key, context, index) for index, item in enumerate(values))
+    if not parsed and not allow_empty:
+        raise ValueError(f"{context}.{key} must not be empty")
+    return parsed
+
+
+def parse_list_string(value: object, key: str, context: str, index: int) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{context}.{key}[{index}] must be a non-empty string")
+    parsed = value.strip()
+    if key == "allowed_language_codes":
+        return normalized_language(parsed, f"{context}.{key}[{index}]")
+    return parsed
+
+
+def normalized_language(value: str, context: str) -> str:
+    normalized = value.strip().lower()
+    if not normalized:
+        raise ValueError(f"{context} must be a non-empty string")
+    return normalized
 
 
 def require_int(

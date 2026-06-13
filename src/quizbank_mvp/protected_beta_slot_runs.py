@@ -7,6 +7,8 @@ from typing import Any
 
 from .database_connection import connect, new_id, row_to_dict, utc_now
 from .problems import QuizBankProblem
+from .selection_models import ContentScope
+from .selection_scope import resolve_content_scope
 from .telegram_bot_api import TelegramDeliveryError
 from .telegram_models import TelegramDeliveryResult
 from .telegram_result_repository import redact_telegram_target
@@ -27,24 +29,27 @@ def upsert_pending_slot_run(
     delivery_date: str,
     slot_id: str,
 ) -> dict[str, object]:
-    idempotency_key = scheduled_slot_idempotency_key(
-        channel.consumer_id,
-        channel.chat_id,
-        delivery_date,
-        slot_id,
-        slot.cefr_level,
-        slot.theme_id,
-    )
     with connect(db_path) as connection:
+        content_scope = resolve_slot_content_scope(connection, channel, slot)
+        idempotency_key = scheduled_slot_idempotency_key(
+            channel.consumer_id,
+            channel.chat_id,
+            delivery_date,
+            slot_id,
+            content_scope,
+            slot.cefr_level,
+            slot.theme_id,
+        )
         now = utc_now()
         slot_run_id = new_id("slotrun")
         connection.execute(
             """
             INSERT INTO scheduled_delivery_slots (
                 slot_run_id, idempotency_key, consumer_id, channel_id,
-                delivery_date, slot_id, cefr_level, theme_id, delivery_id,
-                status, failure_reason, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, 'pending', NULL, ?, ?)
+                delivery_date, slot_id, language_code, content_bank_id,
+                bank_version_id, cefr_level, theme_id, delivery_id, status,
+                failure_reason, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'pending', NULL, ?, ?)
             ON CONFLICT(idempotency_key) DO NOTHING
             """,
             (
@@ -54,6 +59,9 @@ def upsert_pending_slot_run(
                 channel.chat_id,
                 delivery_date,
                 slot_id,
+                content_scope.language_code,
+                content_scope.content_bank_id,
+                content_scope.bank_version_id,
                 slot.cefr_level,
                 slot.theme_id,
                 now,
@@ -72,10 +80,29 @@ def scheduled_slot_idempotency_key(
     channel_id: str,
     delivery_date: str,
     slot_id: str,
+    content_scope: ContentScope,
     cefr_level: str,
     theme_id: str,
 ) -> str:
-    return "|".join((consumer_id, channel_id, delivery_date, slot_id, cefr_level, theme_id))
+    return "|".join(
+        (
+            consumer_id,
+            channel_id,
+            delivery_date,
+            slot_id,
+            content_scope.language_code,
+            str(content_scope.content_bank_id),
+            str(content_scope.bank_version_id),
+            cefr_level,
+            theme_id,
+        )
+    )
+
+
+def resolve_slot_content_scope(connection, channel: Any, slot: Any) -> ContentScope:
+    if hasattr(channel, "content_scope_for_slot"):
+        return resolve_content_scope(connection, channel.content_scope_for_slot(slot))
+    return resolve_content_scope(connection, ContentScope())
 
 
 def update_slot_run_result(
@@ -165,6 +192,9 @@ def mark_scheduled_slot_failed_result(
         status="failed",
         telegram_target_ref=redact_telegram_target(channel.chat_id),
         failure_reason=failure_reason,
+        language_code=str(slot_run["language_code"]),
+        content_bank_id=str(slot_run["content_bank_id"]),
+        bank_version_id=str(slot_run["bank_version_id"]),
     )
 
 
@@ -188,6 +218,7 @@ def sent_telegram_result_for_slot_run(
         row = connection.execute(
             """
             SELECT d.delivery_id, d.consumer_id, d.quiz_item_id,
+                   d.language_code, d.content_bank_id, d.bank_version_id,
                    t.status, t.telegram_target_ref, t.telegram_message_id,
                    t.telegram_poll_id, t.failure_reason
             FROM deliveries d
@@ -211,6 +242,7 @@ def telegram_result_for_slot_run(
         row = connection.execute(
             """
             SELECT d.delivery_id, d.consumer_id, d.quiz_item_id,
+                   d.language_code, d.content_bank_id, d.bank_version_id,
                    t.status, t.telegram_target_ref, t.telegram_message_id,
                    t.telegram_poll_id, t.failure_reason
             FROM deliveries d
@@ -228,6 +260,9 @@ def telegram_result_for_slot_run(
             status="sent",
             telegram_target_ref=redact_telegram_target(channel.chat_id),
             failure_reason="sent_slot_delivery_missing",
+            language_code=str(slot_run["language_code"]),
+            content_bank_id=str(slot_run["content_bank_id"]),
+            bank_version_id=str(slot_run["bank_version_id"]),
         )
     return telegram_result_from_record(row_to_dict(row), channel, mode)
 
@@ -249,4 +284,7 @@ def telegram_result_from_record(
         telegram_message_id=record["telegram_message_id"],
         telegram_poll_id=record["telegram_poll_id"],
         failure_reason=record["failure_reason"],
+        language_code=str(record["language_code"]),
+        content_bank_id=str(record["content_bank_id"]),
+        bank_version_id=str(record["bank_version_id"]),
     )

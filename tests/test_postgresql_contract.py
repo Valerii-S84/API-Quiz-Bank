@@ -32,6 +32,9 @@ POSTGRESQL_NEXT_ROUTE_INDEX_SQL = (
 POSTGRESQL_MULTILINGUAL_BANK_SQL = (
     ROOT / "database" / "postgresql" / "012_add_multilingual_bank_foundation.sql"
 ).read_text(encoding="utf-8")
+POSTGRESQL_CHANNEL_TARIFF_SCOPE_SQL = (
+    ROOT / "database" / "postgresql" / "013_add_channel_tariff_scope.sql"
+).read_text(encoding="utf-8")
 
 
 class PostgreSQLContractTests(unittest.TestCase):
@@ -281,6 +284,30 @@ class PostgreSQLMultilingualBankContractTests(unittest.TestCase):
             "ON import_batch_items(bank_version_id, source_id, source_item_id)",
         ]:
             self.assertIn(required_fragment, POSTGRESQL_MULTILINGUAL_BANK_SQL)
+
+    def test_channel_tariff_migration_scopes_consumers_entitlements_and_quota(self) -> None:
+        for required_fragment in [
+            "ALTER TABLE consumers",
+            "default_language_code TEXT NOT NULL DEFAULT 'de'",
+            "allowed_language_codes_json TEXT NOT NULL DEFAULT '[\"de\"]'",
+            "allowed_content_bank_ids_json TEXT NOT NULL DEFAULT '[\"german-core\"]'",
+            "ALTER TABLE entitlements",
+            "allowed_content_types_json TEXT NOT NULL DEFAULT '[]'",
+            "ALTER TABLE quota_usage",
+            "DROP CONSTRAINT IF EXISTS quota_usage_consumer_id_feature_usage_date_key",
+            "ADD CONSTRAINT quota_usage_content_scope_key UNIQUE",
+            "language_code,\n        content_bank_id,\n        bank_version_id",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_CHANNEL_TARIFF_SCOPE_SQL)
+
+    def test_channel_tariff_migration_scopes_scheduled_slot_uniqueness(self) -> None:
+        for required_fragment in [
+            "ALTER TABLE scheduled_delivery_slots",
+            "DROP CONSTRAINT IF EXISTS scheduled_delivery_slots_content_scope_key",
+            "ADD CONSTRAINT scheduled_delivery_slots_content_scope_key UNIQUE",
+            "slot_id,\n        language_code,\n        content_bank_id,\n        bank_version_id,",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_CHANNEL_TARIFF_SCOPE_SQL)
 
 
 if __name__ == "__main__":

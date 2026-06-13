@@ -7,6 +7,7 @@ from typing import Any
 
 from .database_connection import decode_json_field
 from .problems import QuizBankProblem
+from .database_runtime import DEFAULT_LANGUAGE_CODE
 from .selection_models import ContentScope
 
 
@@ -28,8 +29,8 @@ def effective_scope_replacement(
     }
 
 
-def resolve_content_scope_request(connection, request: Any):
-    scope = resolve_content_scope(connection, request.content_scope)
+def resolve_content_scope_request(connection, request: Any, consumer: dict[str, Any] | None = None):
+    scope = resolve_content_scope(connection, request_scope_with_consumer_defaults(request, consumer))
     return replace(
         request,
         content_scope=scope,
@@ -42,6 +43,35 @@ def resolve_content_scope_request(connection, request: Any):
         pattern_ids=(),
         excluded_item_ids=(),
     )
+
+
+def request_scope_with_consumer_defaults(
+    request: Any,
+    consumer: dict[str, Any] | None,
+) -> ContentScope:
+    requested_scope = request.content_scope
+    if consumer is None:
+        return requested_scope
+    return ContentScope(
+        language_code=effective_language_code(requested_scope, consumer),
+        content_bank_id=requested_scope.content_bank_id
+        or blank_to_none(consumer.get("default_content_bank_id")),
+        bank_version_id=requested_scope.bank_version_id
+        or blank_to_none(consumer.get("default_bank_version_id")),
+    )
+
+
+def effective_language_code(scope: ContentScope, consumer: dict[str, Any]) -> str:
+    if scope.language_code != DEFAULT_LANGUAGE_CODE:
+        return scope.language_code
+    return str(consumer.get("default_language_code") or DEFAULT_LANGUAGE_CODE)
+
+
+def blank_to_none(value: Any) -> str | None:
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    return normalized or None
 
 
 def resolve_content_scope(connection, requested_scope: ContentScope) -> ContentScope:

@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from .database_connection import connect, new_id, today_usage_date, utc_now
+from .database_runtime import DEFAULT_BANK_VERSION_ID, DEFAULT_CONTENT_BANK_ID, DEFAULT_LANGUAGE_CODE
+from .selection_scope_enforcement import scope_list
 from .visual_models import (
     VisualAccessDecision,
     VisualDeliveryMode,
@@ -27,11 +30,12 @@ VISUAL_GENERATION_FEATURES = {
 def check_visual_delivery_access(
     db_path: Path | None,
     settings: VisualSettings,
+    content_scope: dict[str, Any] | None = None,
 ) -> VisualAccessDecision:
     if not settings.is_active or settings.delivery_mode == VisualDeliveryMode.TEXT_ONLY:
         return allowed_text_only(settings, "TEXT_ONLY_VISUAL_MODE")
     feature = visual_delivery_feature(settings.delivery_mode)
-    if has_active_entitlement(db_path, settings.consumer_id, feature):
+    if has_active_entitlement(db_path, settings.consumer_id, feature, content_scope):
         return VisualAccessDecision(
             True,
             settings.delivery_mode,
@@ -45,11 +49,12 @@ def check_visual_delivery_access(
 def check_visual_generation_access(
     db_path: Path | None,
     settings: VisualSettings,
+    content_scope: dict[str, Any] | None = None,
 ) -> VisualAccessDecision:
     if not settings.is_active or settings.delivery_mode == VisualDeliveryMode.TEXT_ONLY:
         return allowed_text_only(settings, "TEXT_ONLY_VISUAL_MODE")
     feature = visual_generation_feature(settings.delivery_mode)
-    if has_active_entitlement(db_path, settings.consumer_id, feature):
+    if has_active_entitlement(db_path, settings.consumer_id, feature, content_scope):
         return VisualAccessDecision(
             True,
             settings.delivery_mode,
@@ -64,6 +69,7 @@ def check_visual_delivery_quota(
     db_path: Path | None,
     settings: VisualSettings,
     usage_date: str | None = None,
+    content_scope: dict[str, Any] | None = None,
 ) -> VisualQuotaDecision:
     if not settings.is_active or settings.delivery_mode == VisualDeliveryMode.TEXT_ONLY:
         return quota_allowed("visual_delivery.none", 0, 0, usage_date or today_usage_date())
@@ -74,6 +80,7 @@ def check_visual_delivery_quota(
         feature,
         usage_date or today_usage_date(),
         settings.daily_visual_delivery_limit,
+        content_scope,
     )
 
 
@@ -81,44 +88,57 @@ def check_visual_generation_quota(
     db_path: Path | None,
     settings: VisualSettings,
     usage_date: str | None = None,
+    content_scope: dict[str, Any] | None = None,
 ) -> VisualQuotaDecision:
     if not settings.is_active or settings.delivery_mode == VisualDeliveryMode.TEXT_ONLY:
         return quota_allowed("visual_generation.none", 0, 0, usage_date or today_usage_date())
     day_key = usage_date or today_usage_date()
     feature = visual_generation_feature(settings.delivery_mode)
-    daily = check_quota(db_path, settings.consumer_id, feature, day_key, settings.daily_generation_limit)
+    daily = check_quota(
+        db_path, settings.consumer_id, feature, day_key, settings.daily_generation_limit, content_scope
+    )
     if not daily.is_allowed:
         return daily
     month_key = day_key[:7]
-    return check_quota(db_path, settings.consumer_id, feature, month_key, settings.monthly_generation_limit)
+    return check_quota(
+        db_path, settings.consumer_id, feature, month_key, settings.monthly_generation_limit, content_scope
+    )
 
 
 def reserve_visual_delivery_quota(
     db_path: Path | None,
     settings: VisualSettings,
     usage_date: str | None = None,
+    content_scope: dict[str, Any] | None = None,
 ) -> VisualQuotaDecision:
     if not settings.is_active or settings.delivery_mode == VisualDeliveryMode.TEXT_ONLY:
         return quota_allowed("visual_delivery.none", 0, 0, usage_date or today_usage_date())
     day_key = usage_date or today_usage_date()
     feature = visual_delivery_feature(settings.delivery_mode)
-    return increment_quota_usage(db_path, settings.consumer_id, feature, day_key, settings.daily_visual_delivery_limit)
+    return increment_quota_usage(
+        db_path, settings.consumer_id, feature, day_key, settings.daily_visual_delivery_limit, content_scope
+    )
 
 
 def reserve_visual_generation_quota(
     db_path: Path | None,
     settings: VisualSettings,
     usage_date: str | None = None,
+    content_scope: dict[str, Any] | None = None,
 ) -> VisualQuotaDecision:
     if not settings.is_active or settings.delivery_mode == VisualDeliveryMode.TEXT_ONLY:
         return quota_allowed("visual_generation.none", 0, 0, usage_date or today_usage_date())
     day_key = usage_date or today_usage_date()
     month_key = day_key[:7]
     feature = visual_generation_feature(settings.delivery_mode)
-    daily = check_quota(db_path, settings.consumer_id, feature, day_key, settings.daily_generation_limit)
+    daily = check_quota(
+        db_path, settings.consumer_id, feature, day_key, settings.daily_generation_limit, content_scope
+    )
     if not daily.is_allowed:
         return daily
-    monthly = check_quota(db_path, settings.consumer_id, feature, month_key, settings.monthly_generation_limit)
+    monthly = check_quota(
+        db_path, settings.consumer_id, feature, month_key, settings.monthly_generation_limit, content_scope
+    )
     if not monthly.is_allowed:
         return monthly
     with connect(db_path) as connection:
@@ -128,6 +148,7 @@ def reserve_visual_generation_quota(
             feature,
             day_key,
             settings.daily_generation_limit,
+            content_scope,
         )
         if not daily_reservation.is_allowed:
             return daily_reservation
@@ -137,17 +158,23 @@ def reserve_visual_generation_quota(
             feature,
             month_key,
             settings.monthly_generation_limit,
+            content_scope,
         )
         if not monthly_reservation.is_allowed:
             connection.rollback()
         return monthly_reservation
 
 
-def has_active_entitlement(db_path: Path | None, consumer_id: str, feature: str) -> bool:
+def has_active_entitlement(
+    db_path: Path | None,
+    consumer_id: str,
+    feature: str,
+    content_scope: dict[str, Any] | None = None,
+) -> bool:
     with connect(db_path) as connection:
         row = connection.execute(
             """
-            SELECT entitlement_id FROM entitlements
+            SELECT * FROM entitlements
             WHERE consumer_id = ?
               AND feature = ?
               AND status = 'active'
@@ -157,7 +184,7 @@ def has_active_entitlement(db_path: Path | None, consumer_id: str, feature: str)
             """,
             (consumer_id, feature, utc_now()),
         ).fetchone()
-    return row is not None
+    return row is not None and entitlement_allows_content_scope(dict(row), content_scope)
 
 
 def check_quota(
@@ -166,8 +193,9 @@ def check_quota(
     feature: str,
     period_key: str,
     quota_limit: int,
+    content_scope: dict[str, Any] | None = None,
 ) -> VisualQuotaDecision:
-    used_count = load_quota_used_count(db_path, consumer_id, feature, period_key)
+    used_count = load_quota_used_count(db_path, consumer_id, feature, period_key, content_scope)
     if used_count >= quota_limit:
         return VisualQuotaDecision(
             False,
@@ -185,9 +213,10 @@ def load_quota_used_count(
     consumer_id: str,
     feature: str,
     period_key: str,
+    content_scope: dict[str, Any] | None = None,
 ) -> int:
     with connect(db_path) as connection:
-        return load_quota_used_count_on_connection(connection, consumer_id, feature, period_key)
+        return load_quota_used_count_on_connection(connection, consumer_id, feature, period_key, content_scope)
 
 
 def load_quota_used_count_on_connection(
@@ -195,13 +224,16 @@ def load_quota_used_count_on_connection(
     consumer_id: str,
     feature: str,
     period_key: str,
+    content_scope: dict[str, Any] | None = None,
 ) -> int:
+    language_code, content_bank_id, bank_version_id = visual_scope_values(content_scope)
     row = connection.execute(
         """
         SELECT used_count FROM quota_usage
         WHERE consumer_id = ? AND feature = ? AND usage_date = ?
+          AND language_code = ? AND content_bank_id = ? AND bank_version_id = ?
         """,
-        (consumer_id, feature, period_key),
+        (consumer_id, feature, period_key, language_code, content_bank_id, bank_version_id),
     ).fetchone()
     return 0 if row is None else int(row["used_count"])
 
@@ -212,9 +244,12 @@ def increment_quota_usage(
     feature: str,
     period_key: str,
     quota_limit: int,
+    content_scope: dict[str, Any] | None = None,
 ) -> VisualQuotaDecision:
     with connect(db_path) as connection:
-        return increment_quota_usage_on_connection(connection, consumer_id, feature, period_key, quota_limit)
+        return increment_quota_usage_on_connection(
+            connection, consumer_id, feature, period_key, quota_limit, content_scope
+        )
 
 
 def increment_quota_usage_on_connection(
@@ -223,17 +258,29 @@ def increment_quota_usage_on_connection(
     feature: str,
     period_key: str,
     quota_limit: int,
+    content_scope: dict[str, Any] | None = None,
 ) -> VisualQuotaDecision:
     if quota_limit <= 0:
-        used_count = load_quota_used_count_on_connection(connection, consumer_id, feature, period_key)
+        used_count = load_quota_used_count_on_connection(
+            connection, consumer_id, feature, period_key, content_scope
+        )
         return VisualQuotaDecision(False, feature, used_count, quota_limit, period_key, "VISUAL_QUOTA_EXHAUSTED")
+    language_code, content_bank_id, bank_version_id = visual_scope_values(content_scope)
     cursor = connection.execute(
         """
         INSERT INTO quota_usage (
-            quota_usage_id, consumer_id, feature, usage_date, used_count,
-            quota_limit, updated_at
-        ) VALUES (?, ?, ?, ?, 1, ?, ?)
-        ON CONFLICT(consumer_id, feature, usage_date) DO UPDATE SET
+            quota_usage_id, consumer_id, feature, usage_date,
+            language_code, content_bank_id, bank_version_id,
+            used_count, quota_limit, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+        ON CONFLICT(
+            consumer_id,
+            feature,
+            usage_date,
+            language_code,
+            content_bank_id,
+            bank_version_id
+        ) DO UPDATE SET
             used_count = quota_usage.used_count + 1,
             quota_limit = excluded.quota_limit,
             updated_at = excluded.updated_at
@@ -244,11 +291,16 @@ def increment_quota_usage_on_connection(
             consumer_id,
             feature,
             period_key,
+            language_code,
+            content_bank_id,
+            bank_version_id,
             quota_limit,
             utc_now(),
         ),
     )
-    used_count = load_quota_used_count_on_connection(connection, consumer_id, feature, period_key)
+    used_count = load_quota_used_count_on_connection(
+        connection, consumer_id, feature, period_key, content_scope
+    )
     if cursor.rowcount == 0:
         return VisualQuotaDecision(False, feature, used_count, quota_limit, period_key, "VISUAL_QUOTA_EXHAUSTED")
     return quota_allowed(feature, used_count, quota_limit, period_key)
@@ -260,6 +312,31 @@ def visual_delivery_feature(mode: VisualDeliveryMode) -> str:
 
 def visual_generation_feature(mode: VisualDeliveryMode) -> str:
     return VISUAL_GENERATION_FEATURES[mode]
+
+
+def entitlement_allows_content_scope(
+    entitlement: dict[str, Any],
+    content_scope: dict[str, Any] | None,
+) -> bool:
+    language_code, content_bank_id, bank_version_id = visual_scope_values(content_scope)
+    return (
+        value_allowed(scope_list(entitlement, "allowed_language_codes_json"), language_code)
+        and value_allowed(scope_list(entitlement, "allowed_content_bank_ids_json"), content_bank_id)
+        and value_allowed(scope_list(entitlement, "allowed_bank_version_ids_json"), bank_version_id)
+    )
+
+
+def value_allowed(allowed_values: list[str], requested_value: str) -> bool:
+    return not allowed_values or requested_value in allowed_values
+
+
+def visual_scope_values(content_scope: dict[str, Any] | None) -> tuple[str, str, str]:
+    scope = content_scope or {}
+    return (
+        str(scope.get("language_code") or DEFAULT_LANGUAGE_CODE),
+        str(scope.get("content_bank_id") or DEFAULT_CONTENT_BANK_ID),
+        str(scope.get("bank_version_id") or DEFAULT_BANK_VERSION_ID),
+    )
 
 
 def allowed_text_only(settings: VisualSettings, reason_code: str) -> VisualAccessDecision:

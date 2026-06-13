@@ -5,6 +5,10 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+from .content_scope_defaults import DEFAULT_BANK_VERSION, DEFAULT_BANK_VERSION_ID
+from .content_scope_defaults import DEFAULT_CONTENT_BANK_ID, DEFAULT_LANGUAGE_CODE
+from .database_channel_tariff_scope import ensure_sqlite_channel_tariff_scope
+from .database_channel_tariff_scope import sqlite_channel_tariff_scope_is_ready
 from .database_connection import (
     ROOT,
     configured_database_url,
@@ -21,10 +25,6 @@ from .visual_database_metadata import (
 
 MIGRATIONS_DIRECTORY = ROOT / "database" / "migrations"
 POSTGRESQL_MIGRATIONS_DIRECTORY = ROOT / "database" / "postgresql"
-DEFAULT_LANGUAGE_CODE = "de"
-DEFAULT_CONTENT_BANK_ID = "german-core"
-DEFAULT_BANK_VERSION = "2026-06-12-baseline"
-DEFAULT_BANK_VERSION_ID = "german-core:2026-06-12-baseline"
 RUNTIME_TABLES = {
     "languages",
     "content_banks",
@@ -119,6 +119,7 @@ def sqlite_content_bank_foundation_is_ready(path: Path) -> bool:
             sqlite_table_has_columns(connection, "quiz_items", CONTENT_SCOPE_COLUMNS)
             and sqlite_table_has_columns(connection, "sources", CONTENT_SCOPE_COLUMNS)
             and sqlite_table_has_columns(connection, "deliveries", CONTENT_SCOPE_COLUMNS)
+            and sqlite_channel_tariff_scope_is_ready(connection)
             and sqlite_quiz_items_has_bank_version_fk(connection)
             and sqlite_active_german_bank_version_exists(connection)
         )
@@ -130,6 +131,7 @@ def ensure_sqlite_content_bank_foundation(connection: sqlite3.Connection) -> Non
         ensure_sqlite_scope_columns(connection, table_name)
     ensure_sqlite_scheduled_slot_scope(connection)
     ensure_sqlite_quiz_item_scope(connection)
+    ensure_sqlite_channel_tariff_scope(connection)
     ensure_sqlite_scope_indexes(connection)
 
 
@@ -466,6 +468,16 @@ def ensure_sqlite_scope_indexes(connection: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_scheduled_delivery_slots_consumer_date
             ON scheduled_delivery_slots(consumer_id, delivery_date, status);
+
+        CREATE INDEX IF NOT EXISTS idx_quota_usage_content_scope
+            ON quota_usage(
+                consumer_id,
+                feature,
+                usage_date,
+                language_code,
+                content_bank_id,
+                bank_version_id
+            );
         """
     )
 

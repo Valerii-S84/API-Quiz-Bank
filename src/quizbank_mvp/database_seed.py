@@ -142,25 +142,42 @@ def seed_consumer(
     daily_quota_limit: int,
     allowed_cefr_levels: Iterable[str],
     allowed_theme_ids: Iterable[str],
+    content_scope: dict[str, Any] | None = None,
 ) -> None:
+    scope = consumer_scope_payload(content_scope)
     with connect(db_path) as connection:
         connection.execute(
             """
             INSERT INTO consumers (
                 consumer_id, status, allowed_cefr_levels_json, allowed_theme_ids_json,
-                daily_quota_limit, created_at
-            ) VALUES (?, 'active', ?, ?, ?, ?)
+                daily_quota_limit, default_language_code, default_content_bank_id,
+                default_bank_version_id, allowed_language_codes_json,
+                allowed_content_bank_ids_json, allowed_bank_version_ids_json,
+                created_at
+            ) VALUES (?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(consumer_id) DO UPDATE SET
                 status = excluded.status,
                 allowed_cefr_levels_json = excluded.allowed_cefr_levels_json,
                 allowed_theme_ids_json = excluded.allowed_theme_ids_json,
-                daily_quota_limit = excluded.daily_quota_limit
+                daily_quota_limit = excluded.daily_quota_limit,
+                default_language_code = excluded.default_language_code,
+                default_content_bank_id = excluded.default_content_bank_id,
+                default_bank_version_id = excluded.default_bank_version_id,
+                allowed_language_codes_json = excluded.allowed_language_codes_json,
+                allowed_content_bank_ids_json = excluded.allowed_content_bank_ids_json,
+                allowed_bank_version_ids_json = excluded.allowed_bank_version_ids_json
             """,
             (
                 consumer_id,
                 json.dumps(list(allowed_cefr_levels)),
                 json.dumps(list(allowed_theme_ids)),
                 daily_quota_limit,
+                scope["default_language_code"],
+                scope["default_content_bank_id"],
+                scope["default_bank_version_id"],
+                json.dumps(scope["allowed_language_codes"]),
+                json.dumps(scope["allowed_content_bank_ids"]),
+                json.dumps(scope["allowed_bank_version_ids"]),
                 utc_now(),
             ),
         )
@@ -243,19 +260,27 @@ def seed_entitlement(
     valid_until: str | None = None,
     actor: str = "local_seed",
     reason: str = "MVP entitlement grant",
+    content_scope: dict[str, Any] | None = None,
 ) -> str:
     entitlement_id = f"ent_{consumer_id}"
+    scope = entitlement_scope_payload(content_scope)
     with connect(db_path) as connection:
         connection.execute(
             """
             INSERT INTO entitlements (
                 entitlement_id, consumer_id, feature, status, allowed_cefr_levels_json,
-                allowed_theme_ids_json, valid_until, created_at
-            ) VALUES (?, ?, 'quiz_delivery', 'active', ?, ?, ?, ?)
+                allowed_theme_ids_json, allowed_language_codes_json,
+                allowed_content_bank_ids_json, allowed_bank_version_ids_json,
+                allowed_content_types_json, valid_until, created_at
+            ) VALUES (?, ?, 'quiz_delivery', 'active', ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(entitlement_id) DO UPDATE SET
                 status = excluded.status,
                 allowed_cefr_levels_json = excluded.allowed_cefr_levels_json,
                 allowed_theme_ids_json = excluded.allowed_theme_ids_json,
+                allowed_language_codes_json = excluded.allowed_language_codes_json,
+                allowed_content_bank_ids_json = excluded.allowed_content_bank_ids_json,
+                allowed_bank_version_ids_json = excluded.allowed_bank_version_ids_json,
+                allowed_content_types_json = excluded.allowed_content_types_json,
                 valid_until = excluded.valid_until
             """,
             (
@@ -263,6 +288,10 @@ def seed_entitlement(
                 consumer_id,
                 json.dumps(list(allowed_cefr_levels)),
                 json.dumps(list(allowed_theme_ids)),
+                json.dumps(scope["allowed_language_codes"]),
+                json.dumps(scope["allowed_content_bank_ids"]),
+                json.dumps(scope["allowed_bank_version_ids"]),
+                json.dumps(scope["allowed_content_types"]),
                 valid_until,
                 utc_now(),
             ),
@@ -277,6 +306,39 @@ def seed_entitlement(
             (new_id("audit"), actor, entitlement_id, reason, utc_now()),
         )
     return entitlement_id
+
+
+def consumer_scope_payload(content_scope: dict[str, Any] | None) -> dict[str, Any]:
+    scope = content_scope or {}
+    allowed_language_codes = scope_values(scope, "allowed_language_codes", [DEFAULT_LANGUAGE_CODE])
+    allowed_content_bank_ids = scope_values(scope, "allowed_content_bank_ids", [DEFAULT_CONTENT_BANK_ID])
+    return {
+        "default_language_code": scope.get("default_language_code") or DEFAULT_LANGUAGE_CODE,
+        "default_content_bank_id": scope.get("default_content_bank_id") or DEFAULT_CONTENT_BANK_ID,
+        "default_bank_version_id": scope.get("default_bank_version_id") or "",
+        "allowed_language_codes": allowed_language_codes,
+        "allowed_content_bank_ids": allowed_content_bank_ids,
+        "allowed_bank_version_ids": scope_values(scope, "allowed_bank_version_ids", []),
+    }
+
+
+def entitlement_scope_payload(content_scope: dict[str, Any] | None) -> dict[str, Any]:
+    scope = consumer_scope_payload(content_scope)
+    return {
+        "allowed_language_codes": scope["allowed_language_codes"],
+        "allowed_content_bank_ids": scope["allowed_content_bank_ids"],
+        "allowed_bank_version_ids": scope["allowed_bank_version_ids"],
+        "allowed_content_types": scope_values(content_scope or {}, "allowed_content_types", []),
+    }
+
+
+def scope_values(
+    scope: dict[str, Any],
+    key: str,
+    default: list[str],
+) -> list[str]:
+    values = scope.get(key, default)
+    return [str(value) for value in values]
 
 
 def upsert_consumer_visual_settings(

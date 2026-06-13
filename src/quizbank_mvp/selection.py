@@ -91,7 +91,7 @@ def prepare_selection_write_plan(
         consumer = load_active_consumer(connection, request.consumer_id)
         entitlement = load_active_entitlement(connection, request)
         request = replace(request, **effective_scope_replacement(request, consumer, entitlement))
-        request = resolve_content_scope_request(connection, request)
+        request = resolve_content_scope_request(connection, request, consumer)
         enforce_consumer_scope(consumer, request)
         enforce_entitlement_scope(entitlement, request)
         item, eligible_count = find_eligible_item(connection, request)
