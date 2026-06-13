@@ -10,10 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from quizbank_common import (
-    DEFAULT_CONTENT_BANK_ID,
-    DEFAULT_IMPORT_BANK_VERSION,
-    DEFAULT_IMPORT_BANK_VERSION_ID,
-    DEFAULT_LANGUAGE_CODE,
+    IMPORT_CONTENT_BANK_LANGUAGE_CODES,
     IMPORT_TARGET_BANK_VERSION_STATUSES,
     SUPPORTED_LANGUAGE_CODES,
 )
@@ -23,20 +20,17 @@ DEFAULT_IMPORT_REPORT_PATH = Path("reports/imports/control_sample_import.json")
 DEFAULT_CANONICAL_INPUT_PATH = Path("data/imports/control_sample_items.jsonl")
 DEFAULT_PLAN_OUT_PATH = Path("reports/imports/control_sample_postgresql_load_plan.json")
 CREATED_BY = "tool:quizbank_postgresql_load_plan.py"
+REQUIRED_CONTENT_SCOPE_FIELDS = (
+    "language_code",
+    "content_bank_id",
+    "bank_version_id",
+    "bank_version",
+    "bank_version_status",
+)
 
 
 class LoadPlanError(ValueError):
     """Raised when import artifacts cannot form a PostgreSQL load plan."""
-
-
-def default_content_scope() -> dict[str, str]:
-    return {
-        "language_code": DEFAULT_LANGUAGE_CODE,
-        "content_bank_id": DEFAULT_CONTENT_BANK_ID,
-        "bank_version_id": DEFAULT_IMPORT_BANK_VERSION_ID,
-        "bank_version": DEFAULT_IMPORT_BANK_VERSION,
-        "bank_version_status": "draft",
-    }
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -86,18 +80,40 @@ def validate_inputs(report: dict[str, Any], canonical_items: list[dict[str, str]
 
 
 def content_scope_from_report(report: dict[str, Any]) -> dict[str, str]:
-    scope = default_content_scope()
-    scope.update(report.get("content_scope", {}))
-    return {key: str(value) for key, value in scope.items()}
+    raw_scope = report.get("content_scope")
+    if not isinstance(raw_scope, dict):
+        raise LoadPlanError("missing_content_scope")
+    return normalized_content_scope(raw_scope)
+
+
+def normalized_content_scope(content_scope: dict[str, Any]) -> dict[str, str]:
+    missing_fields = [
+        field
+        for field in REQUIRED_CONTENT_SCOPE_FIELDS
+        if not str(content_scope.get(field, "")).strip()
+    ]
+    if missing_fields:
+        raise LoadPlanError(f"missing_content_scope_fields:{','.join(missing_fields)}")
+    return {
+        field: str(content_scope[field]).strip()
+        for field in REQUIRED_CONTENT_SCOPE_FIELDS
+    }
 
 
 def validate_content_scope(
     content_scope: dict[str, str],
     canonical_items: list[dict[str, str]],
 ) -> None:
+    content_scope = normalized_content_scope(content_scope)
     language_code = content_scope["language_code"]
     if language_code not in SUPPORTED_LANGUAGE_CODES:
         raise LoadPlanError(f"unsupported_batch_language:{language_code}")
+    expected_language = IMPORT_CONTENT_BANK_LANGUAGE_CODES.get(content_scope["content_bank_id"])
+    if expected_language is not None and expected_language != language_code:
+        raise LoadPlanError(
+            f"content_bank_language_mismatch:{content_scope['content_bank_id']}:"
+            f"{expected_language}!={language_code}"
+        )
     if content_scope["bank_version_status"] not in IMPORT_TARGET_BANK_VERSION_STATUSES:
         raise LoadPlanError(
             f"invalid_import_bank_version_status:{content_scope['bank_version_status']}"

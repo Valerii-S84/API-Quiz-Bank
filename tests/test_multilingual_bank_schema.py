@@ -46,6 +46,29 @@ class MultilingualBankSchemaTests(unittest.TestCase):
         self.assertEqual(active_version["language_code"], "de")
         self.assertEqual(active_version["version_id"], DEFAULT_BANK_VERSION_ID)
 
+    def test_english_draft_bank_can_exist_without_production_activation(self) -> None:
+        self.insert_english_draft_bank()
+
+        with connect(self.db_path) as connection:
+            active_scopes = connection.execute(active_scopes_sql()).fetchall()
+            english_version = connection.execute(
+                """
+                SELECT cb.status AS bank_status, cbv.status AS version_status,
+                       cbv.activated_at
+                FROM content_banks cb
+                JOIN content_bank_versions cbv ON cbv.content_bank_id = cb.id
+                WHERE cb.id = 'english-core'
+                """
+            ).fetchone()
+
+        self.assertEqual(
+            [(row["language_code"], row["slug"], row["version_id"]) for row in active_scopes],
+            [("de", "german-core", DEFAULT_BANK_VERSION_ID)],
+        )
+        self.assertEqual(english_version["bank_status"], "draft")
+        self.assertEqual(english_version["version_status"], "draft")
+        self.assertIsNone(english_version["activated_at"])
+
     def test_critical_runtime_tables_have_content_scope_columns(self) -> None:
         with connect(self.db_path) as connection:
             columns_by_table = {
@@ -110,6 +133,29 @@ class MultilingualBankSchemaTests(unittest.TestCase):
             ["consumer_id", "language_code", "bank_version_id", "created_at"],
         )
 
+    def insert_english_draft_bank(self) -> None:
+        with connect(self.db_path) as connection:
+            connection.execute(
+                """
+                INSERT INTO content_banks (
+                    id, slug, language_code, name, status, created_at
+                ) VALUES (
+                    'english-core', 'english-core', 'en', 'English Core',
+                    'draft', '2026-06-13T00:00:00Z'
+                )
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO content_bank_versions (
+                    id, content_bank_id, version, status, activated_at, created_at
+                ) VALUES (
+                    'english-core:stage6-draft', 'english-core', 'stage6-draft',
+                    'draft', NULL, '2026-06-13T00:00:00Z'
+                )
+                """
+            )
+
 
 def active_version_sql() -> str:
     return """
@@ -117,6 +163,16 @@ def active_version_sql() -> str:
         FROM content_bank_versions cbv
         JOIN content_banks cb ON cb.id = cbv.content_bank_id
         WHERE cb.slug = 'german-core' AND cbv.status = 'active'
+    """
+
+
+def active_scopes_sql() -> str:
+    return """
+        SELECT cb.language_code, cb.slug, cbv.id AS version_id
+        FROM content_bank_versions cbv
+        JOIN content_banks cb ON cb.id = cbv.content_bank_id
+        WHERE cb.status = 'active' AND cbv.status = 'active'
+        ORDER BY cb.language_code, cb.slug
     """
 
 

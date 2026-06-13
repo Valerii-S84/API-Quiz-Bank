@@ -15,6 +15,7 @@ from quizbank_common import (
     DEFAULT_IMPORT_BANK_VERSION,
     DEFAULT_IMPORT_BANK_VERSION_ID,
     DEFAULT_LANGUAGE_CODE,
+    IMPORT_CONTENT_BANK_LANGUAGE_CODES,
     EXPECTED_HEADER,
     IMPORT_TARGET_BANK_VERSION_STATUSES,
     ITEM_STATUSES,
@@ -296,8 +297,17 @@ def build_report(
 
 
 def validate_import_content_scope(content_scope: ImportContentScope) -> None:
-    if content_scope.language_code not in SUPPORTED_LANGUAGE_CODES:
+    language_code = content_scope.language_code.strip()
+    if not language_code:
+        raise ImportValidationError("missing_batch_language")
+    if language_code not in SUPPORTED_LANGUAGE_CODES:
         raise ImportValidationError(f"unsupported_batch_language:{content_scope.language_code}")
+    expected_language = IMPORT_CONTENT_BANK_LANGUAGE_CODES.get(content_scope.content_bank_id)
+    if expected_language is not None and expected_language != language_code:
+        raise ImportValidationError(
+            f"content_bank_language_mismatch:{content_scope.content_bank_id}:"
+            f"{expected_language}!={language_code}"
+        )
     if content_scope.bank_version_status not in IMPORT_TARGET_BANK_VERSION_STATUSES:
         raise ImportValidationError(f"invalid_import_bank_version_status:{content_scope.bank_version_status}")
     if not content_scope.content_bank_id.strip() or not content_scope.bank_version_id.strip():

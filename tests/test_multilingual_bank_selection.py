@@ -59,10 +59,10 @@ class MultilingualBankSelectionTests(unittest.TestCase):
         self.assertEqual(decision["bank_version_id"], DEFAULT_BANK_VERSION_ID)
         self.assertEqual(json.loads(decision["filters_json"])["language_code"], "de")
 
-    def test_default_german_selection_ignores_other_language_bank(self) -> None:
+    def test_default_german_selection_ignores_draft_english_bank(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         self.seed_access()
-        self.insert_english_approved_item()
+        self.insert_english_draft_bank_item()
         self.block_german_item()
 
         with self.assertRaises(QuizBankProblem) as error:
@@ -95,6 +95,16 @@ class MultilingualBankSelectionTests(unittest.TestCase):
         self.assertEqual(error.exception.status, 403)
         self.assertEqual(error.exception.reason_code, "LANGUAGE_NOT_ACTIVE")
 
+    def test_explicit_unsupported_language_is_controlled_error(self) -> None:
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        self.seed_access()
+
+        with self.assertRaises(QuizBankProblem) as error:
+            select_next_item(self.db_path, self.selection_request(language_code="it"))
+
+        self.assertEqual(error.exception.status, 400)
+        self.assertEqual(error.exception.reason_code, "LANGUAGE_UNSUPPORTED")
+
     def seed_access(self, with_api_key: bool = False) -> None:
         seed_consumer(self.db_path, "consumer_allowed", 5, ["A2"], ["T10"])
         seed_entitlement(self.db_path, "consumer_allowed", ["A2"], ["T10"])
@@ -124,11 +134,12 @@ class MultilingualBankSelectionTests(unittest.TestCase):
         self.assertEqual(payload["content_bank_id"], "german-core")
         self.assertEqual(payload["bank_version_id"], DEFAULT_BANK_VERSION_ID)
 
-    def insert_english_approved_item(self) -> None:
+    def insert_english_draft_bank_item(self) -> None:
         with connect(self.db_path) as connection:
             connection.execute(insert_english_bank_sql())
             connection.execute(insert_english_version_sql())
-            connection.execute(clone_item_sql("english_active_001", "en", "english-core:active"))
+            connection.execute(insert_english_source_sql())
+            connection.execute(clone_item_sql("english_draft_001", "en", "english-core:stage6-draft"))
 
     def insert_archived_german_version(self) -> None:
         with connect(self.db_path) as connection:
@@ -163,7 +174,7 @@ def insert_english_bank_sql() -> str:
         INSERT INTO content_banks (
             id, slug, language_code, name, status, created_at
         ) VALUES (
-            'english-core', 'english-core', 'en', 'English Core', 'active',
+            'english-core', 'english-core', 'en', 'English Core', 'draft',
             '2026-06-12T00:00:00Z'
         )
     """
@@ -174,8 +185,22 @@ def insert_english_version_sql() -> str:
         INSERT INTO content_bank_versions (
             id, content_bank_id, version, status, activated_at, created_at
         ) VALUES (
-            'english-core:active', 'english-core', 'active', 'active',
-            '2026-06-12T00:00:00Z', '2026-06-12T00:00:00Z'
+            'english-core:stage6-draft', 'english-core', 'stage6-draft', 'draft',
+            NULL, '2026-06-12T00:00:00Z'
+        )
+    """
+
+
+def insert_english_source_sql() -> str:
+    return """
+        INSERT INTO sources (
+            source_id, source_type, provenance_note, checksum_sha256, status,
+            created_at, language_code, content_bank_id, bank_version_id
+        ) VALUES (
+            'src_stage6_english_draft', 'fixture', 'stage6 english draft',
+            '0000000000000000000000000000000000000000000000000000000000000000',
+            'active', '2026-06-12T00:00:00Z', 'en', 'english-core',
+            'english-core:stage6-draft'
         )
     """
 
@@ -191,7 +216,7 @@ def clone_item_sql(item_id: str, language_code: str, bank_version_id: str) -> st
             reviewed_at, level_locked, locked_at
         )
         SELECT
-            '{item_id}', source_id, '{language_code}', '{language_code}',
+            '{item_id}', 'src_stage6_english_draft', '{language_code}', '{language_code}',
             'english-core', '{bank_version_id}', level_band, sublevel, theme_id,
             subtheme_id, objective_id, pattern_id, difficulty_band, register,
             prompt, stem_text, options_json, answer_key, explanation, tags,

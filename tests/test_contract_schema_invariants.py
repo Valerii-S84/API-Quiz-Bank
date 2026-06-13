@@ -165,6 +165,18 @@ class ContractSchemaInvariantTests(unittest.TestCase):
         self.assertIn("enum: [text_only, image_standard, image_branded]", openapi)
         self.assertNotIn("  /v1/visual-assets/generate:", openapi)
 
+    def test_openapi_does_not_expose_raw_csv_access_path(self) -> None:
+        openapi = (ROOT / "api" / "openapi.yaml").read_text(encoding="utf-8")
+        route_lines = [
+            line.strip().lower()
+            for line in openapi.splitlines()
+            if line.startswith("  /")
+        ]
+
+        self.assertFalse(any("csv" in route or "raw" in route for route in route_lines))
+        self.assertNotIn("text/csv", openapi.lower())
+        self.assertNotIn("QuizBank/", openapi)
+
     def test_mvp_plan_catalog_defines_manual_entitlement_seed(self) -> None:
         catalog = json.loads((ROOT / "data/billing/plan_catalog.json").read_text())
         plan_codes = {plan["plan_code"] for plan in catalog["plans"]}
