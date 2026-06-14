@@ -35,6 +35,7 @@ from .selection_eligibility import (
 )
 from .selection_errors import no_eligible_problem
 from .selection_models import (
+    ContentScope,
     ConsumerProfile,
     SelectionFilters,
     SelectionRequest,
@@ -48,7 +49,7 @@ from .selection_quota import (
     reserve_quota,
     upsert_quota_usage,
 )
-from .selection_scope import effective_scope_replacement
+from .selection_scope import effective_scope_replacement, resolve_content_scope_request
 from .selection_scope_enforcement import (
     enforce_consumer_scope,
     enforce_entitlement_scope,
@@ -90,6 +91,7 @@ def prepare_selection_write_plan(
         consumer = load_active_consumer(connection, request.consumer_id)
         entitlement = load_active_entitlement(connection, request)
         request = replace(request, **effective_scope_replacement(request, consumer, entitlement))
+        request = resolve_content_scope_request(connection, request, consumer)
         enforce_consumer_scope(consumer, request)
         enforce_entitlement_scope(entitlement, request)
         item, eligible_count = find_eligible_item(connection, request)
@@ -151,6 +153,7 @@ def persist_no_candidate_decision(db_path: Path | None, decision) -> None:
 
 __all__ = [
     "ConsumerProfile",
+    "ContentScope",
     "QuizBankProblem",
     "SelectionFilters",
     "SelectionRequest",

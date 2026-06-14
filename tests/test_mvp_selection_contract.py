@@ -93,8 +93,12 @@ class MvpSelectionContractTests(unittest.TestCase):
                 "objective_ids": [],
                 "pattern_ids": [],
                 "excluded_item_ids": [],
+                "language_code": "de",
+                "content_bank_id": None,
+                "bank_version_id": None,
             },
         )
+        self.assertEqual(context["content_scope"]["language_code"], "de")
 
     def test_repeat_policy_rejects_negative_window(self) -> None:
         with self.assertRaisesRegex(ValueError, "non-negative"):

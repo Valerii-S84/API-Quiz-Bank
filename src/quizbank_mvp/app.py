@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import FastAPI, Header, Request
+from fastapi import FastAPI, Header, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -41,6 +41,7 @@ PatternId = Literal[
     "P01", "P02", "P03", "P04", "P05", "P06",
     "P07", "P08", "P09", "P10", "P11", "P12",
 ]
+TopicLanguageCode = Literal["de"]
 
 
 class NextQuizRequest(BaseModel):
@@ -51,6 +52,9 @@ class NextQuizRequest(BaseModel):
     theme_ids: list[ThemeId] = Field(default_factory=list)
     objective_ids: list[ObjectiveId] = Field(default_factory=list)
     pattern_ids: list[PatternId] = Field(default_factory=list)
+    language_code: str | None = Field(default=None, min_length=1, max_length=8)
+    content_bank_id: str | None = Field(default=None, min_length=1, max_length=128)
+    bank_version_id: str | None = Field(default=None, min_length=1, max_length=160)
 
 
 class DeliveryOutcomeRequest(BaseModel):
@@ -109,8 +113,8 @@ def register_operations_routes(app: FastAPI, database_path: Path) -> None:
         return {"data": level_catalog()}
 
     @app.get("/v1/topics", tags=["taxonomy"])
-    def topics() -> dict[str, object]:
-        return {"data": topic_catalog()}
+    def topics(language_code: TopicLanguageCode = Query(default="de")) -> dict[str, object]:
+        return {"data": topic_catalog(language_code)}
 
 
 def readiness_checks(database_path: Path | None) -> list[dict[str, str]]:
@@ -160,6 +164,9 @@ def register_delivery_routes(
                     objective_ids=tuple(payload.objective_ids),
                     pattern_ids=tuple(payload.pattern_ids),
                 ),
+                language_code=payload.language_code,
+                content_bank_id=payload.content_bank_id,
+                bank_version_id=payload.bank_version_id,
                 delivery_mode="api",
             ),
         )
@@ -230,6 +237,9 @@ def next_quiz_response(consumer_id: str, result: dict[str, object]) -> dict[str,
     return {
         "delivery_id": delivery["delivery_id"],
         "consumer_id": consumer_id,
+        "language_code": delivery["language_code"],
+        "content_bank_id": delivery["content_bank_id"],
+        "bank_version_id": delivery["bank_version_id"],
         "quiz_item": quiz_item,
         "delivery": delivery,
         "interaction": {
@@ -281,6 +291,9 @@ def answer_feedback_is_included(consumer_id: str, answer_feedback: object) -> bo
 def public_selection_decision(decision: dict[str, object]) -> dict[str, object]:
     return {
         "selection_request_id": decision.get("selection_request_id"),
+        "language_code": decision.get("language_code"),
+        "content_bank_id": decision.get("content_bank_id"),
+        "bank_version_id": decision.get("bank_version_id"),
         "candidate_count": decision.get("candidate_count"),
         "eligible_count": decision.get("eligible_count"),
         "selected_reason": decision.get("selected_reason"),

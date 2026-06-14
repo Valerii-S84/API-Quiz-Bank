@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .database_connection import ROOT, connect, new_id, row_to_dict, utc_now
+from .database_runtime import DEFAULT_BANK_VERSION_ID, DEFAULT_CONTENT_BANK_ID, DEFAULT_LANGUAGE_CODE
 from .database_seed import insert_visual_asset
 from .visual_models import VisualDeliveryMode, VisualSettings
 from .visual_provider import ImageGenerationResult
@@ -46,7 +47,9 @@ def compute_visual_cache_key(
     settings: VisualSettings,
     image_version: str = VISUAL_IMAGE_VERSION,
 ) -> str:
-    language = str(quiz_item.get("language", "de"))
+    language = str(quiz_item.get("language_code") or quiz_item.get("language") or DEFAULT_LANGUAGE_CODE)
+    content_bank_id = str(quiz_item.get("content_bank_id") or DEFAULT_CONTENT_BANK_ID)
+    bank_version_id = str(quiz_item.get("bank_version_id") or DEFAULT_BANK_VERSION_ID)
     scope = "global"
     if settings.delivery_mode == VisualDeliveryMode.IMAGE_BRANDED:
         scope = f"consumer:{settings.consumer_id}"
@@ -57,6 +60,8 @@ def compute_visual_cache_key(
         f"brand:{settings.branding_preset}",
         f"version:{image_version}",
         f"language:{language}",
+        f"content_bank:{content_bank_id}",
+        f"bank_version:{bank_version_id}",
         f"scope:{scope}",
     ]
     return "|".join(parts)
@@ -228,7 +233,10 @@ def asset_payload(
         "visual_style": settings.visual_style,
         "branding_preset": settings.branding_preset,
         "image_version": VISUAL_IMAGE_VERSION,
-        "language": quiz_item.get("language", "de"),
+        "language": quiz_item.get("language", DEFAULT_LANGUAGE_CODE),
+        "language_code": quiz_item.get("language_code") or quiz_item.get("language") or DEFAULT_LANGUAGE_CODE,
+        "content_bank_id": quiz_item.get("content_bank_id") or DEFAULT_CONTENT_BANK_ID,
+        "bank_version_id": quiz_item.get("bank_version_id") or DEFAULT_BANK_VERSION_ID,
         "cache_key": cache_key,
         "image_path": str(image_path),
         "image_sha256": image_sha256,

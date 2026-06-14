@@ -6,6 +6,10 @@
       "display_name": "\ud83c\udde9\ud83c\uddea Deutsch ist einfach! \u2013 Quiz",
       "timezone": "Europe/Berlin",
       "daily_quota_limit": 9,
+      "default_language_code": "de",
+      "default_content_bank_slug": "german-core",
+      "allowed_language_codes": ["de"],
+      "allowed_content_bank_slugs": ["german-core"],
       "schedule_batches": [
         {
           "local_time": "08:22",
@@ -48,6 +52,10 @@
       "display_name": "Deutsch ist einfach! Main Channel",
       "timezone": "Europe/Berlin",
       "daily_quota_limit": 2,
+      "default_language_code": "de",
+      "default_content_bank_slug": "german-core",
+      "allowed_language_codes": ["de"],
+      "allowed_content_bank_slugs": ["german-core"],
       "credential_env": "CORE_DEUTSCH_IST_EINFACH_CHANNEL_API_KEY",
       "visual_config": {
         "delivery_mode": "image_standard",

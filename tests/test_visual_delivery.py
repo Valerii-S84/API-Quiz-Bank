@@ -97,7 +97,15 @@ class VisualDeliveryTests(unittest.TestCase):
             prompt_audit_metadata(self)["visual_prompt_policy_version"],
             "visual_prompt_policy_v4_visual_modes",
         )
+        self.assertEqual(
+            prompt_audit_scope(self),
+            ("de", "german-core", "german-core:2026-06-12-baseline"),
+        )
         self.assertEqual(usage_count(self, "generation_succeeded"), 1)
+        self.assertEqual(
+            usage_scopes(self, "generation_succeeded"),
+            [("de", "german-core", "german-core:2026-06-12-baseline")],
+        )
         self.assertEqual(quota_used(self, "visual_delivery.standard", today_usage_date()), 1)
         self.assertEqual(quota_used(self, "visual_generation.standard", today_usage_date()), 1)
         self.assertEqual(quota_used(self, "visual_generation.standard", today_usage_date()[:7]), 1)
@@ -378,6 +386,18 @@ def prompt_audit_metadata(case: VisualDeliveryTests) -> dict[str, str]:
     return row_to_dict(row)
 
 
+def prompt_audit_scope(case: VisualDeliveryTests) -> tuple[str, str, str]:
+    with connect(case.db_path) as connection:
+        row = connection.execute(
+            """
+            SELECT language_code, content_bank_id, bank_version_id
+            FROM visual_prompt_audit
+            LIMIT 1
+            """
+        ).fetchone()
+    return (str(row["language_code"]), str(row["content_bank_id"]), str(row["bank_version_id"]))
+
+
 def visual_asset_metadata(case: VisualDeliveryTests, asset_id: str | None) -> dict[str, str]:
     with connect(case.db_path) as connection:
         row = connection.execute(
@@ -398,6 +418,23 @@ def usage_count(case: VisualDeliveryTests, event_type: str) -> int:
             (event_type,),
         ).fetchone()
     return int(row["count"])
+
+
+def usage_scopes(case: VisualDeliveryTests, event_type: str) -> list[tuple[str, str, str]]:
+    with connect(case.db_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT DISTINCT language_code, content_bank_id, bank_version_id
+            FROM visual_usage_events
+            WHERE event_type = ?
+            ORDER BY language_code, content_bank_id, bank_version_id
+            """,
+            (event_type,),
+        ).fetchall()
+    return [
+        (str(row["language_code"]), str(row["content_bank_id"]), str(row["bank_version_id"]))
+        for row in rows
+    ]
 
 
 def quota_used(case: VisualDeliveryTests, feature: str, period_key: str) -> int:

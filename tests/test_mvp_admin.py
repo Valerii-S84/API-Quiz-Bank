@@ -28,6 +28,7 @@ from quizbank_mvp.visual_settings import save_visual_settings  # noqa: E402
 
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
+BASELINE_VERSION_ID = "german-core:2026-06-12-baseline"
 
 
 class MvpAdminCase(unittest.TestCase):
@@ -64,6 +65,13 @@ class MvpAdminEndpointTests(MvpAdminCase):
             "/v1/admin/quiz-items/{item_id}/retire",
             "/v1/admin/quiz-items/{item_id}/block",
             "/v1/admin/audit-log",
+            "/v1/admin/languages",
+            "/v1/admin/content-banks",
+            "/v1/admin/content-banks/{content_bank_id}/versions",
+            "/v1/admin/import-batches",
+            "/v1/admin/content-bank-versions/{bank_version_id}/mark-audit",
+            "/v1/admin/content-bank-versions/{bank_version_id}/activate",
+            "/v1/admin/content-bank-versions/{bank_version_id}/rollback",
             "/v1/admin/consumers",
             "/v1/admin/consumers/{consumer_id}/visual-settings",
             "/v1/admin/consumers/{consumer_id}/suspend",
@@ -72,6 +80,13 @@ class MvpAdminEndpointTests(MvpAdminCase):
         ]:
             self.assertIn(path, app_paths)
             self.assertIn(f"  {path}:", committed_openapi)
+        for operation_id in [
+            "createAdminContentBank",
+            "createAdminContentBankVersion",
+            "AdminContentBankCreateRequest",
+            "AdminContentBankVersionCreateRequest",
+        ]:
+            self.assertIn(operation_id, committed_openapi)
 
     def test_admin_panel_shell_is_available_without_data_access(self) -> None:
         response = self.client.get("/admin")
@@ -79,6 +94,10 @@ class MvpAdminEndpointTests(MvpAdminCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("API Quiz Bank Admin", response.text)
         self.assertIn("Admin password", response.text)
+        self.assertIn("Content banks", response.text)
+        self.assertIn("/v1/admin/content-banks", response.text)
+        self.assertIn("/v1/admin/content-banks/", response.text)
+        self.assertIn("/v1/admin/content-bank-versions/", response.text)
 
     def test_admin_reads_require_admin_key(self) -> None:
         response = self.client.get("/v1/admin/dashboard")
@@ -152,7 +171,7 @@ class MvpAdminEndpointTests(MvpAdminCase):
         self.assertEqual(publish.status_code, 200)
         self.assertEqual(publish.json()["item"]["status"], "published")
         self.assertEqual(publish.json()["audit"]["actor"], "content_admin")
-        self.assertEqual(self.audit_count(), 2)
+        self.assertEqual(audit_count(self), 2)
 
     def test_invalid_admin_transition_uses_problem_details(self) -> None:
         key = self.seed_admin("content_admin", "content_admin")
@@ -219,7 +238,14 @@ class MvpAdminEndpointTests(MvpAdminCase):
 
         self.assertEqual(create_response.status_code, 200)
         self.assertEqual(create_response.json()["consumer_kind"], "telegram_channel")
+        self.assertEqual(create_response.json()["default_language_code"], "de")
+        self.assertEqual(create_response.json()["default_content_bank_id"], "german-core")
+        self.assertEqual(create_response.json()["default_bank_version_id"], "")
+        self.assertEqual(create_response.json()["allowed_language_codes"], ["de"])
+        self.assertEqual(create_response.json()["allowed_content_bank_ids"], ["german-core"])
+        self.assertEqual(create_response.json()["allowed_bank_version_ids"], [])
         self.assertEqual(list_response.json()["data"][0]["display_name"], "A2 Telegram Channel")
+        self.assertEqual(list_response.json()["data"][0]["allowed_language_codes"], ["de"])
         self.assertEqual(suspend_response.status_code, 200)
         self.assertEqual(suspend_response.json()["status"], "suspended")
 
@@ -244,12 +270,12 @@ class MvpAdminEndpointTests(MvpAdminCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json()["reason_code"], "ADMIN_OWNER_REQUIRED")
 
-    def audit_count(self) -> int:
-        with connect(self.db_path) as connection:
-            row = connection.execute(
-                "SELECT COUNT(*) AS count FROM audit_log WHERE entity_type = 'quiz_item'"
-            ).fetchone()
-        return int(row["count"])
+def audit_count(case: MvpAdminCase) -> int:
+    with connect(case.db_path) as connection:
+        row = connection.execute(
+            "SELECT COUNT(*) AS count FROM audit_log WHERE entity_type = 'quiz_item'"
+        ).fetchone()
+    return int(row["count"])
 
 
 class MvpAdminVisualSettingsTests(MvpAdminCase):

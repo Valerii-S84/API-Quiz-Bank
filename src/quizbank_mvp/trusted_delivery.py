@@ -114,9 +114,15 @@ def load_deliverable_item(connection, item_id: str) -> dict[str, Any]:
                iq.image_quality_override
         FROM quiz_items qi
         JOIN sources s ON s.source_id = qi.source_id
+        JOIN content_banks cb ON cb.id = qi.content_bank_id
+        JOIN content_bank_versions cbv ON cbv.id = qi.bank_version_id
+        JOIN languages lang ON lang.code = qi.language_code
         LEFT JOIN quiz_item_image_quality_policy iq ON iq.item_id = qi.item_id
         WHERE qi.item_id = ?
           AND qi.status IN (?, ?)
+          AND lang.is_active = TRUE
+          AND cb.status = 'active'
+          AND cbv.status = 'active'
           AND qi.source_id <> ''
           AND s.source_type <> ''
           AND s.provenance_note <> ''
@@ -140,6 +146,9 @@ def item_scope_request(consumer_id: str, item: dict[str, Any]) -> SelectionReque
             cefr_level=str(item["sublevel"]),
             theme_ids=(str(item["theme_id"]),),
         ),
+        language_code=str(item["language_code"]),
+        content_bank_id=str(item["content_bank_id"]),
+        bank_version_id=str(item["bank_version_id"]),
         delivery_mode="trusted_item_lookup",
     )
 

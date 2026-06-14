@@ -23,6 +23,9 @@ class TelegramDeliveryRequest:
     objective_ids: tuple[str, ...] = ()
     pattern_ids: tuple[str, ...] = ()
     excluded_item_ids: tuple[str, ...] = ()
+    language_code: str | None = None
+    content_bank_id: str | None = None
+    bank_version_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -44,6 +47,9 @@ class TelegramDeliveryResult:
     telegram_message_id: str | None = None
     telegram_poll_id: str | None = None
     failure_reason: str | None = None
+    language_code: str | None = None
+    content_bank_id: str | None = None
+    bank_version_id: str | None = None
 
     def to_public_dict(self) -> dict[str, object]:
         return {
@@ -56,4 +62,7 @@ class TelegramDeliveryResult:
             "telegram_message_id": self.telegram_message_id,
             "telegram_poll_id": self.telegram_poll_id,
             "failure_reason": self.failure_reason,
+            "language_code": self.language_code,
+            "content_bank_id": self.content_bank_id,
+            "bank_version_id": self.bank_version_id,
         }

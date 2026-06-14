@@ -62,12 +62,17 @@ def level_catalog() -> list[dict[str, object]]:
     ]
 
 
-def topic_catalog() -> list[dict[str, str]]:
+def topic_catalog(language_code: str = "de") -> list[dict[str, str]]:
+    if language_code != "de":
+        raise ValueError(f"unsupported_topic_language:{language_code}")
     return [
         {
             "topic_id": topic_id,
+            "theme_code": topic_id,
             "theme_id": topic_id,
+            "language_code": language_code,
             "title": title,
+            "label_status": "canonical",
             "status": "active",
         }
         for topic_id, title in TOPIC_TITLES.items()

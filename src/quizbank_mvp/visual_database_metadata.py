@@ -13,7 +13,9 @@ VISUAL_METADATA_COLUMNS = {
     "visual_context_hint",
     "visual_prompt_policy_version",
 }
+VISUAL_SCOPE_COLUMNS = {"language_code", "content_bank_id", "bank_version_id"}
 VISUAL_METADATA_TABLES = ("visual_assets", "visual_prompt_audit")
+VISUAL_SCOPE_TABLES = ("visual_prompt_audit", "visual_usage_events")
 VISUAL_MODE_COLUMN_SQL = (
     "TEXT NOT NULL DEFAULT 'target_object' CHECK ("
     "visual_mode IN ('target_action', 'target_object', 'context_only', 'document_form', 'symbolic_abstract'))"
@@ -21,10 +23,15 @@ VISUAL_MODE_COLUMN_SQL = (
 
 
 def sqlite_visual_metadata_is_ready(connect_fn: Callable[[Path], Any], path: Path) -> bool:
-    return all(
+    metadata_ready = all(
         VISUAL_METADATA_COLUMNS.issubset(sqlite_table_columns(connect_fn, path, table_name))
         for table_name in VISUAL_METADATA_TABLES
     )
+    scope_ready = all(
+        VISUAL_SCOPE_COLUMNS.issubset(sqlite_table_columns(connect_fn, path, table_name))
+        for table_name in VISUAL_SCOPE_TABLES
+    )
+    return metadata_ready and scope_ready
 
 
 def sqlite_table_columns(connect_fn: Callable[[Path], Any], path: Path, table_name: str) -> set[str]:
@@ -60,11 +67,20 @@ def postgresql_visual_metadata_is_ready(connect_fn: Callable[[None], Any]) -> bo
             """
             SELECT table_name, column_name
             FROM information_schema.columns
-            WHERE table_schema = 'public' AND table_name IN (?, ?)
+            WHERE table_schema = 'public' AND table_name IN (?, ?, ?)
             """,
-            VISUAL_METADATA_TABLES,
+            (*VISUAL_METADATA_TABLES, "visual_usage_events"),
         ).fetchall()
-    columns_by_table: dict[str, set[str]] = {table_name: set() for table_name in VISUAL_METADATA_TABLES}
+    table_names = set(VISUAL_METADATA_TABLES).union(VISUAL_SCOPE_TABLES)
+    columns_by_table: dict[str, set[str]] = {table_name: set() for table_name in table_names}
     for row in rows:
         columns_by_table[str(row["table_name"])].add(str(row["column_name"]))
-    return all(VISUAL_METADATA_COLUMNS.issubset(columns) for columns in columns_by_table.values())
+    metadata_ready = all(
+        VISUAL_METADATA_COLUMNS.issubset(columns_by_table[table_name])
+        for table_name in VISUAL_METADATA_TABLES
+    )
+    scope_ready = all(
+        VISUAL_SCOPE_COLUMNS.issubset(columns_by_table[table_name])
+        for table_name in VISUAL_SCOPE_TABLES
+    )
+    return metadata_ready and scope_ready

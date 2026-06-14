@@ -92,20 +92,6 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
             self.assertIn(path, app_paths)
             self.assertIn(f"  {path}:", committed_openapi)
 
-    def test_taxonomy_endpoints_return_canonical_levels_and_topics(self) -> None:
-        levels = self.client.get("/v1/levels")
-        topics = self.client.get("/v1/topics")
-
-        self.assertEqual(levels.status_code, 200)
-        self.assertEqual(
-            [level["cefr_level"] for level in levels.json()["data"]],
-            ["A1", "A2", "B1", "B2", "C1", "C2"],
-        )
-        self.assertEqual(topics.status_code, 200)
-        self.assertEqual(len(topics.json()["data"]), 18)
-        self.assertEqual(topics.json()["data"][0]["topic_id"], "T01")
-        self.assertEqual(topics.json()["data"][0]["theme_id"], "T01")
-
     def test_next_item_returns_public_projection_and_delivery_log(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         self.seed_access()

@@ -6,15 +6,23 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 from quizbank_common import (
     CANONICAL_LEVELS,
+    DEFAULT_CONTENT_BANK_ID,
+    DEFAULT_IMPORT_BANK_VERSION,
+    DEFAULT_IMPORT_BANK_VERSION_ID,
+    DEFAULT_LANGUAGE_CODE,
+    IMPORT_CONTENT_BANK_LANGUAGE_CODES,
     EXPECTED_HEADER,
+    IMPORT_TARGET_BANK_VERSION_STATUSES,
     ITEM_STATUSES,
     OBJECTIVE_IDS,
     PARSER_PROFILE_ID,
     PATTERN_IDS,
+    SUPPORTED_LANGUAGE_CODES,
     THEME_TITLES,
     file_sha256,
 )
@@ -31,6 +39,24 @@ class ImportValidationError(ValueError):
     """Raised when a dry-run import source fails the governed contract."""
 
 
+@dataclass(frozen=True)
+class ImportContentScope:
+    language_code: str = DEFAULT_LANGUAGE_CODE
+    content_bank_id: str = DEFAULT_CONTENT_BANK_ID
+    bank_version_id: str = DEFAULT_IMPORT_BANK_VERSION_ID
+    bank_version: str = DEFAULT_IMPORT_BANK_VERSION
+    bank_version_status: str = "draft"
+
+    def as_report(self) -> dict[str, str]:
+        return {
+            "language_code": self.language_code,
+            "content_bank_id": self.content_bank_id,
+            "bank_version_id": self.bank_version_id,
+            "bank_version": self.bank_version,
+            "bank_version_status": self.bank_version_status,
+        }
+
+
 def read_source_rows(source_path: Path) -> tuple[list[str], list[dict[str, str]]]:
     with source_path.open("r", encoding="utf-8-sig", newline="") as file:
         reader = csv.DictReader(file)
@@ -39,7 +65,11 @@ def read_source_rows(source_path: Path) -> tuple[list[str], list[dict[str, str]]
     return header, rows
 
 
-def validate_source(header: list[str], rows: list[dict[str, str]]) -> list[str]:
+def validate_source(
+    header: list[str],
+    rows: list[dict[str, str]],
+    language_code: str = DEFAULT_LANGUAGE_CODE,
+) -> list[str]:
     errors: list[str] = []
     if header != EXPECTED_HEADER:
         errors.append("header_mismatch")
@@ -49,6 +79,7 @@ def validate_source(header: list[str], rows: list[dict[str, str]]) -> list[str]:
     seen_item_ids: set[str] = set()
     for line_number, row in enumerate(rows, start=2):
         validate_row_identity(row, seen_item_ids, line_number, errors)
+        validate_row_language(row, language_code, line_number, errors)
         validate_row_taxonomy(row, line_number, errors)
         validate_row_status(row, line_number, errors)
         validate_row_options(row, line_number, errors)
@@ -69,6 +100,19 @@ def validate_row_identity(
         errors.append(f"duplicate_item_id:{item_id}")
     else:
         seen_item_ids.add(item_id)
+
+
+def validate_row_language(
+    row: dict[str, str],
+    language_code: str,
+    line_number: int,
+    errors: list[str],
+) -> None:
+    row_language = row.get("language", "").strip()
+    if row_language not in SUPPORTED_LANGUAGE_CODES:
+        errors.append(f"unsupported_language:{line_number}:{row_language}")
+    elif row_language != language_code:
+        errors.append(f"language_scope_mismatch:{line_number}:{row_language}!={language_code}")
 
 
 def validate_row_taxonomy(row: dict[str, str], line_number: int, errors: list[str]) -> None:
@@ -128,7 +172,10 @@ def canonical_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
     return [canonical_row(row) for row in rows]
 
 
-def validate_canonical_rows(rows: list[dict[str, str]]) -> list[str]:
+def validate_canonical_rows(
+    rows: list[dict[str, str]],
+    language_code: str = DEFAULT_LANGUAGE_CODE,
+) -> list[str]:
     errors: list[str] = []
     for item_index, row in enumerate(rows, start=1):
         extra_fields = sorted(set(row) - set(EXPECTED_HEADER))
@@ -137,8 +184,8 @@ def validate_canonical_rows(rows: list[dict[str, str]]) -> list[str]:
         missing_fields = [field for field in EXPECTED_HEADER if field not in row]
         if missing_fields:
             errors.append(f"missing_fields:{item_index}:{','.join(missing_fields)}")
-        if row.get("language") != "de":
-            errors.append(f"invalid_language:{item_index}:{row.get('language', '')}")
+        if row.get("language") != language_code:
+            errors.append(f"language_scope_mismatch:{item_index}:{row.get('language', '')}")
         if row.get("sublevel", "") not in CANONICAL_LEVELS:
             errors.append(f"invalid_level:{item_index}:{row.get('sublevel', '')}")
         if row.get("theme_id", "") not in THEME_TITLES:
@@ -180,11 +227,18 @@ def write_registry(path: Path, row: dict[str, object]) -> None:
         writer.writerow(row)
 
 
-def public_projection(row: dict[str, str], source_id: str) -> dict[str, object]:
+def public_projection(
+    row: dict[str, str],
+    source_id: str,
+    content_scope: ImportContentScope,
+) -> dict[str, object]:
     return {
         "source_id": source_id,
         "source_item_id": row["item_id"],
         "language": row["language"],
+        "language_code": content_scope.language_code,
+        "content_bank_id": content_scope.content_bank_id,
+        "bank_version_id": content_scope.bank_version_id,
         "cefr_level": row["sublevel"],
         "theme_id": row["theme_id"],
         "objective_id": row["objective_id"],
@@ -196,8 +250,11 @@ def public_projection(row: dict[str, str], source_id: str) -> dict[str, object]:
     }
 
 
-def validation_summary(canonical_items: list[dict[str, str]]) -> dict[str, object]:
-    validation_errors = validate_canonical_rows(canonical_items)
+def validation_summary(
+    canonical_items: list[dict[str, str]],
+    content_scope: ImportContentScope,
+) -> dict[str, object]:
+    validation_errors = validate_canonical_rows(canonical_items, content_scope.language_code)
     publishable_count = len(
         [row for row in canonical_items if row["status"] in {"approved", "published"}]
     )
@@ -218,19 +275,43 @@ def build_report(
     checksum_sha256: str,
     generated_at: str,
     canonical_output_path: Path,
+    content_scope: ImportContentScope,
 ) -> dict[str, object]:
+    validate_import_content_scope(content_scope)
     return {
         "import_mode": "dry_run",
         "source_id": source_id,
         "source_path": source_path.as_posix(),
         "parser_profile_id": PARSER_PROFILE_ID,
         "checksum_sha256": checksum_sha256,
+        "content_scope": content_scope.as_report(),
         "row_count_detected": len(rows),
         "canonical_output_path": canonical_output_path.as_posix(),
-        "validation_summary": validation_summary(canonical_items),
+        "validation_summary": validation_summary(canonical_items, content_scope),
         "generated_at": generated_at,
-        "imported_items": [public_projection(row, source_id) for row in rows],
+        "imported_items": [
+            public_projection(row, source_id, content_scope)
+            for row in rows
+        ],
     }
+
+
+def validate_import_content_scope(content_scope: ImportContentScope) -> None:
+    language_code = content_scope.language_code.strip()
+    if not language_code:
+        raise ImportValidationError("missing_batch_language")
+    if language_code not in SUPPORTED_LANGUAGE_CODES:
+        raise ImportValidationError(f"unsupported_batch_language:{content_scope.language_code}")
+    expected_language = IMPORT_CONTENT_BANK_LANGUAGE_CODES.get(content_scope.content_bank_id)
+    if expected_language is not None and expected_language != language_code:
+        raise ImportValidationError(
+            f"content_bank_language_mismatch:{content_scope.content_bank_id}:"
+            f"{expected_language}!={language_code}"
+        )
+    if content_scope.bank_version_status not in IMPORT_TARGET_BANK_VERSION_STATUSES:
+        raise ImportValidationError(f"invalid_import_bank_version_status:{content_scope.bank_version_status}")
+    if not content_scope.content_bank_id.strip() or not content_scope.bank_version_id.strip():
+        raise ImportValidationError("missing_import_content_scope")
 
 
 def write_report(path: Path, report: dict[str, object]) -> None:
@@ -252,9 +333,11 @@ def run_import(
     canonical_output_path: Path,
     source_id: str,
     generated_at: str,
+    content_scope: ImportContentScope,
 ) -> None:
+    validate_import_content_scope(content_scope)
     header, rows = read_source_rows(source_path)
-    errors = validate_source(header, rows)
+    errors = validate_source(header, rows, content_scope.language_code)
     if errors:
         raise ImportValidationError("; ".join(errors))
 
@@ -275,6 +358,7 @@ def run_import(
             checksum_sha256,
             generated_at,
             canonical_output_path,
+            content_scope,
         ),
     )
 
@@ -287,6 +371,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--canonical-out", default=DEFAULT_CANONICAL_OUT_PATH, type=Path)
     parser.add_argument("--source-id", default="sample_control_001")
     parser.add_argument("--generated-at", default=DEFAULT_GENERATED_AT)
+    parser.add_argument("--language-code", default=DEFAULT_LANGUAGE_CODE)
+    parser.add_argument("--content-bank-id", default=DEFAULT_CONTENT_BANK_ID)
+    parser.add_argument("--bank-version-id", default=DEFAULT_IMPORT_BANK_VERSION_ID)
+    parser.add_argument("--bank-version", default=DEFAULT_IMPORT_BANK_VERSION)
+    parser.add_argument(
+        "--bank-version-status",
+        choices=IMPORT_TARGET_BANK_VERSION_STATUSES,
+        default="draft",
+    )
     return parser.parse_args()
 
 
@@ -300,6 +393,13 @@ def main() -> int:
             args.canonical_out,
             args.source_id,
             args.generated_at,
+            ImportContentScope(
+                language_code=args.language_code,
+                content_bank_id=args.content_bank_id,
+                bank_version_id=args.bank_version_id,
+                bank_version=args.bank_version,
+                bank_version_status=args.bank_version_status,
+            ),
         )
     except ImportValidationError as error:
         print(f"dry-run import failed: {error}")

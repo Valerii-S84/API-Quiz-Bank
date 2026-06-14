@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .database_runtime import DEFAULT_BANK_VERSION_ID, DEFAULT_CONTENT_BANK_ID, DEFAULT_LANGUAGE_CODE
 from .telegram_bot_api import TelegramDeliveryError
 from .telegram_models import (
     TelegramDeliveryRequest,
@@ -69,6 +70,9 @@ def blocked_visual_delivery_result(
         status="failed",
         telegram_target_ref=redact_telegram_target(request.chat_id),
         failure_reason=f"visual_delivery_blocked:{reason}",
+        language_code=str(item.get("language_code") or item.get("language") or DEFAULT_LANGUAGE_CODE),
+        content_bank_id=str(item.get("content_bank_id") or DEFAULT_CONTENT_BANK_ID),
+        bank_version_id=str(item.get("bank_version_id") or DEFAULT_BANK_VERSION_ID),
     )
 
 

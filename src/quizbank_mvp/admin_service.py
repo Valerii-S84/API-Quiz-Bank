@@ -12,6 +12,7 @@ from .database_connection import (
     row_to_dict,
     utc_now,
 )
+from .content_scope_defaults import DEFAULT_CONTENT_BANK_ID, DEFAULT_LANGUAGE_CODE
 from .database_seed import (
     seed_api_credential,
     seed_consumer,
@@ -85,17 +86,25 @@ def change_admin_quiz_item_status(
     return {"item": get_admin_quiz_item(db_path, item_id), "audit": latest_item_audit(db_path, item_id)}
 
 
-def admin_dashboard(db_path: Path | None) -> dict[str, object]:
+def admin_dashboard(
+    db_path: Path | None,
+    filters: dict[str, str | None] | None = None,
+) -> dict[str, object]:
+    item_filters = filters or {}
     with connect(db_path) as connection:
-        status_counts = count_by(connection, "quiz_items", "status")
-        level_counts = count_by(connection, "quiz_items", "sublevel")
-        theme_counts = count_by(connection, "quiz_items", "theme_id")
-        delivery_count = scalar_count(connection, "deliveries")
+        status_counts = count_quiz_items_by(connection, "status", item_filters)
+        level_counts = count_quiz_items_by(connection, "sublevel", item_filters)
+        theme_counts = count_quiz_items_by(connection, "theme_id", item_filters)
+        language_counts = count_quiz_items_by(connection, "language_code", item_filters)
+        bank_version_counts = count_items_by_bank_version(connection, item_filters)
+        delivery_count = count_deliveries(connection, item_filters)
         audit_count = scalar_count(connection, "audit_log")
     return {
         "corpus_status_counts": status_counts,
         "items_by_cefr_level": level_counts,
         "items_by_theme": theme_counts,
+        "items_by_language": language_counts,
+        "items_by_bank_version": bank_version_counts,
         "approved_published_count": sum(status_counts.get(status, 0) for status in ("approved", "published")),
         "delivery_log_count": delivery_count,
         "audit_log_count": audit_count,
@@ -124,6 +133,9 @@ def list_admin_consumers(db_path: Path | None, limit: int) -> dict[str, object]:
             """
             SELECT c.consumer_id, c.status, c.daily_quota_limit,
                    c.allowed_cefr_levels_json, c.allowed_theme_ids_json,
+                   c.default_language_code, c.default_content_bank_id,
+                   c.default_bank_version_id, c.allowed_language_codes_json,
+                   c.allowed_content_bank_ids_json, c.allowed_bank_version_ids_json,
                    COALESCE(cap.display_name, '') AS display_name,
                    COALESCE(cap.consumer_kind, 'api_client') AS consumer_kind,
                    COUNT(d.delivery_id) AS delivery_count,
@@ -138,6 +150,9 @@ def list_admin_consumers(db_path: Path | None, limit: int) -> dict[str, object]:
              AND qu.usage_date = ?
             GROUP BY c.consumer_id, c.status, c.daily_quota_limit,
                      c.allowed_cefr_levels_json, c.allowed_theme_ids_json,
+                     c.default_language_code, c.default_content_bank_id,
+                     c.default_bank_version_id, c.allowed_language_codes_json,
+                     c.allowed_content_bank_ids_json, c.allowed_bank_version_ids_json,
                      cap.display_name, cap.consumer_kind
             ORDER BY c.created_at DESC
             LIMIT ?
@@ -149,12 +164,14 @@ def list_admin_consumers(db_path: Path | None, limit: int) -> dict[str, object]:
 
 def create_admin_consumer(db_path: Path | None, payload: dict[str, Any], actor: str) -> dict[str, object]:
     consumer_id = str(payload["consumer_id"])
+    content_scope = consumer_content_scope(payload)
     seed_consumer(
         db_path,
         consumer_id,
         int(payload["daily_quota_limit"]),
         payload["allowed_cefr_levels"],
         payload["allowed_theme_ids"],
+        content_scope,
     )
     seed_api_credential(db_path, consumer_id, str(payload["api_key"]))
     seed_entitlement(
@@ -162,6 +179,7 @@ def create_admin_consumer(db_path: Path | None, payload: dict[str, Any], actor: 
         consumer_id,
         payload["allowed_cefr_levels"],
         payload["allowed_theme_ids"],
+        content_scope=content_scope,
         actor=actor,
         reason=str(payload["reason"]),
     )
@@ -219,6 +237,9 @@ def get_admin_consumer(db_path: Path | None, consumer_id: str) -> dict[str, obje
             """
             SELECT c.consumer_id, c.status, c.daily_quota_limit,
                    c.allowed_cefr_levels_json, c.allowed_theme_ids_json,
+                   c.default_language_code, c.default_content_bank_id,
+                   c.default_bank_version_id, c.allowed_language_codes_json,
+                   c.allowed_content_bank_ids_json, c.allowed_bank_version_ids_json,
                    COALESCE(cap.display_name, '') AS display_name,
                    COALESCE(cap.consumer_kind, 'api_client') AS consumer_kind,
                    COUNT(d.delivery_id) AS delivery_count,
@@ -234,6 +255,9 @@ def get_admin_consumer(db_path: Path | None, consumer_id: str) -> dict[str, obje
             WHERE c.consumer_id = ?
             GROUP BY c.consumer_id, c.status, c.daily_quota_limit,
                      c.allowed_cefr_levels_json, c.allowed_theme_ids_json,
+                     c.default_language_code, c.default_content_bank_id,
+                     c.default_bank_version_id, c.allowed_language_codes_json,
+                     c.allowed_content_bank_ids_json, c.allowed_bank_version_ids_json,
                      cap.display_name, cap.consumer_kind
             """,
             (utc_now()[:10], consumer_id),
@@ -357,9 +381,26 @@ def consumer_projection(row: dict[str, Any]) -> dict[str, object]:
         "daily_quota_limit": int(row["daily_quota_limit"]),
         "allowed_cefr_levels": decode_json_list(row["allowed_cefr_levels_json"]),
         "allowed_theme_ids": decode_json_list(row["allowed_theme_ids_json"]),
+        "default_language_code": str(row["default_language_code"]),
+        "default_content_bank_id": str(row["default_content_bank_id"]),
+        "default_bank_version_id": str(row["default_bank_version_id"] or ""),
+        "allowed_language_codes": decode_json_list(row["allowed_language_codes_json"]),
+        "allowed_content_bank_ids": decode_json_list(row["allowed_content_bank_ids_json"]),
+        "allowed_bank_version_ids": decode_json_list(row["allowed_bank_version_ids_json"]),
         "delivery_count": int(row["delivery_count"]),
         "today_quota_used": int(row["today_quota_used"]),
         "last_delivery_at": row["last_delivery_at"],
+    }
+
+
+def consumer_content_scope(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "default_language_code": payload.get("default_language_code") or DEFAULT_LANGUAGE_CODE,
+        "default_content_bank_id": payload.get("default_content_bank_id") or DEFAULT_CONTENT_BANK_ID,
+        "default_bank_version_id": payload.get("default_bank_version_id") or "",
+        "allowed_language_codes": payload.get("allowed_language_codes") or [DEFAULT_LANGUAGE_CODE],
+        "allowed_content_bank_ids": payload.get("allowed_content_bank_ids") or [DEFAULT_CONTENT_BANK_ID],
+        "allowed_bank_version_ids": payload.get("allowed_bank_version_ids") or [],
     }
 
 
@@ -384,6 +425,9 @@ def filter_columns() -> dict[str, str]:
         "cefr_level": "qi.sublevel",
         "theme_id": "qi.theme_id",
         "source_id": "qi.source_id",
+        "language_code": "qi.language_code",
+        "content_bank_id": "qi.content_bank_id",
+        "bank_version_id": "qi.bank_version_id",
     }
 
 
@@ -402,16 +446,117 @@ def where_sql(clauses: list[str]) -> str:
     return "WHERE " + " AND ".join(clauses)
 
 
-def count_by(connection, table: str, column: str) -> dict[str, int]:
-    rows = connection.execute(
-        f"SELECT {column} AS key, COUNT(*) AS count FROM {table} GROUP BY {column}"
-    ).fetchall()
+def count_quiz_items_by(connection, column: str, filters: dict[str, str | None]) -> dict[str, int]:
+    clauses, parameters = quiz_item_filter_clauses(filters)
+    query = f"""
+        SELECT qi.{column} AS key, COUNT(*) AS count
+        FROM quiz_items qi
+        {where_sql(clauses)}
+        GROUP BY qi.{column}
+    """
+    rows = connection.execute(query, parameters).fetchall()
     return {str(row["key"]): int(row["count"]) for row in rows}
+
+
+def count_items_by_bank_version(
+    connection,
+    filters: dict[str, str | None],
+) -> list[dict[str, object]]:
+    clauses, parameters = bank_version_filter_clauses(filters)
+    rows = connection.execute(
+        f"""
+        SELECT cb.language_code, cb.id AS content_bank_id,
+               cb.slug AS content_bank_slug, cbv.id AS bank_version_id,
+               cbv.version AS bank_version, cbv.status AS bank_version_status,
+               COUNT(qi.item_id) AS item_count,
+               SUM(CASE WHEN qi.status IN ('approved', 'published') THEN 1 ELSE 0 END)
+                   AS approved_published_count
+        FROM content_bank_versions cbv
+        JOIN content_banks cb ON cb.id = cbv.content_bank_id
+        LEFT JOIN quiz_items qi
+          ON qi.bank_version_id = cbv.id
+         AND qi.content_bank_id = cb.id
+         AND qi.language_code = cb.language_code
+        {where_sql(clauses)}
+        GROUP BY cb.language_code, cb.id, cb.slug, cbv.id, cbv.version, cbv.status,
+                 cbv.created_at
+        ORDER BY cb.language_code, cb.slug,
+                 CASE cbv.status
+                   WHEN 'active' THEN 1
+                   WHEN 'audit' THEN 2
+                   WHEN 'draft' THEN 3
+                   WHEN 'archived' THEN 4
+                   ELSE 99
+                 END,
+                 cbv.created_at DESC,
+                 cbv.id
+        """,
+        parameters,
+    ).fetchall()
+    return [bank_version_count_projection(row_to_dict(row)) for row in rows]
+
+
+def bank_version_filter_clauses(filters: dict[str, str | None]) -> tuple[list[str], list[str]]:
+    clauses: list[str] = []
+    parameters: list[str] = []
+    for key, column in bank_version_filter_columns().items():
+        value = filters.get(key)
+        if value:
+            clauses.append(f"{column} = ?")
+            parameters.append(value)
+    return clauses, parameters
+
+
+def bank_version_filter_columns() -> dict[str, str]:
+    return {
+        "language_code": "cb.language_code",
+        "content_bank_id": "cb.id",
+        "bank_version_id": "cbv.id",
+    }
+
+
+def bank_version_count_projection(row: dict[str, Any]) -> dict[str, object]:
+    return {
+        "language_code": str(row["language_code"]),
+        "content_bank_id": str(row["content_bank_id"]),
+        "content_bank_slug": str(row["content_bank_slug"]),
+        "bank_version_id": str(row["bank_version_id"]),
+        "bank_version": str(row["bank_version"]),
+        "bank_version_status": str(row["bank_version_status"]),
+        "item_count": int(row["item_count"]),
+        "approved_published_count": int(row["approved_published_count"] or 0),
+    }
 
 
 def scalar_count(connection, table: str) -> int:
     row = connection.execute(f"SELECT COUNT(*) AS count FROM {table}").fetchone()
     return int(row["count"])
+
+
+def count_deliveries(connection, filters: dict[str, str | None]) -> int:
+    clauses, parameters = delivery_filter_clauses(filters)
+    query = f"SELECT COUNT(*) AS count FROM deliveries d {where_sql(clauses)}"
+    row = connection.execute(query, parameters).fetchone()
+    return int(row["count"])
+
+
+def delivery_filter_clauses(filters: dict[str, str | None]) -> tuple[list[str], list[str]]:
+    clauses: list[str] = []
+    parameters: list[str] = []
+    for key, column in delivery_filter_columns().items():
+        value = filters.get(key)
+        if value:
+            clauses.append(f"{column} = ?")
+            parameters.append(value)
+    return clauses, parameters
+
+
+def delivery_filter_columns() -> dict[str, str]:
+    return {
+        "language_code": "d.language_code",
+        "content_bank_id": "d.content_bank_id",
+        "bank_version_id": "d.bank_version_id",
+    }
 
 
 def transition_problem(message: str) -> QuizBankProblem:

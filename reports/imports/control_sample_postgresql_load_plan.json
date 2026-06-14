@@ -1,10 +1,21 @@
 {
+  "content_scope": {
+    "bank_version": "control-sample-draft",
+    "bank_version_id": "german-core:control-sample-draft",
+    "bank_version_status": "draft",
+    "content_bank_id": "german-core",
+    "language_code": "de"
+  },
   "generated_at": "2026-05-07T00:00:00+00:00",
   "lineage": {
+    "bank_version_id": "german-core:control-sample-draft",
+    "content_bank_id": "german-core",
     "import_batch_id": "imp_sample_control_001_dry_run_001",
+    "language_code": "de",
     "quiz_item_count": 2,
     "source_id": "sample_control_001",
     "traceability_chain": [
+      "content_bank_versions",
       "sources",
       "import_batches",
       "import_batch_items",
@@ -18,23 +29,39 @@
     "import_report_path": "reports/imports/control_sample_import.json"
   },
   "tables": {
+    "content_bank_versions": [
+      {
+        "activated_at": null,
+        "content_bank_id": "german-core",
+        "created_at": "2026-05-07T00:00:00+00:00",
+        "id": "german-core:control-sample-draft",
+        "status": "draft",
+        "version": "control-sample-draft"
+      }
+    ],
     "import_batch_items": [
       {
+        "bank_version_id": "german-core:control-sample-draft",
         "canonical_status": "draft",
+        "content_bank_id": "german-core",
         "content_hash_sha256": "e80c433fa5f79ea7f329034eded3194844bec8369da6e1fa70e45349bd94dd3c",
         "created_at": "2026-05-07T00:00:00+00:00",
         "import_batch_id": "imp_sample_control_001_dry_run_001",
-        "item_id": "control_sample_001",
+        "item_id": "german-core:control-sample-draft:control_sample_001",
+        "language_code": "de",
         "source_id": "sample_control_001",
         "source_item_id": "control_sample_001",
         "source_row_number": 2
       },
       {
+        "bank_version_id": "german-core:control-sample-draft",
         "canonical_status": "draft",
+        "content_bank_id": "german-core",
         "content_hash_sha256": "8969736d00151d444620ff3ab67c6c0ac0fb4da76ecb6df775a41a3e22c3212a",
         "created_at": "2026-05-07T00:00:00+00:00",
         "import_batch_id": "imp_sample_control_001_dry_run_001",
-        "item_id": "control_sample_002",
+        "item_id": "german-core:control-sample-draft:control_sample_002",
+        "language_code": "de",
         "source_id": "sample_control_001",
         "source_item_id": "control_sample_002",
         "source_row_number": 3
@@ -43,12 +70,15 @@
     "import_batches": [
       {
         "accepted_candidate_count": 2,
+        "bank_version_id": "german-core:control-sample-draft",
         "completed_at": "2026-05-07T00:00:00+00:00",
+        "content_bank_id": "german-core",
         "created_by": "tool:quizbank_postgresql_load_plan.py",
         "default_item_status": "draft",
         "import_batch_id": "imp_sample_control_001_dry_run_001",
         "import_mode": "dry_run",
         "import_status": "dry_run_passed",
+        "language_code": "de",
         "parser_profile_id": "csv_quiz_bank_v1",
         "rejected_candidate_count": 0,
         "report_uri": "reports/imports/control_sample_import.json",
@@ -61,8 +91,11 @@
     "import_validation_results": [],
     "sources": [
       {
+        "bank_version_id": "german-core:control-sample-draft",
         "checksum_sha256": "ac17ee2680f883c16290d0f522f1dcb91708957b46bdd69d3845ebd1f5254d32",
+        "content_bank_id": "german-core",
         "created_at": "2026-05-07T00:00:00+00:00",
+        "language_code": "de",
         "provenance_note": "control_sample",
         "source_id": "sample_control_001",
         "source_type": "fixture",

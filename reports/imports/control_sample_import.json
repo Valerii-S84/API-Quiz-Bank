@@ -4,6 +4,13 @@
   "source_path": "tests/fixtures/control_source/control_sample.csv",
   "parser_profile_id": "csv_quiz_bank_v1",
   "checksum_sha256": "ac17ee2680f883c16290d0f522f1dcb91708957b46bdd69d3845ebd1f5254d32",
+  "content_scope": {
+    "language_code": "de",
+    "content_bank_id": "german-core",
+    "bank_version_id": "german-core:control-sample-draft",
+    "bank_version": "control-sample-draft",
+    "bank_version_status": "draft"
+  },
   "row_count_detected": 2,
   "canonical_output_path": "data/imports/control_sample_items.jsonl",
   "validation_summary": {
@@ -19,6 +26,9 @@
       "source_id": "sample_control_001",
       "source_item_id": "control_sample_001",
       "language": "de",
+      "language_code": "de",
+      "content_bank_id": "german-core",
+      "bank_version_id": "german-core:control-sample-draft",
       "cefr_level": "A2",
       "theme_id": "T10",
       "objective_id": "O02",
@@ -37,6 +47,9 @@
       "source_id": "sample_control_001",
       "source_item_id": "control_sample_002",
       "language": "de",
+      "language_code": "de",
+      "content_bank_id": "german-core",
+      "bank_version_id": "german-core:control-sample-draft",
       "cefr_level": "A2",
       "theme_id": "T10",
       "objective_id": "O02",

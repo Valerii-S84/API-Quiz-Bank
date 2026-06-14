@@ -98,6 +98,7 @@ def seed_protected_beta_channel(
         channel.daily_quota_limit,
         channel.allowed_cefr_levels(),
         channel.allowed_theme_ids(),
+        content_scope=channel.seed_content_scope(),
     )
     seed_entitlement(
         db_path,
@@ -106,6 +107,7 @@ def seed_protected_beta_channel(
         channel.allowed_theme_ids(),
         actor=actor,
         reason=f"Protected beta Telegram channel access: {channel.display_name}",
+        content_scope=channel.seed_content_scope(),
     )
     upsert_consumer_profile(
         db_path,
@@ -148,18 +150,25 @@ def seed_channel_feature_entitlement(
     actor: str,
 ) -> str:
     entitlement_id = f"ent_{channel.consumer_id}_{feature.replace('.', '_')}"
+    scope = channel.seed_content_scope()
     with connect(db_path) as connection:
         connection.execute(
             """
             INSERT INTO entitlements (
                 entitlement_id, consumer_id, feature, status,
                 allowed_cefr_levels_json, allowed_theme_ids_json,
+                allowed_language_codes_json, allowed_content_bank_ids_json,
+                allowed_bank_version_ids_json, allowed_content_types_json,
                 valid_until, created_at
-            ) VALUES (?, ?, ?, 'active', ?, ?, NULL, ?)
+            ) VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, NULL, ?)
             ON CONFLICT(entitlement_id) DO UPDATE SET
                 status = excluded.status,
                 allowed_cefr_levels_json = excluded.allowed_cefr_levels_json,
                 allowed_theme_ids_json = excluded.allowed_theme_ids_json,
+                allowed_language_codes_json = excluded.allowed_language_codes_json,
+                allowed_content_bank_ids_json = excluded.allowed_content_bank_ids_json,
+                allowed_bank_version_ids_json = excluded.allowed_bank_version_ids_json,
+                allowed_content_types_json = excluded.allowed_content_types_json,
                 valid_until = excluded.valid_until
             """,
             (
@@ -168,6 +177,10 @@ def seed_channel_feature_entitlement(
                 feature,
                 json.dumps(channel.allowed_cefr_levels()),
                 json.dumps(channel.allowed_theme_ids()),
+                json.dumps(scope["allowed_language_codes"]),
+                json.dumps(scope["allowed_content_bank_ids"]),
+                json.dumps(scope["allowed_bank_version_ids"]),
+                json.dumps([]),
                 utc_now(),
             ),
         )
@@ -231,6 +244,7 @@ def run_protected_beta_slot(
     results: list[TelegramDeliveryResult] = []
     excluded_item_ids: list[str] = []
     for _ in range(slot.quiz_count):
+        content_scope = channel.content_scope_for_slot(slot)
         result = run_telegram_delivery(
             db_path,
             TelegramDeliveryRequest(
@@ -240,6 +254,9 @@ def run_protected_beta_slot(
                 cefr_level=slot.cefr_level,
                 theme_ids=(slot.theme_id,),
                 excluded_item_ids=tuple(excluded_item_ids),
+                language_code=content_scope.language_code,
+                content_bank_id=content_scope.content_bank_id,
+                bank_version_id=content_scope.bank_version_id,
             ),
             adapter=adapter,
             image_provider=delivery_options.image_provider,
@@ -299,14 +316,8 @@ def run_scheduled_protected_beta_slot(
     delivery_options: ProtectedBetaDeliveryOptions = DEFAULT_PROTECTED_BETA_DELIVERY_OPTIONS,
 ) -> TelegramDeliveryResult:
     slot_id = scheduled_slot_id(channel, slot, delivery_options)
-    request = TelegramDeliveryRequest(
-        consumer_id=channel.consumer_id,
-        chat_id=channel.chat_id,
-        mode=mode,
-        cefr_level=slot.cefr_level,
-        theme_ids=(slot.theme_id,),
-    )
     slot_run = upsert_pending_slot_run(db_path, channel, slot, delivery_date, slot_id)
+    request = telegram_request_for_slot_run(channel, slot, mode, slot_run)
     if mode == "real" and slot_run["status"] == "sent":
         return telegram_result_for_slot_run(db_path, slot_run, channel, mode)
     if mode == "real" and slot_run["delivery_id"]:
@@ -337,9 +348,30 @@ def run_scheduled_protected_beta_slot(
             status="no_item",
             telegram_target_ref=redact_telegram_target(channel.chat_id),
             failure_reason=error.reason_code,
+            language_code=request.language_code,
+            content_bank_id=request.content_bank_id,
+            bank_version_id=request.bank_version_id,
         )
     update_slot_run_result(db_path, slot_run["slot_run_id"], result)
     return result
+
+
+def telegram_request_for_slot_run(
+    channel: ProtectedBetaTelegramChannel,
+    slot: ProtectedBetaScheduleSlot,
+    mode: str,
+    slot_run: dict[str, object],
+) -> TelegramDeliveryRequest:
+    return TelegramDeliveryRequest(
+        consumer_id=channel.consumer_id,
+        chat_id=channel.chat_id,
+        mode=mode,
+        cefr_level=slot.cefr_level,
+        theme_ids=(slot.theme_id,),
+        language_code=str(slot_run["language_code"]),
+        content_bank_id=str(slot_run["content_bank_id"]),
+        bank_version_id=str(slot_run["bank_version_id"]),
+    )
 
 
 def send_slot_run_existing_delivery(

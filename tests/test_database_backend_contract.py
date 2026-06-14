@@ -137,6 +137,10 @@ class DatabaseBackendContractTests(unittest.TestCase):
     def test_postgresql_readiness_reports_success_and_connection_failure(self) -> None:
         ready_connection = FakeReadyConnection(
             [
+                {"name": "languages"},
+                {"name": "content_banks"},
+                {"name": "content_bank_versions"},
+                {"name": "content_bank_activation_events"},
                 {"name": "quiz_items"},
                 {"name": "consumers"},
                 {"name": "api_credentials"},
@@ -326,6 +330,10 @@ class FakePostgreSQLRuntimeConnection:
             return FakeResult(row=postgresql_consumer_row())
         if "FROM entitlements" in sql:
             return FakeResult(row=postgresql_entitlement_row())
+        if "FROM languages WHERE code = %s" in sql:
+            return FakeResult(row={"code": "de", "is_active": True})
+        if "FROM content_banks cb" in sql:
+            return FakeResult(row=postgresql_content_scope_row())
         if "INSERT INTO quota_usage" in sql:
             return FakeResult(row={"quota_usage_id": "quota_pg", "used_count": 1, "quota_limit": 10})
         if "SELECT COUNT(*) AS count" in sql:
@@ -365,6 +373,9 @@ def postgresql_quiz_item_row() -> dict[str, object]:
     return {
         "item_id": "item_pg",
         "language": "de",
+        "language_code": "de",
+        "content_bank_id": "german-core",
+        "bank_version_id": "german-core:2026-06-12-baseline",
         "status": "approved",
         "source_id": "source_pg",
         "resolved_source_type": "fixture",
@@ -385,12 +396,23 @@ def postgresql_quiz_item_row() -> dict[str, object]:
     }
 
 
+def postgresql_content_scope_row() -> dict[str, object]:
+    return {
+        "language_code": "de",
+        "content_bank_id": "german-core",
+        "bank_version_id": "german-core:2026-06-12-baseline",
+    }
+
+
 def postgresql_delivery_row() -> dict[str, object]:
     return {
         "delivery_id": "deliv_pg",
         "consumer_id": "consumer_pg",
         "quiz_item_id": "item_pg",
         "item_status": "approved",
+        "language_code": "de",
+        "content_bank_id": "german-core",
+        "bank_version_id": "german-core:2026-06-12-baseline",
         "delivery_status": "created",
         "selected_at": "2026-05-25T00:00:00Z",
         "selection_reason_summary": "eligible_by_status",

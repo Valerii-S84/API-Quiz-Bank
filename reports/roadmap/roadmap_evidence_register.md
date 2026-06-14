@@ -87,6 +87,17 @@ operation evidence are listed.
 - Verification: targeted selection/quota/PostgreSQL-boundary tests passed; full repository verification is recorded in the task close-out.
 - Remaining external gate: approved production deploy, protected smoke and protected Stage 4/Stage 5 rerun remain separate tasks.
 
+## 2026-06-12 Read Path CPU Production Deploy
+
+- Status: `Partial`.
+- Evidence: `reports/scale/read_path_cpu_production_deploy_2026-06-12.md`, `reports/scale/read_path_postfix_smoke_2026-06-12.json`, `reports/scale/read_path_cpu_lock_probe_2026-06-12.json`, `reports/scale/protected_staged_load_after_read_path_fix_2026-06-12.json`, `reports/scale/protected_staged_load_after_read_path_fix_2026-06-12_summary.md`.
+- Deploy: production server `/opt/api-quiz-bank` was updated from `3c866492ec2f1a42e9dcb512c980b92ebd1fd7e3` to `a46d33f41fabf685dcfbc2cda98f5967f906cbc2`; only the API container was rebuilt/restarted; Postgres was not restarted; no migrations were applied because there were no new migrations.
+- Protected smoke: passed with 85/85 `200`, zero 5xx/timeouts, p95 `268.541 ms`, p99 `285.381 ms`, candidate max `150`, blocked locks max `0`, Postgres CPU max `51.47%`, final health/ready `200/200`, diagnostic credentials revoked and non-test consumers unchanged at `42`.
+- CPU/lock probe: failed the gate despite 1200/1200 `200`, zero 5xx/timeouts, blocked locks max `0` and candidate max `150`; p95 was `1696.847 ms`, sampled Postgres CPU max was `103.01%`, and CPU stayed above `90%` for `64 s`.
+- Stage 4 / Stage 5: not run because the CPU/lock probe did not pass.
+- Cleanup: all diagnostic credentials were revoked, revoked-key checks returned `403`, temp raw key files were not created, temp harness files were removed, active diagnostic credentials after final cleanup were `0`, DB connections returned to `1`, blocked locks returned to `0`, and health/ready remained `200/200`.
+- Paid pilot readiness: not claimed.
+
 ## Baseline Evidence
 
 Verified at start of this execution pass:

@@ -14,6 +14,7 @@ from .visual_access import (
     check_visual_generation_access,
     reserve_visual_delivery_quota,
     reserve_visual_generation_quota,
+    visual_scope_values,
 )
 from .visual_cache import (
     DEFAULT_ASSET_ROOT,
@@ -61,10 +62,11 @@ def resolve_visual_delivery(
     settings = load_visual_settings(db_path, consumer_id)
     if not settings.is_active or settings.delivery_mode == VisualDeliveryMode.TEXT_ONLY:
         return text_only_resolution(settings)
-    access = check_visual_delivery_access(db_path, settings)
+    content_scope = delivery_content_scope(delivery, quiz_item)
+    access = check_visual_delivery_access(db_path, settings, content_scope)
     if access.resolved_mode == VisualDeliveryMode.TEXT_ONLY or not access.is_allowed:
         return fallback_with_usage(db_path, delivery, settings, access.reason_code, access.feature)
-    delivery_quota = reserve_visual_delivery_quota(db_path, settings)
+    delivery_quota = reserve_visual_delivery_quota(db_path, settings, content_scope=content_scope)
     if not delivery_quota.is_allowed:
         return fallback_with_usage(db_path, delivery, settings, delivery_quota.reason_code, delivery_quota.feature)
     cache_key = compute_visual_cache_key(quiz_item, settings)
@@ -87,10 +89,11 @@ def generate_or_fallback(
 ) -> VisualDeliveryResolution:
     if settings.fallback_policy == VisualFallbackPolicy.CACHE_ONLY:
         return fallback_with_usage(db_path, delivery, settings, "CACHE_ONLY_MISS", "visual_delivery.cache_only")
-    generation_access = check_visual_generation_access(db_path, settings)
+    content_scope = delivery_content_scope(delivery, quiz_item)
+    generation_access = check_visual_generation_access(db_path, settings, content_scope)
     if not generation_access.is_allowed or generation_access.resolved_mode == VisualDeliveryMode.TEXT_ONLY:
         return fallback_with_usage(db_path, delivery, settings, generation_access.reason_code, generation_access.feature)
-    generation_quota = reserve_visual_generation_quota(db_path, settings)
+    generation_quota = reserve_visual_generation_quota(db_path, settings, content_scope=content_scope)
     if not generation_quota.is_allowed:
         return fallback_with_usage(db_path, delivery, settings, generation_quota.reason_code, generation_quota.feature)
     prompt = build_visual_prompt(quiz_item, settings)
@@ -163,6 +166,14 @@ def visual_metadata(prompt: VisualPrompt) -> dict[str, str]:
     }
 
 
+def delivery_content_scope(delivery: dict[str, Any], quiz_item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "language_code": delivery.get("language_code") or quiz_item.get("language_code"),
+        "content_bank_id": delivery.get("content_bank_id") or quiz_item.get("content_bank_id"),
+        "bank_version_id": delivery.get("bank_version_id") or quiz_item.get("bank_version_id"),
+    }
+
+
 def provider_request(
     prompt: VisualPrompt,
     settings: VisualSettings,
@@ -197,17 +208,21 @@ def insert_prompt_audit(
     prompt: VisualPrompt,
     result: ImageGenerationResult,
 ) -> None:
+    language_code, content_bank_id, bank_version_id = visual_scope_values(
+        delivery_content_scope({}, quiz_item)
+    )
     with connect(db_path) as connection:
         connection.execute(
             """
             INSERT INTO visual_prompt_audit (
                 prompt_id, asset_id, quiz_item_id, consumer_id, prompt_type,
+                language_code, content_bank_id, bank_version_id,
                 visual_mode, visual_target, visual_context_hint,
                 generated_prompt, negative_prompt, prompt_policy_version,
                 visual_prompt_policy_version,
                 provider_name, provider_model, provider_response_id,
                 provider_revised_prompt, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 new_id("vprompt"),
@@ -215,6 +230,9 @@ def insert_prompt_audit(
                 quiz_item["item_id"],
                 settings.consumer_id,
                 prompt.visual_mode,
+                language_code,
+                content_bank_id,
+                bank_version_id,
                 prompt.visual_mode,
                 prompt.visual_target,
                 prompt.visual_context_hint,
@@ -239,13 +257,17 @@ def record_usage(
     event_type: str,
     feature: str,
 ) -> None:
+    language_code, content_bank_id, bank_version_id = visual_scope_values(
+        delivery_content_scope(delivery, {})
+    )
     with connect(db_path) as connection:
         connection.execute(
             """
             INSERT INTO visual_usage_events (
                 usage_event_id, consumer_id, delivery_id, asset_id, event_type,
+                language_code, content_bank_id, bank_version_id,
                 feature, quantity, estimated_cost_minor, provider_name, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
             """,
             (
                 new_id("vusage"),
@@ -253,6 +275,9 @@ def record_usage(
                 delivery.get("delivery_id"),
                 asset.asset_id if asset else None,
                 event_type,
+                language_code,
+                content_bank_id,
+                bank_version_id,
                 feature,
                 asset.provider_name if asset else "local",
                 utc_now(),

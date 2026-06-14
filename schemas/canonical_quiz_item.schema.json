@@ -1,7 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://api-quiz-bank.local/schemas/canonical_quiz_item.schema.json",
-  "title": "API Quiz Bank Canonical Quiz Item",
+  "title": "API Quiz Bank Raw Canonical CSV Row",
+  "description": "Raw source CSV row contract. Runtime canonical item rows are described by runtime_canonical_quiz_item.schema.json.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -39,7 +40,13 @@
     },
     "language": {
       "type": "string",
-      "const": "de"
+      "enum": [
+        "de",
+        "en",
+        "fr",
+        "es",
+        "nl"
+      ]
     },
     "level_band": {
       "type": "string",

@@ -54,6 +54,21 @@ def load_active_entitlement(connection, request: "SelectionRequest") -> dict[str
 
 def enforce_consumer_scope(consumer: dict[str, Any], request: "SelectionRequest") -> None:
     enforce_scope_list(
+        scope_list(consumer, "allowed_language_codes_json"),
+        [request.language_code] if request.language_code else [],
+        "CONSUMER_LANGUAGE_NOT_ALLOWED",
+    )
+    enforce_scope_list(
+        scope_list(consumer, "allowed_content_bank_ids_json"),
+        [request.content_bank_id] if request.content_bank_id else [],
+        "CONSUMER_CONTENT_BANK_NOT_ALLOWED",
+    )
+    enforce_scope_list(
+        scope_list(consumer, "allowed_bank_version_ids_json"),
+        [request.bank_version_id] if request.bank_version_id else [],
+        "CONSUMER_BANK_VERSION_NOT_ALLOWED",
+    )
+    enforce_scope_list(
         decode_json_field(consumer["allowed_cefr_levels_json"]),
         [request.cefr_level] if request.cefr_level else [],
         "CONSUMER_LEVEL_NOT_ALLOWED",
@@ -67,6 +82,21 @@ def enforce_consumer_scope(consumer: dict[str, Any], request: "SelectionRequest"
 
 def enforce_entitlement_scope(entitlement: dict[str, Any], request: "SelectionRequest") -> None:
     enforce_scope_list(
+        scope_list(entitlement, "allowed_language_codes_json"),
+        [request.language_code] if request.language_code else [],
+        "ENTITLEMENT_LANGUAGE_NOT_ALLOWED",
+    )
+    enforce_scope_list(
+        scope_list(entitlement, "allowed_content_bank_ids_json"),
+        [request.content_bank_id] if request.content_bank_id else [],
+        "ENTITLEMENT_CONTENT_BANK_NOT_ALLOWED",
+    )
+    enforce_scope_list(
+        scope_list(entitlement, "allowed_bank_version_ids_json"),
+        [request.bank_version_id] if request.bank_version_id else [],
+        "ENTITLEMENT_BANK_VERSION_NOT_ALLOWED",
+    )
+    enforce_scope_list(
         decode_json_field(entitlement["allowed_cefr_levels_json"]),
         [request.cefr_level] if request.cefr_level else [],
         "ENTITLEMENT_LEVEL_NOT_ALLOWED",
@@ -75,7 +105,11 @@ def enforce_entitlement_scope(entitlement: dict[str, Any], request: "SelectionRe
         decode_json_field(entitlement["allowed_theme_ids_json"]),
         list(request.theme_ids),
         "ENTITLEMENT_THEME_NOT_ALLOWED",
-    )
+        )
+
+
+def scope_list(row: dict[str, Any], key: str) -> list[str]:
+    return decode_json_field(row.get(key) or "[]")
 
 
 def enforce_scope_list(allowed: list[str], requested: list[str], reason_code: str) -> None:

@@ -8,6 +8,9 @@ from collections import Counter
 from pathlib import Path
 
 from quizbank_common import (
+    DEFAULT_CONTENT_BANK_ID,
+    DEFAULT_LANGUAGE_CODE,
+    DEFAULT_RUNTIME_BANK_VERSION_ID,
     EXPECTED_HEADER,
     PARSER_PROFILE_ID,
     build_arg_parser,
@@ -73,6 +76,11 @@ def manifest_text(inventory) -> str:
         "# Source CSV files are source assets; this manifest is import planning metadata.",
         "manifest_version: 1",
         "generated_at: 2026-05-07",
+        "content_scope_defaults:",
+        f"  language_code: {DEFAULT_LANGUAGE_CODE}",
+        f"  content_bank_id: {DEFAULT_CONTENT_BANK_ID}",
+        f"  bank_version_id: {DEFAULT_RUNTIME_BANK_VERSION_ID}",
+        "  source_inheritance: explicit_default_scope",
         "parser_profiles:",
         f"  default: {PARSER_PROFILE_ID}",
         "sources:",

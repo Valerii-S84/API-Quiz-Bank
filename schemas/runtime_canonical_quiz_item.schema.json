@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://api-quiz-bank.local/schemas/runtime_canonical_quiz_item.schema.json",
+  "title": "API Quiz Bank Runtime Canonical Quiz Item",
+  "description": "Persisted runtime quiz_items row contract with explicit content-bank scope.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "item_id",
+    "source_id",
+    "language",
+    "language_code",
+    "content_bank_id",
+    "bank_version_id",
+    "level_band",
+    "sublevel",
+    "theme_id",
+    "subtheme_id",
+    "objective_id",
+    "pattern_id",
+    "difficulty_band",
+    "register",
+    "prompt",
+    "stem_text",
+    "options_json",
+    "answer_key",
+    "explanation",
+    "tags",
+    "coverage_cell_id",
+    "status",
+    "version",
+    "created_at",
+    "updated_at",
+    "reviewed_at",
+    "level_locked",
+    "locked_at"
+  ],
+  "properties": {
+    "item_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "de",
+        "en",
+        "fr",
+        "es",
+        "nl"
+      ]
+    },
+    "language_code": {
+      "type": "string",
+      "enum": [
+        "de",
+        "en",
+        "fr",
+        "es",
+        "nl"
+      ],
+      "default": "de"
+    },
+    "content_bank_id": {
+      "type": "string",
+      "minLength": 1,
+      "default": "german-core"
+    },
+    "bank_version_id": {
+      "type": "string",
+      "minLength": 1,
+      "default": "german-core:2026-06-12-baseline"
+    },
+    "level_band": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sublevel": {
+      "type": "string",
+      "enum": [
+        "A1",
+        "A2",
+        "B1",
+        "B2",
+        "C1",
+        "C2"
+      ]
+    },
+    "theme_id": {
+      "type": "string",
+      "pattern": "^T(0[1-9]|1[0-8])$"
+    },
+    "subtheme_id": {
+      "type": "string"
+    },
+    "objective_id": {
+      "type": "string",
+      "pattern": "^O(0[1-9]|1[0-6])$"
+    },
+    "pattern_id": {
+      "type": "string",
+      "pattern": "^P(0[1-9]|1[0-2])$"
+    },
+    "difficulty_band": {
+      "type": "string"
+    },
+    "register": {
+      "type": "string"
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stem_text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "options_json": {
+      "type": "string",
+      "minLength": 1
+    },
+    "answer_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "explanation": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "string"
+    },
+    "coverage_cell_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "imported",
+        "normalized",
+        "needs_review",
+        "approved",
+        "published",
+        "monitored",
+        "retired",
+        "blocked"
+      ]
+    },
+    "version": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string"
+    },
+    "reviewed_at": {
+      "type": "string"
+    },
+    "level_locked": {
+      "type": "string"
+    },
+    "locked_at": {
+      "type": "string"
+    }
+  }
+}

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .selection import SelectionFilters, SelectionRequest, select_next_item
+from .selection import ContentScope, SelectionFilters, SelectionRequest, select_next_item
 from .telegram_bot_api import (
     TELEGRAM_API_BASE,
     TelegramBotApiAdapter,
@@ -141,6 +141,9 @@ def send_loaded_telegram_delivery(
             status="failed",
             telegram_target_ref=redact_telegram_target(request.chat_id),
             failure_reason=str(error),
+            language_code=str(item["language_code"]),
+            content_bank_id=str(item["content_bank_id"]),
+            bank_version_id=str(item["bank_version_id"]),
         )
     visual_result = visual_result_from_poll_delivery(request.mode, visual_resolution, result)
     visual_result = visual_result_after_poll(visual_result, result)
@@ -161,6 +164,11 @@ def selection_request_from_telegram(
             objective_ids=request.objective_ids,
             pattern_ids=request.pattern_ids,
             excluded_item_ids=telegram_excluded_item_ids(db_path, request),
+        ),
+        content_scope=ContentScope(
+            language_code=request.language_code,
+            content_bank_id=request.content_bank_id,
+            bank_version_id=request.bank_version_id,
         ),
         delivery_mode="telegram",
     )
@@ -184,6 +192,9 @@ def handle_telegram_send(
             status="skipped",
             telegram_target_ref=target_ref,
             failure_reason="dry_run_no_bot_api_call",
+            language_code=str(payload["language_code"]),
+            content_bank_id=str(payload["content_bank_id"]),
+            bank_version_id=str(payload["bank_version_id"]),
         )
     if adapter is None:
         raise TelegramDeliveryError("real_send_requires_adapter")
@@ -197,4 +208,7 @@ def handle_telegram_send(
         telegram_target_ref=target_ref,
         telegram_message_id=send_result.message_id,
         telegram_poll_id=send_result.poll_id,
+        language_code=str(payload["language_code"]),
+        content_bank_id=str(payload["content_bank_id"]),
+        bank_version_id=str(payload["bank_version_id"]),
     )

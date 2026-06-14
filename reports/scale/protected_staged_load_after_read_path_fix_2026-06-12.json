@@ -1,0 +1,130 @@
+{
+  "cleanup": {
+    "active_diagnostic_credentials_final": 0,
+    "credentials_revoked": 23,
+    "final_blocked_locks": 0,
+    "final_container_state": {
+      "api": "running/healthy restart=0 started=2026-06-12T12:29:15.581030596Z",
+      "postgres": "running/healthy restart=0 started=2026-05-11T15:22:22.710037082Z"
+    },
+    "final_db_connections": 1,
+    "final_docker_stats": {
+      "api": {
+        "cpu_percent": 0.17,
+        "memory_usage": "59.21MiB / 512MiB"
+      },
+      "postgres": {
+        "cpu_percent": 0.17,
+        "memory_usage": "156.7MiB / 512MiB"
+      }
+    },
+    "final_health_ready": {
+      "health": 200,
+      "ready": 200
+    },
+    "non_test_consumers_after": 42,
+    "non_test_consumers_before": 42,
+    "revoked_key_checks": {
+      "probe": 403,
+      "smoke": 403
+    },
+    "temp_harness_files_removed": true,
+    "temp_raw_key_files_created": false,
+    "temp_raw_key_files_removed": true
+  },
+  "cpu_lock_probe": {
+    "blocked_locks_max": 0,
+    "candidate_max": 150,
+    "db_connections_max": 20,
+    "delivery_quota_increments": {
+      "deliveries": 1200,
+      "quota_used": 1200
+    },
+    "failure_reasons": [
+      "p95_ms_exceeded_1500",
+      "postgres_cpu_over_90_longer_than_30s"
+    ],
+    "five_xx_count": 0,
+    "p95_ms": 1696.847,
+    "p99_ms": 1905.301,
+    "postgres_cpu_max": 103.01,
+    "postgres_cpu_over_90_longest_seconds": 64,
+    "report_path": "reports/scale/read_path_cpu_lock_probe_2026-06-12.json",
+    "status": "failed",
+    "status_counts": {
+      "200": 1200
+    },
+    "timeout_count": 0,
+    "total_requests": 1200
+  },
+  "final_conclusion": "Partial: deployed read-path CPU fix and smoke passed, but CPU/lock probe failed latency and sustained Postgres CPU gates; Stage 4 and Stage 5 were not run.",
+  "fix_commit_sha": "46db9787691edc0583ea273fd2aeaea32b761d92",
+  "generated_at": "2026-06-12T12:40:37Z",
+  "new_server_sha": "a46d33f41fabf685dcfbc2cda98f5967f906cbc2",
+  "old_server_sha": "3c866492ec2f1a42e9dcb512c980b92ebd1fd7e3",
+  "origin_main_sha": "a46d33f41fabf685dcfbc2cda98f5967f906cbc2",
+  "production_deploy": {
+    "api_container_started_at_after": "2026-06-12T12:29:15.581030596Z",
+    "api_rebuilt_restarted_only": true,
+    "api_restart_count_after": 0,
+    "api_runtime_error_count_since_deploy": 0,
+    "health_ready_after_deploy": {
+      "health": 200,
+      "ready": 200
+    },
+    "migrations_applied": false,
+    "new_migrations_relative_to_old_server_sha": [],
+    "postgres_container_started_at_after": "2026-05-11T15:22:22.710037082Z",
+    "postgres_error_count_since_deploy": 0,
+    "postgres_restart_count_after": 0,
+    "postgres_restarted": false
+  },
+  "report_type": "protected_staged_load_after_read_path_fix",
+  "secrets_policy": {
+    "db_url_printed": false,
+    "quiz_content_recorded": false,
+    "raw_keys_printed": false,
+    "secret_headers_printed": false
+  },
+  "smoke": {
+    "blocked_locks_max": 0,
+    "candidate_max": 150,
+    "db_connections_max": 3,
+    "delivery_quota_increments": {
+      "deliveries": 85,
+      "quota_used": 85
+    },
+    "five_xx_count": 0,
+    "p95_ms": 268.541,
+    "p99_ms": 285.381,
+    "postgres_cpu_max": 51.47,
+    "report_path": "reports/scale/read_path_postfix_smoke_2026-06-12.json",
+    "status": "passed",
+    "status_counts": {
+      "200": 85
+    },
+    "timeout_count": 0,
+    "total_requests": 85
+  },
+  "stage4": {
+    "planned_profile": {
+      "duration_seconds": 300,
+      "isolated_consumers": 20,
+      "rps": 20,
+      "target_requests": 6000
+    },
+    "reason": "cpu_lock_probe_failed",
+    "status": "not_run"
+  },
+  "stage5": {
+    "planned_profile": {
+      "duration_seconds": 1200,
+      "isolated_consumers": 10,
+      "rps": 10,
+      "target_requests": 12000
+    },
+    "reason": "stage4_not_run_because_cpu_lock_probe_failed",
+    "status": "not_run"
+  },
+  "status": "Partial"
+}

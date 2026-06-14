@@ -1,0 +1,150 @@
+{
+  "acceptance": {
+    "all_requests_200": true,
+    "blocked_locks_zero": true,
+    "candidate_max_lte_150": true,
+    "credentials_revoked": true,
+    "expected_request_count": true,
+    "five_xx_within_threshold": true,
+    "non_test_consumers_unchanged": true,
+    "p95_lt_1500_ms": false,
+    "p99_lt_3000_ms": true,
+    "postgres_cpu_not_over_90_longer_than_30s": false,
+    "revoked_key_check_403": true,
+    "timeouts_within_threshold": true
+  },
+  "acceptance_without_host_cpu": {
+    "all_requests_200": true,
+    "blocked_locks_zero": true,
+    "candidate_max_lte_150": true,
+    "credentials_revoked": true,
+    "expected_request_count": true,
+    "five_xx_within_threshold": true,
+    "non_test_consumers_unchanged": true,
+    "p95_lt_1500_ms": false,
+    "p99_lt_3000_ms": true,
+    "revoked_key_check_403": true,
+    "timeouts_within_threshold": true
+  },
+  "base_url_scope": "container_loopback_api_with_app_credential_auth",
+  "candidate_pool": {
+    "limit_expected": 150,
+    "max_candidate_count": 150,
+    "min_candidate_count": 150
+  },
+  "cleanup": {
+    "active_diagnostic_credentials_all_known_prefixes_after_revoke": 0,
+    "active_diagnostic_credentials_this_prefix_after_revoke": 0,
+    "credentials_revoked": 20,
+    "temp_raw_key_files_created": false,
+    "temp_raw_key_files_removed": true
+  },
+  "consumer_count": 20,
+  "consumer_prefix": "read_path_cpu_20260612_probe_",
+  "database_samples": {
+    "blocked_locks_max": 0,
+    "db_connections_last": 16,
+    "db_connections_max": 20,
+    "non_granted_locks_max": 0,
+    "sample_count": 29,
+    "sample_errors": 0
+  },
+  "delivery_quota_increments": {
+    "deliveries": 1200,
+    "quota_used": 1200
+  },
+  "description": "20 isolated consumers, 60 seconds, approx 20 RPS",
+  "finished_at": "2026-06-12T12:37:48Z",
+  "gate_passed": false,
+  "gate_passed_without_host_cpu": false,
+  "host_observability": {
+    "api_container_after": "running/healthy restart=0 started=2026-06-12T12:29:15.581030596Z",
+    "api_runtime_error_count_since_phase_start": 0,
+    "docker_stats": {
+      "api-quiz-bank-pilot": {
+        "cpu_over_90_longest_seconds": 0,
+        "cpu_percent_avg": 46.367,
+        "cpu_percent_max": 65.74,
+        "memory_usage_last": "61.09MiB / 512MiB",
+        "sample_count": 12
+      },
+      "api-quiz-bank-postgres": {
+        "cpu_over_90_longest_seconds": 64,
+        "cpu_percent_avg": 89.1,
+        "cpu_percent_max": 103.01,
+        "memory_usage_last": "156.7MiB / 512MiB",
+        "sample_count": 12
+      }
+    },
+    "loopback_health_after": "200",
+    "loopback_ready_after": "200",
+    "postgres_container_after": "running/healthy restart=0 started=2026-05-11T15:22:22.710037082Z",
+    "postgres_error_count_since_phase_start": 0,
+    "stats_sample_count": 24
+  },
+  "load_profile": {
+    "concurrency": 20,
+    "duration_seconds": 60,
+    "rps": 20.0,
+    "target_requests": 1200
+  },
+  "phase": "probe",
+  "phase_error": null,
+  "quota_limit_per_consumer": 300,
+  "report_type": "read_path_cpu_lock_probe",
+  "request_summary": {
+    "candidate_max": 150,
+    "candidate_min": 150,
+    "five_xx_count": 0,
+    "five_xx_rate": 0.0,
+    "latency_ms": {
+      "first_half_p95": 1205.731,
+      "max": 2206.046,
+      "p50": 1215.303,
+      "p95": 1696.847,
+      "p99": 1905.301,
+      "second_half_p95": 1806.637
+    },
+    "network_error_count": 0,
+    "non_200_count": 0,
+    "status_200": 1200,
+    "status_counts": {
+      "200": 1200
+    },
+    "timeout_count": 0,
+    "timeout_rate": 0.0,
+    "total_requests": 1200
+  },
+  "revoked_key_check": {
+    "expected_status_code": 403,
+    "ok": true,
+    "status_code": 403
+  },
+  "secrets_policy": {
+    "db_url_printed": false,
+    "quiz_content_recorded": false,
+    "raw_keys_printed": false,
+    "secret_headers_printed": false
+  },
+  "started_at": "2026-06-12T12:36:32Z",
+  "state_after": {
+    "active_diagnostic_credentials_all_known_prefixes": 0,
+    "active_diagnostic_credentials_this_prefix": 0,
+    "blocked_locks": 0,
+    "db_connections": 1,
+    "deliveries_for_prefix": 1200,
+    "non_granted_locks": 0,
+    "non_test_consumers": 42,
+    "quota_used_for_prefix": 1200
+  },
+  "state_before": {
+    "active_diagnostic_credentials_all_known_prefixes": 0,
+    "active_diagnostic_credentials_this_prefix": 0,
+    "blocked_locks": 0,
+    "db_connections": 1,
+    "deliveries_for_prefix": 0,
+    "non_granted_locks": 0,
+    "non_test_consumers": 42,
+    "quota_used_for_prefix": 0
+  }
+}

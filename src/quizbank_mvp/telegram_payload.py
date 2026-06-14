@@ -7,6 +7,7 @@ import json
 import random
 from typing import Any
 
+from .database_runtime import DEFAULT_BANK_VERSION_ID, DEFAULT_CONTENT_BANK_ID, DEFAULT_LANGUAGE_CODE
 from .projections import build_telegram_quiz_projection
 from .telegram_bot_api import TelegramDeliveryError
 from .telegram_poll_validation import parse_correct_option_ids, validate_telegram_poll
@@ -32,6 +33,9 @@ def build_telegram_poll_payload(
         "delivery_id": item["delivery_id"],
         "consumer_id": item["consumer_id"],
         "quiz_item_id": item["item_id"],
+        "language_code": item.get("language_code") or item.get("language") or DEFAULT_LANGUAGE_CODE,
+        "content_bank_id": item.get("content_bank_id") or DEFAULT_CONTENT_BANK_ID,
+        "bank_version_id": item.get("bank_version_id") or DEFAULT_BANK_VERSION_ID,
         "chat_id": chat_id,
         "question": question,
         "options": options,

@@ -28,6 +28,7 @@ def find_eligible_item(
     scored_candidates = enrich_candidates_with_delivery_metrics(
         connection,
         history_metric_candidates(candidates, request),
+        request,
     )
     return select_ranked_candidate(scored_candidates, request), candidate_count
 
@@ -49,12 +50,20 @@ def fetch_candidate_pool(connection, request: "SelectionRequest"):
     query.append(
         """
         WHERE qi.status IN (?, ?)
+          AND qi.language_code = ?
+          AND qi.bank_version_id = ?
           AND qi.source_id <> ''
           AND s.source_type <> ''
           AND s.provenance_note <> ''
         """
     )
-    parameters.extend(DELIVERABLE_STATUSES)
+    parameters.extend(
+        [
+            *DELIVERABLE_STATUSES,
+            request.language_code,
+            request.bank_version_id,
+        ]
+    )
     if repeat_join_applied:
         query.append("AND d_repeat.quiz_item_id IS NULL")
     append_filter(query, parameters, "qi.sublevel = ?", request.cefr_level)
@@ -76,12 +85,14 @@ def fetch_candidate_pool(connection, request: "SelectionRequest"):
 def enrich_candidates_with_delivery_metrics(
     connection,
     candidates: list[dict[str, Any]],
+    request: "SelectionRequest",
 ) -> list[dict[str, Any]]:
     if not candidates:
         return []
     item_metrics = load_item_delivery_metrics(
         connection,
         tuple(str(candidate["item_id"]) for candidate in candidates),
+        request,
     )
     enriched_candidates = []
     for candidate in candidates:
@@ -118,6 +129,7 @@ def history_metric_candidates(
 def load_item_delivery_metrics(
     connection,
     item_ids: tuple[str, ...],
+    request: "SelectionRequest",
 ) -> dict[str, dict[str, Any]]:
     placeholders = ", ".join("?" for _ in item_ids)
     rows = connection.execute(
@@ -126,9 +138,11 @@ def load_item_delivery_metrics(
                COALESCE(CAST(MAX(selected_at) AS TEXT), '') AS last_delivered_at
         FROM deliveries
         WHERE quiz_item_id IN ({placeholders})
+          AND language_code = ?
+          AND bank_version_id = ?
         GROUP BY quiz_item_id
         """,
-        item_ids,
+        (*item_ids, request.language_code, request.bank_version_id),
     ).fetchall()
     return {str(row["quiz_item_id"]): row_to_dict(row) for row in rows}
 
@@ -147,10 +161,19 @@ def append_repeat_policy_join(
         LEFT JOIN deliveries d_repeat
           ON d_repeat.consumer_id = ?
          AND d_repeat.quiz_item_id = qi.item_id
+         AND d_repeat.language_code = ?
+         AND d_repeat.bank_version_id = ?
          AND d_repeat.delivery_status IN ({placeholders})
         """
     )
-    parameters.extend([request.consumer_id, *policy.blocked_delivery_statuses])
+    parameters.extend(
+        [
+            request.consumer_id,
+            request.language_code,
+            request.bank_version_id,
+            *policy.blocked_delivery_statuses,
+        ]
+    )
     cutoff = repeat_window_cutoff(policy.repeat_window_days)
     if cutoff is not None:
         query.append("AND d_repeat.selected_at >= ?")
@@ -206,10 +229,19 @@ def append_repeat_policy_filter(
             SELECT 1 FROM deliveries d
             WHERE d.consumer_id = ?
               AND d.quiz_item_id = qi.item_id
+              AND d.language_code = ?
+              AND d.bank_version_id = ?
               AND d.delivery_status IN ({placeholders})
         """
     )
-    parameters.extend([request.consumer_id, *policy.blocked_delivery_statuses])
+    parameters.extend(
+        [
+            request.consumer_id,
+            request.language_code,
+            request.bank_version_id,
+            *policy.blocked_delivery_statuses,
+        ]
+    )
     cutoff = repeat_window_cutoff(policy.repeat_window_days)
     if cutoff is not None:
         query.append("AND d.selected_at >= ?")
