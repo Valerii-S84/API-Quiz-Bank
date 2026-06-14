@@ -96,18 +96,17 @@ class MvpCoverageBranchTests(unittest.TestCase):
                 "cli_api_key",
             ),
         )
-        self.assertIn(
-            "transitioned approved_traceable_001 to approved",
-            self.run_cli(
-                "transition-status",
-                "--item-id",
-                "approved_traceable_001",
-                "--to-status",
-                "approved",
-                "--reason",
-                "coverage",
-            ),
+        transition_output = self.run_cli(
+            "transition-status",
+            "--item-id",
+            "approved_traceable_001",
+            "--to-status",
+            "approved",
+            "--reason",
+            "coverage",
         )
+        self.assertIn("transitioned approved_traceable_001 to approved", transition_output)
+        self.assertIn("candidate pools: 1 total, 1 rebuilt, 0 unchanged", transition_output)
         self.assertIn(
             "transitioned consumer cli_consumer to suspended",
             self.run_cli(
@@ -125,6 +124,21 @@ class MvpCoverageBranchTests(unittest.TestCase):
             self.run_cli("seed-protected-beta"),
         )
         self.assertIn('"action": "entitlement_grant"', self.run_cli("show-audit-log"))
+
+    def test_cli_rebuild_candidate_pools_command_reports_idempotent_summary(self) -> None:
+        self.run_cli("init-db")
+        self.run_cli("seed-items", "--fixture", str(APPROVED_FIXTURE), "--status", "approved")
+
+        summary = json.loads(
+            self.run_cli(
+                "rebuild-candidate-pools",
+                "--bank-version-id",
+                "german-core:2026-06-12-baseline",
+            )
+        )
+
+        self.assertEqual(summary["pool_count"], 1)
+        self.assertEqual(summary["unchanged_pool_count"], 1)
 
     def test_cli_seed_demo_covers_demo_reset_path(self) -> None:
         initialize_database(self.db_path)

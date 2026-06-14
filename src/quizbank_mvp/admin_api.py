@@ -11,6 +11,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .admin_auth import authenticate_admin, require_admin_read, require_admin_write, require_owner
 from .admin_panel import ADMIN_PANEL_HTML
+from .candidate_pool_builder import (
+    rebuild_candidate_pools_after_bank_activation,
+    rebuild_candidate_pools_for_item,
+)
 from .admin_service import (
     change_admin_quiz_item_status,
     change_admin_consumer_status,
@@ -354,13 +358,15 @@ def register_status_route(app: FastAPI, database_path: Path, action: str) -> Non
     ) -> dict[str, object]:
         admin = authenticate_admin(database_path, x_quizbank_admin_key)
         require_admin_write(admin)
-        return change_admin_quiz_item_status(
+        result = change_admin_quiz_item_status(
             database_path,
             item_id,
             action,
             admin.actor,
             payload.reason,
         )
+        rebuild_candidate_pools_for_item(database_path, item_id)
+        return result
 
     app.post(f"/v1/admin/quiz-items/{{item_id}}/{action}", tags=["admin"])(status_change)
 
@@ -374,9 +380,12 @@ def register_content_bank_action_route(app: FastAPI, database_path: Path, action
         admin = authenticate_admin(database_path, x_quizbank_admin_key)
         require_content_bank_action_role(admin, action)
         try:
-            return content_bank_action(action)(database_path, bank_version_id, admin.actor, payload.reason)
+            result = content_bank_action(action)(database_path, bank_version_id, admin.actor, payload.reason)
         except ContentBankVersionError as error:
             raise content_bank_problem(str(error)) from error
+        if action in {"activate", "rollback"}:
+            rebuild_candidate_pools_after_bank_activation(database_path, result)
+        return result
 
     path = f"/v1/admin/content-bank-versions/{{bank_version_id}}/{action}"
     app.post(path, tags=["admin"])(content_bank_status_change)

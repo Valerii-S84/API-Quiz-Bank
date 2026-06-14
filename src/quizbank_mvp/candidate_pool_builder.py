@@ -60,6 +60,93 @@ def rebuild_candidate_pools(
     return rebuild_summary(language_code, content_bank_id, bank_version_id, rebuilds)
 
 
+def rebuild_candidate_pools_for_item(db_path: Path | None, item_id: str) -> dict[str, object]:
+    scope = load_item_rebuild_scope(db_path, item_id)
+    return rebuild_candidate_pools(
+        db_path,
+        scope["language_code"],
+        scope["content_bank_id"],
+        scope["bank_version_id"],
+    )
+
+
+def rebuild_candidate_pools_for_bank_version(
+    db_path: Path | None,
+    bank_version_id: str,
+) -> dict[str, object]:
+    scope = load_bank_version_rebuild_scope(db_path, bank_version_id)
+    return rebuild_candidate_pools(
+        db_path,
+        scope["language_code"],
+        scope["content_bank_id"],
+        scope["bank_version_id"],
+    )
+
+
+def rebuild_candidate_pools_after_bank_activation(
+    db_path: Path | None,
+    activation_result: dict[str, Any],
+) -> dict[str, object]:
+    archived_bank_version_id = activation_result.get("from_bank_version_id")
+    if archived_bank_version_id:
+        mark_candidate_pools_stale_for_bank_version(db_path, str(archived_bank_version_id))
+    return rebuild_candidate_pools_for_bank_version(
+        db_path,
+        str(activation_result["to_bank_version_id"]),
+    )
+
+
+def load_item_rebuild_scope(db_path: Path | None, item_id: str) -> dict[str, str]:
+    with connect(db_path) as connection:
+        row = connection.execute(
+            """
+            SELECT language_code, content_bank_id, bank_version_id
+            FROM quiz_items
+            WHERE item_id = ?
+            """,
+            (item_id,),
+        ).fetchone()
+    if row is None:
+        raise ValueError(f"unknown item_id: {item_id}")
+    return string_scope(row_to_dict(row))
+
+
+def load_bank_version_rebuild_scope(
+    db_path: Path | None,
+    bank_version_id: str,
+) -> dict[str, str]:
+    with connect(db_path) as connection:
+        row = connection.execute(
+            """
+            SELECT cb.language_code, cb.id AS content_bank_id,
+                   cbv.id AS bank_version_id
+            FROM content_bank_versions cbv
+            JOIN content_banks cb ON cb.id = cbv.content_bank_id
+            WHERE cbv.id = ?
+            """,
+            (bank_version_id,),
+        ).fetchone()
+    if row is None:
+        raise ValueError(f"unknown_bank_version:{bank_version_id}")
+    return string_scope(row_to_dict(row))
+
+
+def mark_candidate_pools_stale_for_bank_version(
+    db_path: Path | None,
+    bank_version_id: str,
+) -> None:
+    with connect(db_path) as connection:
+        connection.execute(
+            """
+            UPDATE candidate_pools
+            SET pool_status = 'stale', updated_at = ?
+            WHERE bank_version_id = ?
+              AND pool_status IN ('building', 'ready')
+            """,
+            (utc_now(), bank_version_id),
+        )
+
+
 def load_bank_scopes(
     connection: Any,
     language_code: str,
@@ -346,6 +433,14 @@ def bank_scope_values(bank_scope: dict[str, str]) -> tuple[str, str, str]:
         bank_scope["content_bank_id"],
         bank_scope["bank_version_id"],
     )
+
+
+def string_scope(values: dict[str, Any]) -> dict[str, str]:
+    return {
+        "language_code": str(values["language_code"]),
+        "content_bank_id": str(values["content_bank_id"]),
+        "bank_version_id": str(values["bank_version_id"]),
+    }
 
 
 def rebuild_summary(

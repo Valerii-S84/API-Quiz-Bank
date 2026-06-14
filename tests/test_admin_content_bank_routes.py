@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from quizbank_mvp.database import seed_control_fixture
-
 from tests.test_mvp_admin import APPROVED_FIXTURE, BASELINE_VERSION_ID, MvpAdminCase
+
+from quizbank_mvp.candidate_pool_builder import rebuild_candidate_pools  # noqa: E402
+from quizbank_mvp.database import connect, seed_control_fixture  # noqa: E402
 
 
 class AdminContentBankRouteTests(MvpAdminCase):
@@ -57,6 +58,8 @@ class AdminContentBankRouteTests(MvpAdminCase):
 
     def test_owner_rolls_back_active_german_bank_version(self) -> None:
         key = self.seed_admin("owner", "owner")
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+        rebuild_candidate_pools(self.db_path)
         create_german_candidate(self, key)
         activated_candidate = self.client.post(
             "/v1/admin/content-bank-versions/german-core:rollback-candidate/activate",
@@ -78,6 +81,7 @@ class AdminContentBankRouteTests(MvpAdminCase):
         self.assertEqual(rollback.status_code, 200)
         self.assertEqual(rollback.json()["from_bank_version_id"], "german-core:rollback-candidate")
         self.assertEqual(active_conflict.status_code, 409)
+        self.assertEqual(pool_statuses(self), [(BASELINE_VERSION_ID, "ready")])
 
     def test_admin_content_bank_read_routes_return_controlled_results(self) -> None:
         key = self.seed_admin("reviewer", "read_only_reviewer")
@@ -123,3 +127,15 @@ def create_german_candidate(case: MvpAdminCase, key: str) -> None:
         headers=case.admin_headers(key),
     )
     case.assertEqual(response.status_code, 200)
+
+
+def pool_statuses(case: MvpAdminCase) -> list[tuple[str, str]]:
+    with connect(case.db_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT bank_version_id, pool_status
+            FROM candidate_pools
+            ORDER BY bank_version_id
+            """
+        ).fetchall()
+    return [(str(row["bank_version_id"]), str(row["pool_status"])) for row in rows]

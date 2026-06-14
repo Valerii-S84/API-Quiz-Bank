@@ -33,6 +33,7 @@ from quizbank_mvp.database import (  # noqa: E402
     upsert_quiz_item,
     utc_now,
 )
+from quizbank_mvp.candidate_pool_builder import rebuild_candidate_pools  # noqa: E402
 from quizbank_mvp.image_quality_policy import (  # noqa: E402
     DEFAULT_THEME_GROUP_CONFIG_PATH,
     enriched_image_quality_fields,
@@ -401,6 +402,7 @@ def run_import(args: argparse.Namespace) -> dict[str, Any]:
     before_counts = database_counts(args.db_path) if database_exists(args.db_path) else {}
     if is_dry_run:
         after_counts = before_counts
+        pool_rebuild = None
     else:
         initialize_database(args.db_path)
         item_ids = [row["item_id"] for row in inventory.rows]
@@ -413,6 +415,12 @@ def run_import(args: argparse.Namespace) -> dict[str, Any]:
                 retire_non_corpus_rows(connection, now)
         if args.seed_smoke_consumers:
             seed_runtime_smoke_consumers(args.db_path)
+        pool_rebuild = rebuild_candidate_pools(
+            args.db_path,
+            content_scope.language_code,
+            content_scope.content_bank_id,
+            content_scope.bank_version_id,
+        )
         after_counts = database_counts(args.db_path)
         validate_database_counts(
             after_counts,
@@ -433,6 +441,7 @@ def run_import(args: argparse.Namespace) -> dict[str, Any]:
         "source_active_sources": len(inventory.active_sources),
         "retire_non_corpus_items": args.retire_non_corpus_items,
         "seed_smoke_consumers": args.seed_smoke_consumers,
+        "candidate_pool_rebuild": pool_rebuild,
         "before_counts": before_counts,
         "after_counts": after_counts,
     }

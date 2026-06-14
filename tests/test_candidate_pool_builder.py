@@ -8,7 +8,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from quizbank_mvp.candidate_pool_builder import rebuild_candidate_pools  # noqa: E402
+from quizbank_mvp.candidate_pool_builder import (  # noqa: E402
+    rebuild_candidate_pools,
+    rebuild_candidate_pools_after_bank_activation,
+    rebuild_candidate_pools_for_item,
+)
 from quizbank_mvp.database import (  # noqa: E402
     connect,
     initialize_database,
@@ -18,6 +22,8 @@ from quizbank_mvp.database import (  # noqa: E402
 
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
+BASELINE_VERSION_ID = "german-core:2026-06-12-baseline"
+TARGET_VERSION_ID = "german-core:pool-target"
 
 
 class CandidatePoolBuilderTests(unittest.TestCase):
@@ -33,7 +39,7 @@ class CandidatePoolBuilderTests(unittest.TestCase):
     def test_rebuild_creates_pool_per_full_scope_cell(self) -> None:
         insert_item_copy(self.db_path, "approved_traceable_002", "O03", "P02")
 
-        summary = rebuild_candidate_pools(self.db_path)
+        summary = rebuild_candidate_pools_for_item(self.db_path, "approved_traceable_001")
 
         self.assertEqual(summary["pool_count"], 2)
         self.assertEqual(summary["rebuilt_pool_count"], 2)
@@ -83,8 +89,34 @@ class CandidatePoolBuilderTests(unittest.TestCase):
         self.assertEqual(pool["item_count"], 0)
         self.assertEqual(item_count, 0)
 
+    def test_activation_rebuild_stales_archived_version_and_rebuilds_target(self) -> None:
+        rebuild_candidate_pools(self.db_path)
+        insert_bank_version(self.db_path, TARGET_VERSION_ID, "pool-target", "audit")
+        insert_item_copy(self.db_path, "approved_traceable_target", "O03", "P02", TARGET_VERSION_ID)
 
-def insert_item_copy(db_path: Path, item_id: str, objective_id: str, pattern_id: str) -> None:
+        summary = rebuild_candidate_pools_after_bank_activation(
+            self.db_path,
+            {
+                "from_bank_version_id": BASELINE_VERSION_ID,
+                "to_bank_version_id": TARGET_VERSION_ID,
+            },
+        )
+
+        with connect(self.db_path) as connection:
+            statuses = pool_statuses_by_version(connection)
+        self.assertEqual(summary["pool_count"], 1)
+        self.assertEqual(summary["item_count"], 1)
+        self.assertEqual(statuses[BASELINE_VERSION_ID], ["stale"])
+        self.assertEqual(statuses[TARGET_VERSION_ID], ["ready"])
+
+
+def insert_item_copy(
+    db_path: Path,
+    item_id: str,
+    objective_id: str,
+    pattern_id: str,
+    bank_version_id: str = BASELINE_VERSION_ID,
+) -> None:
     with connect(db_path) as connection:
         connection.execute(
             """
@@ -97,7 +129,7 @@ def insert_item_copy(db_path: Path, item_id: str, objective_id: str, pattern_id:
                 reviewed_at, level_locked, locked_at
             )
             SELECT ?, source_id, language, language_code, content_bank_id,
-                   bank_version_id, level_band, sublevel, theme_id, subtheme_id,
+                   ?, level_band, sublevel, theme_id, subtheme_id,
                    ?, ?, difficulty_band, register, prompt, stem_text,
                    options_json, answer_key, explanation, tags,
                    ? || '::copy', status, version, created_at, updated_at,
@@ -105,7 +137,25 @@ def insert_item_copy(db_path: Path, item_id: str, objective_id: str, pattern_id:
             FROM quiz_items
             WHERE item_id = 'approved_traceable_001'
             """,
-            (item_id, objective_id, pattern_id, f"A2::T10::{objective_id}::{pattern_id}"),
+            (
+                item_id,
+                bank_version_id,
+                objective_id,
+                pattern_id,
+                f"A2::T10::{objective_id}::{pattern_id}",
+            ),
+        )
+
+
+def insert_bank_version(db_path: Path, version_id: str, version: str, status: str) -> None:
+    with connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO content_bank_versions (
+                id, content_bank_id, version, status, activated_at, created_at
+            ) VALUES (?, 'german-core', ?, ?, NULL, '2026-06-12T01:00:00Z')
+            """,
+            (version_id, version, status),
         )
 
 
@@ -126,6 +176,20 @@ def pool_scope_tuples(connection) -> list[tuple[str, str, str, str]]:
 def pool_item_count(connection) -> int:
     row = connection.execute("SELECT COUNT(*) AS count FROM candidate_pool_items").fetchone()
     return int(row["count"])
+
+
+def pool_statuses_by_version(connection) -> dict[str, list[str]]:
+    rows = connection.execute(
+        """
+        SELECT bank_version_id, pool_status
+        FROM candidate_pools
+        ORDER BY bank_version_id, pool_status
+        """
+    ).fetchall()
+    statuses: dict[str, list[str]] = {}
+    for row in rows:
+        statuses.setdefault(str(row["bank_version_id"]), []).append(str(row["pool_status"]))
+    return statuses
 
 
 if __name__ == "__main__":

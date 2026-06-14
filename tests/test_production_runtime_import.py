@@ -62,6 +62,9 @@ class ProductionRuntimeImportTests(unittest.TestCase):
             report["content_scope"]["bank_version_id"],
             "german-core:2026-06-12-baseline",
         )
+        self.assertEqual(first["candidate_pool_rebuild"]["pool_count"], 1)
+        self.assertEqual(first["candidate_pool_rebuild"]["item_count"], 2)
+        self.assertEqual(second["candidate_pool_rebuild"]["unchanged_pool_count"], 1)
         self.assertTrue(report["seed_smoke_consumers"])
 
     def test_runtime_import_refuses_active_target_without_repair_approval(self) -> None:

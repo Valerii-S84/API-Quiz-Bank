@@ -7,6 +7,11 @@ import getpass
 import json
 from pathlib import Path
 
+from .candidate_pool_builder import (
+    rebuild_candidate_pools,
+    rebuild_candidate_pools_for_bank_version,
+    rebuild_candidate_pools_for_item,
+)
 from .database_connection import connect
 from .database_runtime import initialize_database
 from .database_seed import (
@@ -41,6 +46,8 @@ def parse_args() -> argparse.Namespace:
     seed_items = subparsers.add_parser("seed-items", help="Import a canonical JSONL fixture.")
     seed_items.add_argument("--fixture", type=Path, default=DEFAULT_FIXTURE)
     seed_items.add_argument("--status", default="approved")
+
+    add_rebuild_candidate_pools_parser(subparsers)
 
     seed_consumer_parser = subparsers.add_parser("seed-consumer", help="Create consumer access.")
     seed_consumer_parser.add_argument("--consumer-id", required=True)
@@ -91,6 +98,16 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def add_rebuild_candidate_pools_parser(subparsers) -> None:
+    rebuild_pools = subparsers.add_parser(
+        "rebuild-candidate-pools",
+        help="Rebuild precomputed candidate pools for active or scoped content.",
+    )
+    rebuild_pools.add_argument("--language-code", default=None)
+    rebuild_pools.add_argument("--content-bank-id", default=None)
+    rebuild_pools.add_argument("--bank-version-id", default=None)
+
+
 def main() -> int:
     args = parse_args()
     if args.command == "init-db":
@@ -100,12 +117,18 @@ def main() -> int:
     if args.command == "seed-items":
         count = seed_control_fixture(args.db_path, args.fixture, args.status)
         print(f"seeded quiz items: {count}")
+        print(pool_rebuild_message(rebuild_candidate_pools(args.db_path)))
+        return 0
+    if args.command == "rebuild-candidate-pools":
+        summary = rebuild_candidate_pools_command(args)
+        print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         return 0
     if args.command == "seed-consumer":
         return seed_consumer_command(args)
     if args.command == "seed-demo":
         seed_demo_state(args.db_path, args.fixture)
         print("seeded MVP demo state")
+        print(pool_rebuild_message(rebuild_candidate_pools(args.db_path)))
         return 0
     if args.command == "seed-admin":
         return seed_admin(args)
@@ -116,6 +139,7 @@ def main() -> int:
     if args.command == "transition-status":
         transition_item_status(args.db_path, args.item_id, args.to_status, args.actor, args.reason)
         print(f"transitioned {args.item_id} to {args.to_status}")
+        print(pool_rebuild_message(rebuild_candidate_pools_for_item(args.db_path, args.item_id)))
         return 0
     if args.command == "transition-consumer-status":
         transition_consumer_status(
@@ -133,6 +157,26 @@ def main() -> int:
         print(json.dumps([dict(row) for row in rows], ensure_ascii=False, indent=2))
         return 0
     raise AssertionError(f"unhandled command: {args.command}")
+
+
+def rebuild_candidate_pools_command(args: argparse.Namespace) -> dict[str, object]:
+    if args.bank_version_id and args.language_code is None and args.content_bank_id is None:
+        return rebuild_candidate_pools_for_bank_version(args.db_path, args.bank_version_id)
+    return rebuild_candidate_pools(
+        args.db_path,
+        args.language_code or "de",
+        args.content_bank_id,
+        args.bank_version_id,
+    )
+
+
+def pool_rebuild_message(summary: dict[str, object]) -> str:
+    return (
+        "candidate pools: "
+        f"{summary['pool_count']} total, "
+        f"{summary['rebuilt_pool_count']} rebuilt, "
+        f"{summary['unchanged_pool_count']} unchanged"
+    )
 
 
 def seed_consumer_command(args: argparse.Namespace) -> int:
