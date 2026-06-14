@@ -119,12 +119,11 @@ class MvpWeightedSelectionTests(unittest.TestCase):
     def test_runtime_weighted_selector_chooses_top_scored_candidate_not_first_id(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         seed_consumer(self.db_path, "consumer_allowed", 2, ["A2"], ["T10", "T11"])
-        seed_consumer(self.db_path, "history_consumer", 10, ["A2"], ["T10", "T11"])
-        entitlement_id = seed_entitlement(self.db_path, "consumer_allowed", ["A2"], ["T10", "T11"])
+        seed_entitlement(self.db_path, "consumer_allowed", ["A2"], ["T10", "T11"])
         self.clone_item("aaa_overused", "T10", "P01")
         self.clone_item("zzz_balanced", "T11", "P02")
         self.block_original_item()
-        self.record_historical_deliveries(entitlement_id)
+        self.record_consumer_delivery_state()
 
         result = select_next_item(
             self.db_path,
@@ -182,31 +181,22 @@ class MvpWeightedSelectionTests(unittest.TestCase):
                 "UPDATE quiz_items SET status = 'blocked' WHERE item_id = 'approved_traceable_001'"
             )
 
-    def record_historical_deliveries(self, entitlement_id: str) -> None:
+    def record_consumer_delivery_state(self) -> None:
         with connect(self.db_path) as connection:
             connection.execute(
                 """
-                INSERT INTO quota_usage (
-                    quota_usage_id, consumer_id, feature, usage_date, used_count,
-                    quota_limit, updated_at
-                ) VALUES ('quota_history', 'consumer_allowed', 'quiz_delivery', '2026-05-10', 0, 10, ?)
-                """,
-                (utc_now(),),
-            )
-            for index in range(3):
-                connection.execute(
-                    """
-                    INSERT INTO deliveries (
-                        delivery_id, consumer_id, quiz_item_id, item_status,
-                        delivery_status, source_id, source_type, provenance_note,
-                        selection_reason_summary, selected_at, entitlement_id, quota_usage_id
-                    ) VALUES (?, 'history_consumer', 'aaa_overused', 'approved',
-                        'delivered', 'src_control_mvp', 'fixture_approved_source',
-                        'control_selection_fixture:approved_traceable',
-                        'historical_delivery', ?, ?, 'quota_history')
-                    """,
-                    (f"deliv_history_{index}", utc_now(), entitlement_id),
+                INSERT INTO consumer_delivery_state (
+                    consumer_id, channel_id, language_code, content_bank_id,
+                    bank_version_id, quiz_item_id, delivery_count,
+                    last_delivery_status, last_delivered_at, updated_at
+                ) VALUES (
+                    'consumer_allowed', 'api', 'de', 'german-core',
+                    'german-core:2026-06-12-baseline', 'aaa_overused', 3,
+                    'cancelled', ?, ?
                 )
+                """,
+                (utc_now(), utc_now()),
+            )
 
 
 if __name__ == "__main__":

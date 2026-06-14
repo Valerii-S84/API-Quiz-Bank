@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .database_status import DELIVERABLE_STATUSES
+from .selection_eligibility import repeat_window_cutoff
 
 
 def candidate_count(connection, request: Any) -> int:
@@ -77,17 +78,20 @@ def repeat_policy_block_count(connection, request: Any) -> int:
         SELECT COUNT(DISTINCT qi.item_id) AS count
         FROM quiz_items qi
         JOIN sources s ON s.source_id = qi.source_id
-        JOIN deliveries d ON d.quiz_item_id = qi.item_id
+        JOIN consumer_delivery_state state_repeat
+          ON state_repeat.quiz_item_id = qi.item_id
         WHERE qi.status IN (?, ?)
           AND qi.language_code = ?
           AND qi.bank_version_id = ?
           AND qi.source_id <> ''
           AND s.source_type <> ''
           AND s.provenance_note <> ''
-          AND d.consumer_id = ?
-          AND d.language_code = ?
-          AND d.bank_version_id = ?
-          AND d.delivery_status IN ({placeholders})
+          AND state_repeat.consumer_id = ?
+          AND state_repeat.channel_id = ?
+          AND state_repeat.language_code = ?
+          AND state_repeat.content_bank_id = ?
+          AND state_repeat.bank_version_id = ?
+          AND state_repeat.last_delivery_status IN ({placeholders})
         """
     ]
     parameters: list[Any] = [
@@ -95,10 +99,16 @@ def repeat_policy_block_count(connection, request: Any) -> int:
         request.language_code,
         request.bank_version_id,
         request.consumer_id,
+        request.consumer_profile.delivery_channel,
         request.language_code,
+        request.content_bank_id,
         request.bank_version_id,
         *policy.blocked_delivery_statuses,
     ]
+    cutoff = repeat_window_cutoff(policy.repeat_window_days)
+    if cutoff is not None:
+        query.append("AND state_repeat.last_delivered_at >= ?")
+        parameters.append(cutoff)
     append_taxonomy_filters(query, parameters, request)
     row = connection.execute(" ".join(query), parameters).fetchone()
     return int(row["count"])

@@ -411,6 +411,10 @@ def reset_demo_delivery_state(db_path: Path | None) -> None:
     )
     with connect(db_path) as connection:
         connection.execute(
+            "DELETE FROM consumer_delivery_state WHERE consumer_id IN (?, ?, ?)",
+            demo_consumers,
+        )
+        connection.execute(
             "DELETE FROM deliveries WHERE consumer_id IN (?, ?, ?)",
             demo_consumers,
         )

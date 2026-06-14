@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .database_connection import connect, row_to_dict, utc_now
+from .selection_delivery import update_consumer_delivery_state_status
 from .telegram_bot_api import TelegramDeliveryError
 from .telegram_models import (
     TelegramDeliveryRequest,
@@ -102,6 +103,12 @@ def record_telegram_result(db_path: Path | None, result: TelegramDeliveryResult)
             WHERE delivery_id = ? AND consumer_id = ?
             """,
             (result.status, result.delivery_id, result.consumer_id),
+        )
+        update_consumer_delivery_state_status(
+            connection,
+            result.consumer_id,
+            result.delivery_id,
+            result.status,
         )
 
 

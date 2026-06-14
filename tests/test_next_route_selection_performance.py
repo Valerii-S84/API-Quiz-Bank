@@ -74,7 +74,7 @@ class NextRouteSelectionPerformanceTests(unittest.TestCase):
             selection_eligibility.CANDIDATE_POOL_LIMIT,
         )
 
-    def test_delivery_history_metrics_are_loaded_for_shortlist_only(self) -> None:
+    def test_delivery_state_metrics_are_loaded_for_shortlist_only(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         seed_consumer(self.db_path, "consumer_allowed", 500, ["A2"], ["T10"])
         seed_entitlement(self.db_path, "consumer_allowed", ["A2"], ["T10"])

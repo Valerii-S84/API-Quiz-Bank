@@ -307,23 +307,26 @@ class MvpTelegramDeliveryTests(MvpRuntimeCase):
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         self.seed_access(quota=2)
         adapter = FakeTelegramAdapter(should_fail=True)
+        request = TelegramDeliveryRequest(
+            consumer_id="consumer_allowed",
+            chat_id="@controlled_channel",
+            mode="real",
+            cefr_level="A2",
+            theme_ids=("T10",),
+        )
 
         result = run_telegram_delivery(
             self.db_path,
-            TelegramDeliveryRequest(
-                consumer_id="consumer_allowed",
-                chat_id="@controlled_channel",
-                mode="real",
-                cefr_level="A2",
-                theme_ids=("T10",),
-            ),
+            request,
             adapter=adapter,
         )
-        repeat = self.next_item()
+        with self.assertRaises(QuizBankProblem) as repeat_error:
+            run_telegram_delivery(self.db_path, request, adapter=adapter)
 
         self.assertEqual(result.status, "failed")
         self.assertEqual(result.failure_reason, "telegram_adapter_failure")
-        self.assertEqual(repeat.status_code, 404)
+        self.assertEqual(repeat_error.exception.reason_code, "SELECTION_NO_ELIGIBLE_ITEM")
+        self.assertEqual(len(adapter.payloads), 1)
         with connect(self.db_path) as connection:
             telegram_result = connection.execute(
                 "SELECT * FROM telegram_delivery_results WHERE delivery_id = ?",
@@ -557,6 +560,12 @@ class MvpRuntimeDatabaseTests(MvpRuntimeCase):
             delivery_item = connection.execute(
                 "SELECT quiz_item_id FROM deliveries WHERE consumer_id = 'consumer_allowed'"
             ).fetchone()
+            connection.execute(
+                """
+                DELETE FROM consumer_delivery_state
+                WHERE consumer_id = 'consumer_allowed'
+                """
+            )
             connection.execute(
                 "DELETE FROM deliveries WHERE delivery_id IN (SELECT delivery_id FROM deliveries)"
             )

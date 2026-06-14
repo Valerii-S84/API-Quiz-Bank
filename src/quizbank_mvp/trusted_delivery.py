@@ -9,6 +9,7 @@ from .database_connection import connect, new_id, row_to_dict, utc_now
 from .database_status import DELIVERABLE_STATUSES
 from .problems import QuizBankProblem
 from .projections import build_learner_quiz_projection
+from .selection_delivery import update_consumer_delivery_state_status
 from .selection import (
     SelectionFilters,
     SelectionRequest,
@@ -81,6 +82,7 @@ def record_delivery_outcome(
             """,
             (status, delivery_id, consumer_id),
         )
+        update_consumer_delivery_state_status(connection, consumer_id, delivery_id, status)
         connection.execute(
             """
             INSERT INTO audit_log (

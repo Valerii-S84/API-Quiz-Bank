@@ -290,6 +290,10 @@ def seed_runtime_smoke_consumers(db_path: Path | None) -> None:
     themes = list(THEME_TITLES)
     with connect(db_path) as connection:
         connection.execute(
+            "DELETE FROM consumer_delivery_state WHERE consumer_id IN (?, ?)",
+            (SMOKE_CONSUMER_ID, QUOTA_CONSUMER_ID),
+        )
+        connection.execute(
             "DELETE FROM deliveries WHERE consumer_id IN (?, ?)",
             (SMOKE_CONSUMER_ID, QUOTA_CONSUMER_ID),
         )

@@ -65,7 +65,7 @@ def fetch_candidate_pool(connection, request: "SelectionRequest"):
         ]
     )
     if repeat_join_applied:
-        query.append("AND d_repeat.quiz_item_id IS NULL")
+        query.append("AND state_repeat.quiz_item_id IS NULL")
     append_filter(query, parameters, "qi.sublevel = ?", request.cefr_level)
     append_in_filter(query, parameters, "qi.theme_id", request.theme_ids)
     append_in_filter(query, parameters, "qi.objective_id", request.objective_ids)
@@ -134,15 +134,24 @@ def load_item_delivery_metrics(
     placeholders = ", ".join("?" for _ in item_ids)
     rows = connection.execute(
         f"""
-        SELECT quiz_item_id, COUNT(*) AS delivery_count,
-               COALESCE(CAST(MAX(selected_at) AS TEXT), '') AS last_delivered_at
-        FROM deliveries
-        WHERE quiz_item_id IN ({placeholders})
+        SELECT quiz_item_id, delivery_count,
+               COALESCE(CAST(last_delivered_at AS TEXT), '') AS last_delivered_at
+        FROM consumer_delivery_state
+        WHERE consumer_id = ?
+          AND channel_id = ?
+          AND quiz_item_id IN ({placeholders})
           AND language_code = ?
+          AND content_bank_id = ?
           AND bank_version_id = ?
-        GROUP BY quiz_item_id
         """,
-        (*item_ids, request.language_code, request.bank_version_id),
+        (
+            request.consumer_id,
+            request.consumer_profile.delivery_channel,
+            *item_ids,
+            request.language_code,
+            request.content_bank_id,
+            request.bank_version_id,
+        ),
     ).fetchall()
     return {str(row["quiz_item_id"]): row_to_dict(row) for row in rows}
 
@@ -158,25 +167,29 @@ def append_repeat_policy_join(
     placeholders = ", ".join("?" for _ in policy.blocked_delivery_statuses)
     query.append(
         f"""
-        LEFT JOIN deliveries d_repeat
-          ON d_repeat.consumer_id = ?
-         AND d_repeat.quiz_item_id = qi.item_id
-         AND d_repeat.language_code = ?
-         AND d_repeat.bank_version_id = ?
-         AND d_repeat.delivery_status IN ({placeholders})
+        LEFT JOIN consumer_delivery_state state_repeat
+          ON state_repeat.consumer_id = ?
+         AND state_repeat.channel_id = ?
+         AND state_repeat.quiz_item_id = qi.item_id
+         AND state_repeat.language_code = ?
+         AND state_repeat.content_bank_id = ?
+         AND state_repeat.bank_version_id = ?
+         AND state_repeat.last_delivery_status IN ({placeholders})
         """
     )
     parameters.extend(
         [
             request.consumer_id,
+            request.consumer_profile.delivery_channel,
             request.language_code,
+            request.content_bank_id,
             request.bank_version_id,
             *policy.blocked_delivery_statuses,
         ]
     )
     cutoff = repeat_window_cutoff(policy.repeat_window_days)
     if cutoff is not None:
-        query.append("AND d_repeat.selected_at >= ?")
+        query.append("AND state_repeat.last_delivered_at >= ?")
         parameters.append(cutoff)
     return True
 
@@ -226,25 +239,29 @@ def append_repeat_policy_filter(
     query.append(
         f"""
         AND NOT EXISTS (
-            SELECT 1 FROM deliveries d
-            WHERE d.consumer_id = ?
-              AND d.quiz_item_id = qi.item_id
-              AND d.language_code = ?
-              AND d.bank_version_id = ?
-              AND d.delivery_status IN ({placeholders})
+            SELECT 1 FROM consumer_delivery_state state_repeat
+            WHERE state_repeat.consumer_id = ?
+              AND state_repeat.channel_id = ?
+              AND state_repeat.quiz_item_id = qi.item_id
+              AND state_repeat.language_code = ?
+              AND state_repeat.content_bank_id = ?
+              AND state_repeat.bank_version_id = ?
+              AND state_repeat.last_delivery_status IN ({placeholders})
         """
     )
     parameters.extend(
         [
             request.consumer_id,
+            request.consumer_profile.delivery_channel,
             request.language_code,
+            request.content_bank_id,
             request.bank_version_id,
             *policy.blocked_delivery_statuses,
         ]
     )
     cutoff = repeat_window_cutoff(policy.repeat_window_days)
     if cutoff is not None:
-        query.append("AND d.selected_at >= ?")
+        query.append("AND state_repeat.last_delivered_at >= ?")
         parameters.append(cutoff)
     query.append(")")
 

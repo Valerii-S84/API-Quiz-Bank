@@ -182,7 +182,8 @@ class DatabaseBackendContractTests(unittest.TestCase):
         self.assertNotIn("?", executed_sql)
         self.assertNotIn(":selection_request_id", executed_sql)
         self.assertIn("%(selection_request_id)s", executed_sql)
-        self.assertIn("LEFT JOIN deliveries d_repeat", executed_sql)
+        self.assertIn("LEFT JOIN consumer_delivery_state state_repeat", executed_sql)
+        self.assertNotIn("LEFT JOIN deliveries d_repeat", executed_sql)
         self.assertIn("LIMIT %s", executed_sql)
         self.assertNotIn("GROUP BY quiz_item_id", executed_sql)
         self.assertNotIn("d_all", executed_sql)
@@ -190,7 +191,7 @@ class DatabaseBackendContractTests(unittest.TestCase):
         self.assertNotIn("d_cell", executed_sql)
         self.assertPostgreSQLBoundary(executed_sql)
 
-    def test_postgresql_next_item_keeps_delivery_reads_out_of_quota_write_scope(self) -> None:
+    def test_postgresql_next_item_keeps_state_reads_out_of_quota_write_scope(self) -> None:
         read_connection = FakePostgreSQLRuntimeConnection()
         write_connection = FakePostgreSQLRuntimeConnection()
         connections = iter(
@@ -210,9 +211,11 @@ class DatabaseBackendContractTests(unittest.TestCase):
         read_sql = read_connection.executed_sql()
         write_sql = write_connection.executed_sql()
         self.assertEqual(result["delivery"]["consumer_id"], "consumer_pg")
-        self.assertIn("FROM deliveries", read_sql)
+        self.assertIn("FROM consumer_delivery_state", read_sql)
+        self.assertNotIn("FROM deliveries", read_sql)
         self.assertNotIn("INSERT INTO quota_usage", read_sql)
         self.assertIn("INSERT INTO quota_usage", write_sql)
+        self.assertIn("INSERT INTO consumer_delivery_state", write_sql)
         self.assertNotIn("FROM deliveries", write_sql)
         self.assertPostgreSQLBoundary(read_sql + "\n" + write_sql)
 

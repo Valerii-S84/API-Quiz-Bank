@@ -99,7 +99,7 @@ class NextRouteQuotaLockTests(unittest.TestCase):
         self.assertEqual(self.delivery_count(), 3)
         self.assertEqual(self.quota_used_count(), 3)
 
-    def test_delivery_history_read_completes_before_quota_reserve(self) -> None:
+    def test_delivery_state_read_completes_before_quota_reserve(self) -> None:
         self.seed_access(quota=1)
         events: list[str] = []
         original_find = selection.find_eligible_item
@@ -121,7 +121,7 @@ class NextRouteQuotaLockTests(unittest.TestCase):
 
         self.assertLess(events.index("find_done"), events.index("reserve"))
 
-    def test_concurrent_request_can_reserve_while_peer_reads_delivery_history(self) -> None:
+    def test_concurrent_request_can_reserve_while_peer_reads_delivery_state(self) -> None:
         self.seed_access(quota=2)
         first_metrics_started = threading.Event()
         release_first_metrics = threading.Event()

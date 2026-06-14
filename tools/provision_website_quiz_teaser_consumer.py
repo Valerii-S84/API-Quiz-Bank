@@ -209,6 +209,7 @@ def reset_consumer_state(db_path: Path) -> None:
     consumers = (CONSUMER_ID, NO_ENTITLEMENT_CONSUMER_ID)
     with connect(db_path) as connection:
         connection.execute("DELETE FROM selection_decisions WHERE consumer_id IN (?, ?)", consumers)
+        connection.execute("DELETE FROM consumer_delivery_state WHERE consumer_id IN (?, ?)", consumers)
         connection.execute("DELETE FROM deliveries WHERE consumer_id IN (?, ?)", consumers)
         connection.execute("DELETE FROM quota_usage WHERE consumer_id IN (?, ?)", consumers)
         connection.execute("DELETE FROM api_credentials WHERE consumer_id IN (?, ?)", consumers)
