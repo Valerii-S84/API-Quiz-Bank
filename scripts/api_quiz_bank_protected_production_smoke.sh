@@ -3,7 +3,7 @@ set -eu
 
 BASE_URL="${API_QUIZ_BANK_BASE_URL:-http://127.0.0.1:8010}"
 EXPECTED_PUBLISHED_ITEMS="${API_QUIZ_BANK_EXPECTED_PUBLISHED_ITEMS:-30974}"
-EXPECTED_ACTIVE_SOURCES="${API_QUIZ_BANK_EXPECTED_ACTIVE_SOURCES:-115}"
+EXPECTED_ACTIVE_SOURCES="${API_QUIZ_BANK_EXPECTED_ACTIVE_SOURCES:-116}"
 POSTGRES_CONTAINER="${API_QUIZ_BANK_POSTGRES_CONTAINER:-api-quiz-bank-postgres}"
 POSTGRES_DB="${API_QUIZ_BANK_POSTGRES_DB:-api_quiz_bank}"
 POSTGRES_USER="${API_QUIZ_BANK_POSTGRES_USER:-api_quiz_bank}"
@@ -11,11 +11,39 @@ POSTGRES_PASSWORD="${API_QUIZ_BANK_POSTGRES_PASSWORD:?set API_QUIZ_BANK_POSTGRES
 REPORT_PATH="${API_QUIZ_BANK_PROTECTED_SMOKE_REPORT_PATH:-}"
 
 SMOKE_CONSUMER_ID="${API_QUIZ_BANK_SMOKE_CONSUMER_ID:-production_corpus_smoke}"
-SMOKE_API_KEY="${API_QUIZ_BANK_SMOKE_API_KEY:-production_corpus_smoke_api_key}"
+SMOKE_API_KEY="${API_QUIZ_BANK_SMOKE_API_KEY:-}"
+SMOKE_API_KEY_FILE="${API_QUIZ_BANK_SMOKE_API_KEY_FILE:-/root/api-quiz-bank/production-corpus-smoke-api-key}"
 QUOTA_CONSUMER_ID="${API_QUIZ_BANK_QUOTA_CONSUMER_ID:-production_corpus_quota_blocked}"
-QUOTA_API_KEY="${API_QUIZ_BANK_QUOTA_API_KEY:-production_corpus_quota_blocked_api_key}"
+QUOTA_API_KEY="${API_QUIZ_BANK_QUOTA_API_KEY:-}"
+QUOTA_API_KEY_FILE="${API_QUIZ_BANK_QUOTA_API_KEY_FILE:-/root/api-quiz-bank/production-corpus-quota-blocked-api-key}"
 NO_ENTITLEMENT_CONSUMER_ID="${API_QUIZ_BANK_NO_ENTITLEMENT_CONSUMER_ID:-consumer_no_entitlement}"
-NO_ENTITLEMENT_API_KEY="${API_QUIZ_BANK_NO_ENTITLEMENT_API_KEY:-no_entitlement_api_key}"
+NO_ENTITLEMENT_API_KEY="${API_QUIZ_BANK_NO_ENTITLEMENT_API_KEY:-}"
+NO_ENTITLEMENT_API_KEY_FILE="${API_QUIZ_BANK_NO_ENTITLEMENT_API_KEY_FILE:-/root/api-quiz-bank/consumer-no-entitlement-api-key}"
+
+read_secret_value() {
+  label="$1"
+  env_value="$2"
+  file_path="$3"
+  if [ -n "$env_value" ]; then
+    printf '%s' "$env_value"
+    return 0
+  fi
+  if [ -r "$file_path" ]; then
+    awk 'NR == 1 {printf "%s", $0}' "$file_path"
+    return 0
+  fi
+  echo "$label missing: set the environment variable or readable key file" >&2
+  exit 1
+}
+
+SMOKE_API_KEY="$(read_secret_value "smoke API key" "$SMOKE_API_KEY" "$SMOKE_API_KEY_FILE")"
+QUOTA_API_KEY="$(read_secret_value "quota smoke API key" "$QUOTA_API_KEY" "$QUOTA_API_KEY_FILE")"
+NO_ENTITLEMENT_API_KEY="$(
+  read_secret_value \
+    "no-entitlement smoke API key" \
+    "$NO_ENTITLEMENT_API_KEY" \
+    "$NO_ENTITLEMENT_API_KEY_FILE"
+)"
 
 query_scalar() {
   docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$POSTGRES_CONTAINER" \
@@ -157,6 +185,11 @@ checks = {
     "next_item_status": first_status,
     "selected_item_id": first_item_id,
     "selected_item_status": selected_item_status,
+    "language_code": first.get("language_code"),
+    "content_bank_id": first.get("content_bank_id"),
+    "bank_version_id": first.get("bank_version_id"),
+    "quiz_item_language_code": first.get("quiz_item", {}).get("language_code"),
+    "selection_language_code": first.get("selection", {}).get("decision", {}).get("language_code"),
     "delivery_read_status": delivery_status,
     "repeat_control_status": second_status,
     "repeat_control_repeated_same_item": repeat_repeated_same_item,
@@ -177,6 +210,11 @@ ok = (
     and no_key_status == 401
     and first_status == 200
     and selected_item_status == "published"
+    and first.get("language_code") == "de"
+    and first.get("content_bank_id") == "german-core"
+    and first.get("bank_version_id") == "german-core:2026-06-12-baseline"
+    and first.get("quiz_item", {}).get("language_code") == "de"
+    and first.get("selection", {}).get("decision", {}).get("language_code") == "de"
     and delivery_status == 200
     and second_status == 200
     and repeat_repeated_same_item is False
