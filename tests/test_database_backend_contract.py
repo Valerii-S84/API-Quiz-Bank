@@ -26,8 +26,9 @@ from quizbank_mvp.selection_decision_log import (  # noqa: E402
 from quizbank_mvp.selection_delivery import create_delivery  # noqa: E402
 from quizbank_mvp.selection_diagnostics import candidate_count  # noqa: E402
 from quizbank_mvp.selection_eligibility import find_eligible_item  # noqa: E402
-from quizbank_mvp.selection_models import SelectionFilters, SelectionRequest  # noqa: E402
+from quizbank_mvp.selection_models import ContentScope, SelectionFilters, SelectionRequest  # noqa: E402
 from quizbank_mvp.selection_quota import reserve_quota  # noqa: E402
+from quizbank_mvp.selection_queue_filler import refill_prepared_selection_queues  # noqa: E402
 from quizbank_mvp.selection_scope_enforcement import (  # noqa: E402
     load_active_consumer,
     load_active_entitlement,
@@ -251,6 +252,38 @@ class DatabaseBackendContractTests(unittest.TestCase):
         self.assertNotIn("last_insert_rowid", executed_sql)
 
 
+class QueueFillerDatabaseBackendContractTests(unittest.TestCase):
+    def test_postgresql_queue_filler_runtime_path_uses_supported_sql(self) -> None:
+        raw_connection = FakePostgreSQLRuntimeConnection()
+        request = SelectionRequest(
+            "consumer_pg",
+            filters=SelectionFilters(cefr_level="A2", theme_ids=("T10",)),
+            content_scope=ContentScope(
+                language_code="de",
+                content_bank_id="german-core",
+                bank_version_id="german-core:2026-06-12-baseline",
+            ),
+        )
+
+        with PostgreSQLConnection(raw_connection) as connection:
+            results = refill_prepared_selection_queues(connection, request)
+
+        executed_sql = raw_connection.executed_sql()
+        self.assertEqual(len(results), 1)
+        self.assertNotIn("?", executed_sql)
+        self.assertIn("FROM candidate_pool_items cpi", executed_sql)
+        self.assertIn("LEFT JOIN consumer_delivery_state state", executed_sql)
+        self.assertIn("INSERT INTO selection_queue_items", executed_sql)
+        self.assertNotIn("GROUP BY", executed_sql)
+        self.assertPostgreSQLBoundary(executed_sql)
+
+    def assertPostgreSQLBoundary(self, executed_sql: str) -> None:
+        self.assertNotIn("sqlite_master", executed_sql)
+        self.assertNotIn("PRAGMA", executed_sql)
+        self.assertNotIn("INSERT OR REPLACE", executed_sql)
+        self.assertNotIn("last_insert_rowid", executed_sql)
+
+
 class FakeRawConnection:
     def __init__(self) -> None:
         self.connect_args: tuple[object, ...] = ()
@@ -317,6 +350,7 @@ class FakePostgreSQLRuntimeConnection:
     def __init__(self) -> None:
         self.executed: list[tuple[str, object]] = []
         self.closed = False
+        self.inserted_queue_items = 0
 
     def __enter__(self) -> "FakePostgreSQLRuntimeConnection":
         return self
@@ -329,6 +363,17 @@ class FakePostgreSQLRuntimeConnection:
 
     def execute(self, sql: str, parameters: object = None) -> FakeResult:
         self.executed.append((sql, parameters))
+        if "SELECT * FROM selection_queues WHERE queue_id = %s" in sql:
+            return FakeResult()
+        if "SELECT COUNT(*) AS count" in sql and "FROM selection_queue_items" in sql:
+            return FakeResult(row={"count": self.inserted_queue_items})
+        if "FROM candidate_pool_items cpi" in sql:
+            return FakeResult(rows=[postgresql_queue_candidate_row()])
+        if "SELECT COALESCE(MAX(position), -1) + 1 AS next_position" in sql:
+            return FakeResult(row={"next_position": self.inserted_queue_items})
+        if "INSERT INTO selection_queue_items" in sql:
+            self.inserted_queue_items += 1
+            return FakeResult()
         if "FROM consumers WHERE consumer_id = %s" in sql:
             return FakeResult(row=postgresql_consumer_row())
         if "FROM entitlements" in sql:
@@ -419,6 +464,20 @@ def postgresql_delivery_row() -> dict[str, object]:
         "delivery_status": "created",
         "selected_at": "2026-05-25T00:00:00Z",
         "selection_reason_summary": "eligible_by_status",
+    }
+
+
+def postgresql_queue_candidate_row() -> dict[str, object]:
+    return {
+        "pool_id": "pool_pg",
+        "item_id": "item_pg",
+        "rank_position": 0,
+        "sublevel": "A2",
+        "theme_id": "T10",
+        "objective_id": "O02",
+        "pattern_id": "P01",
+        "delivery_count": 0,
+        "last_delivered_at": "",
     }
 
 
