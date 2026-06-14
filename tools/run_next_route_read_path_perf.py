@@ -5,8 +5,10 @@ from __future__ import annotations
 
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 import hashlib
 import json
+import re
 import sqlite3
 import sys
 import tempfile
@@ -46,18 +48,38 @@ SEQUENTIAL_REQUESTS = 100
 CONCURRENT_REQUESTS = 24
 CONCURRENT_WORKERS = 4
 PRIMARY_CONSUMER_ID = "read_path_perf_consumer"
+SLOW_SQL_LIMIT = 8
+EXPLAIN_STATEMENT_LIMIT = 8
+SQL_PREVIEW_LIMIT = 260
+SQL_STRING_PATTERN = re.compile(r"'(?:''|[^'])*'")
+SQL_NUMBER_PATTERN = re.compile(r"\b\d+(?:\.\d+)?\b")
+
+
+@dataclass(frozen=True)
+class QuerySample:
+    sql: str
+    parameters: Any
+    elapsed_ms: float
+    fingerprint: str
 
 
 class QueryRecorder:
     def __init__(self) -> None:
         self.lock = threading.Lock()
         self.total = 0
+        self._samples: list[QuerySample] = []
 
-    def record(self, sql: str) -> None:
+    def record(self, sql: str, parameters: Any, elapsed_ms: float) -> None:
         if sql.lstrip().upper().startswith("PRAGMA"):
             return
+        fingerprint = query_fingerprint(sql)
         with self.lock:
             self.total += 1
+            self._samples.append(QuerySample(sql, parameters, elapsed_ms, fingerprint))
+
+    def samples(self) -> list[QuerySample]:
+        with self.lock:
+            return list(self._samples)
 
 
 class CountingConnection:
@@ -73,14 +95,20 @@ class CountingConnection:
         self.connection.__exit__(exc_type, exc_value, traceback)
 
     def execute(self, sql: str, parameters: Any = None):
-        self.recorder.record(sql)
+        started = time.perf_counter()
+        cursor = self.execute_on_connection(sql, parameters)
+        self.recorder.record(sql, parameters, elapsed_ms(started))
+        return cursor
+
+    def execute_on_connection(self, sql: str, parameters: Any):
         if parameters is None:
             return self.connection.execute(sql)
         return self.connection.execute(sql, parameters)
 
     def executescript(self, script: str) -> None:
-        self.recorder.record(script)
+        started = time.perf_counter()
         self.connection.executescript(script)
+        self.recorder.record(script, None, elapsed_ms(started))
 
     def rollback(self) -> None:
         self.connection.rollback()
@@ -113,7 +141,10 @@ def run_evidence() -> dict[str, object]:
             with mock.patch.object(selection, "connect", side_effect=counted_connect):
                 sequential = run_sequential_probe(client, recorder)
                 concurrent = run_concurrent_probe(client)
-    return build_report(sequential, concurrent)
+                samples = recorder.samples()
+                sql_profile = summarize_sql_profile(samples)
+                explain = explain_query_plans(db_path, samples)
+    return build_report(sequential, concurrent, sql_profile, explain)
 
 
 def prepare_database(db_path: Path) -> None:
@@ -293,6 +324,137 @@ def count_summary(values: list[int]) -> dict[str, float | int | None]:
     }
 
 
+def summarize_sql_profile(samples: list[QuerySample]) -> dict[str, object]:
+    return {
+        "measurement": "local_sqlite_connection_execute_elapsed_ms",
+        "parameters_serialized": False,
+        "sql_text_serialized": "sanitized_fingerprint_preview_only",
+        "statement_count": len(samples),
+        "unique_fingerprint_count": len({sample.fingerprint for sample in samples}),
+        "slow_sql_fingerprints": slow_sql_fingerprints(samples),
+    }
+
+
+def slow_sql_fingerprints(samples: list[QuerySample]) -> list[dict[str, object]]:
+    groups: dict[str, dict[str, object]] = {}
+    for sample in samples:
+        group = groups.setdefault(
+            sample.fingerprint,
+            {
+                "fingerprint": sample.fingerprint,
+                "statement_type": statement_type(sample.sql),
+                "sql_preview": sql_preview(sample.sql),
+                "count": 0,
+                "total_execute_ms": 0.0,
+                "max_execute_ms": 0.0,
+            },
+        )
+        group["count"] = int(group["count"]) + 1
+        group["total_execute_ms"] = float(group["total_execute_ms"]) + sample.elapsed_ms
+        group["max_execute_ms"] = max(float(group["max_execute_ms"]), sample.elapsed_ms)
+    return [rounded_sql_group(group) for group in sorted_sql_groups(groups)]
+
+
+def sorted_sql_groups(groups: dict[str, dict[str, object]]) -> list[dict[str, object]]:
+    return sorted(
+        groups.values(),
+        key=lambda group: (
+            float(group["max_execute_ms"]),
+            float(group["total_execute_ms"]),
+        ),
+        reverse=True,
+    )[:SLOW_SQL_LIMIT]
+
+
+def rounded_sql_group(group: dict[str, object]) -> dict[str, object]:
+    count = int(group["count"])
+    total = float(group["total_execute_ms"])
+    return {
+        "fingerprint": group["fingerprint"],
+        "statement_type": group["statement_type"],
+        "sql_preview": group["sql_preview"],
+        "count": count,
+        "max_execute_ms": round(float(group["max_execute_ms"]), 3),
+        "mean_execute_ms": round(total / count, 3),
+        "total_execute_ms": round(total, 3),
+    }
+
+
+def explain_query_plans(db_path: Path, samples: list[QuerySample]) -> list[dict[str, object]]:
+    selected_samples = select_explain_samples(samples)
+    with connect(db_path) as connection:
+        return [explain_query_plan(connection, sample) for sample in selected_samples]
+
+
+def select_explain_samples(samples: list[QuerySample]) -> list[QuerySample]:
+    selected: dict[str, QuerySample] = {}
+    for sample in samples:
+        if statement_type(sample.sql) != "SELECT":
+            continue
+        current = selected.get(sample.fingerprint)
+        if current is None or sample.elapsed_ms > current.elapsed_ms:
+            selected[sample.fingerprint] = sample
+    return sorted(selected.values(), key=lambda sample: sample.elapsed_ms, reverse=True)[
+        :EXPLAIN_STATEMENT_LIMIT
+    ]
+
+
+def explain_query_plan(connection, sample: QuerySample) -> dict[str, object]:
+    try:
+        rows = connection.execute(
+            "EXPLAIN QUERY PLAN " + sample.sql,
+            sample.parameters or (),
+        ).fetchall()
+        return {
+            "fingerprint": sample.fingerprint,
+            "statement_type": statement_type(sample.sql),
+            "sql_preview": sql_preview(sample.sql),
+            "sample_execute_ms": round(sample.elapsed_ms, 3),
+            "plan": explain_rows(rows),
+        }
+    except sqlite3.Error as error:
+        return {
+            "fingerprint": sample.fingerprint,
+            "statement_type": statement_type(sample.sql),
+            "sql_preview": sql_preview(sample.sql),
+            "explain_error_type": type(error).__name__,
+        }
+
+
+def explain_rows(rows) -> list[dict[str, object]]:
+    return [
+        {
+            "id": int(row["id"]),
+            "parent": int(row["parent"]),
+            "detail": str(row["detail"]),
+        }
+        for row in rows
+    ]
+
+
+def query_fingerprint(sql: str) -> str:
+    digest = hashlib.sha256(normalized_sql(sql).encode("utf-8")).hexdigest()
+    return f"sha256:{digest[:16]}"
+
+
+def normalized_sql(sql: str) -> str:
+    sql = " ".join(sql.strip().split())
+    sql = SQL_STRING_PATTERN.sub("?", sql)
+    return SQL_NUMBER_PATTERN.sub("?", sql)
+
+
+def statement_type(sql: str) -> str:
+    normalized = normalized_sql(sql)
+    return normalized.split(" ", 1)[0].upper() if normalized else "UNKNOWN"
+
+
+def sql_preview(sql: str) -> str:
+    normalized = normalized_sql(sql)
+    if len(normalized) <= SQL_PREVIEW_LIMIT:
+        return normalized
+    return normalized[: SQL_PREVIEW_LIMIT - 3] + "..."
+
+
 def percentile(values: list[float], percentile_value: int) -> float:
     ordered = sorted(values)
     index = min(len(ordered) - 1, int(len(ordered) * percentile_value / 100))
@@ -302,6 +464,8 @@ def percentile(values: list[float], percentile_value: int) -> float:
 def build_report(
     sequential: dict[str, object],
     concurrent: dict[str, object],
+    sql_profile: dict[str, object],
+    explain: list[dict[str, object]],
 ) -> dict[str, object]:
     candidate_max = sequential["candidate_count"]["max"]
     thresholds_met = (
@@ -316,40 +480,75 @@ def build_report(
         "generated_at": utc_now(),
         "decision": "GO local read-path proof" if thresholds_met else "NO-GO local read-path proof",
         "environment": "local_sqlite_testclient_synthetic_30k",
+        "baseline_gate": baseline_gate_context(),
         "production_touched": False,
         "production_deploy_performed": False,
         "production_load_test_performed": False,
         "secret_or_quiz_content_printed": False,
-        "dataset": {
-            "synthetic_published_items": SYNTHETIC_ITEM_COUNT,
-            "levels": ["A2"],
-            "themes": ["T10"],
-            "quiz_content_in_report": False,
-        },
-        "candidate_pool": {
-            "limit": CANDIDATE_POOL_LIMIT,
-            "history_metric_candidate_limit": HISTORY_SCORING_CANDIDATE_LIMIT,
-            "max_candidate_count_recorded": candidate_max,
-            "cell_grouped_metrics_on_hot_path": False,
-        },
+        "dataset": dataset_context(),
+        "candidate_pool": candidate_pool_context(candidate_max),
         "sequential": sequential,
         "concurrent": concurrent,
-        "thresholds": {
-            "sequential_requests": SEQUENTIAL_REQUESTS,
-            "sequential_status_200": SEQUENTIAL_REQUESTS,
-            "p95_ms_allowed": 300.0,
-            "p95_ms_target": 150.0,
-            "candidate_max_allowed": CANDIDATE_POOL_LIMIT,
-            "exceptions_allowed": 0,
-            "timeouts_allowed": 0,
-        },
+        "sql_profile": sql_profile,
+        "explain_query_plan": explain,
+        "thresholds": thresholds_context(),
         "thresholds_met": thresholds_met,
-        "explicit_non_claims": {
-            "not_production_deploy": True,
-            "not_production_smoke_or_load": True,
-            "not_paid_pilot_readiness": True,
-            "not_broad_scale_approval": True,
-        },
+        "explicit_non_claims": explicit_non_claims(),
+    }
+
+
+def baseline_gate_context() -> dict[str, object]:
+    return {
+        "request_path": "/v1/quiz-items/next",
+        "measurements": [
+            "query_count",
+            "latency_p50_p95",
+            "slow_sql_fingerprints",
+            "sqlite_explain_query_plan",
+        ],
+        "runtime_behavior_changed": False,
+        "schema_or_migration_changed": False,
+        "local_only": True,
+    }
+
+
+def dataset_context() -> dict[str, object]:
+    return {
+        "synthetic_published_items": SYNTHETIC_ITEM_COUNT,
+        "levels": ["A2"],
+        "themes": ["T10"],
+        "quiz_content_in_report": False,
+    }
+
+
+def candidate_pool_context(candidate_max: object) -> dict[str, object]:
+    return {
+        "limit": CANDIDATE_POOL_LIMIT,
+        "history_metric_candidate_limit": HISTORY_SCORING_CANDIDATE_LIMIT,
+        "max_candidate_count_recorded": candidate_max,
+        "cell_grouped_metrics_on_hot_path": False,
+    }
+
+
+def thresholds_context() -> dict[str, object]:
+    return {
+        "sequential_requests": SEQUENTIAL_REQUESTS,
+        "sequential_status_200": SEQUENTIAL_REQUESTS,
+        "p95_ms_allowed": 300.0,
+        "p95_ms_target": 150.0,
+        "candidate_max_allowed": CANDIDATE_POOL_LIMIT,
+        "exceptions_allowed": 0,
+        "timeouts_allowed": 0,
+    }
+
+
+def explicit_non_claims() -> dict[str, bool]:
+    return {
+        "not_production_deploy": True,
+        "not_production_smoke_or_load": True,
+        "not_postgresql_runtime_proof": True,
+        "not_paid_pilot_readiness": True,
+        "not_broad_scale_approval": True,
     }
 
 

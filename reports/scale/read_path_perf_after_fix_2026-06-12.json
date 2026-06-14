@@ -1,4 +1,16 @@
 {
+  "baseline_gate": {
+    "local_only": true,
+    "measurements": [
+      "query_count",
+      "latency_p50_p95",
+      "slow_sql_fingerprints",
+      "sqlite_explain_query_plan"
+    ],
+    "request_path": "/v1/quiz-items/next",
+    "runtime_behavior_changed": false,
+    "schema_or_migration_changed": false
+  },
   "candidate_pool": {
     "cell_grouped_metrics_on_hot_path": false,
     "history_metric_candidate_limit": 24,
@@ -14,12 +26,12 @@
     "exception_count": 0,
     "five_xx_count": 0,
     "latency_ms": {
-      "max": 1281.485,
-      "mean": 331.588,
-      "min": 148.151,
-      "p50": 231.143,
-      "p95": 1278.596,
-      "p99": 1281.485
+      "max": 1551.998,
+      "mean": 397.898,
+      "min": 186.979,
+      "p50": 315.345,
+      "p95": 1167.301,
+      "p99": 1551.998
     },
     "query_count": {
       "max": null,
@@ -45,13 +57,137 @@
   },
   "decision": "GO local read-path proof",
   "environment": "local_sqlite_testclient_synthetic_30k",
+  "explain_query_plan": [
+    {
+      "fingerprint": "sha256:4f7d883aceb76269",
+      "plan": [
+        {
+          "detail": "SEARCH deliveries USING INDEX idx_deliveries_item (quiz_item_id=?)",
+          "id": 7,
+          "parent": 0
+        }
+      ],
+      "sample_execute_ms": 110.099,
+      "sql_preview": "SELECT quiz_item_id, COUNT(*) AS delivery_count, COALESCE(CAST(MAX(selected_at) AS TEXT), ?) AS last_delivered_at FROM deliveries WHERE quiz_item_id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) AND language_code = ? AND bank_v...",
+      "statement_type": "SELECT"
+    },
+    {
+      "fingerprint": "sha256:923097b20b057f64",
+      "plan": [
+        {
+          "detail": "SEARCH qi USING INDEX idx_quiz_items_selection_pool (language_code=? AND bank_version_id=? AND status=? AND sublevel=? AND theme_id=?)",
+          "id": 12,
+          "parent": 0
+        },
+        {
+          "detail": "SEARCH s USING INDEX sqlite_autoindex_sources_1 (source_id=?)",
+          "id": 43,
+          "parent": 0
+        },
+        {
+          "detail": "SEARCH iq USING INDEX sqlite_autoindex_quiz_item_image_quality_policy_1 (item_id=?) LEFT-JOIN",
+          "id": 52,
+          "parent": 0
+        },
+        {
+          "detail": "SEARCH d_repeat USING COVERING INDEX idx_deliveries_scope_item (consumer_id=? AND language_code=? AND bank_version_id=? AND delivery_status=? AND quiz_item_id=?) LEFT-JOIN",
+          "id": 60,
+          "parent": 0
+        }
+      ],
+      "sample_execute_ms": 60.097,
+      "sql_preview": "SELECT qi.*, s.source_type AS resolved_source_type, s.provenance_note AS resolved_provenance_note, iq.theme_group, iq.image_quality_recommended, iq.image_quality_source, iq.image_quality_policy_share, iq.image_quality_override FROM quiz_items qi JOIN source...",
+      "statement_type": "SELECT"
+    },
+    {
+      "fingerprint": "sha256:051659ee6ecef635",
+      "plan": [
+        {
+          "detail": "SEARCH entitlements USING INDEX idx_entitlements_consumer_feature_status (consumer_id=? AND feature=? AND status=?)",
+          "id": 5,
+          "parent": 0
+        },
+        {
+          "detail": "USE TEMP B-TREE FOR ORDER BY",
+          "id": 38,
+          "parent": 0
+        }
+      ],
+      "sample_execute_ms": 22.148,
+      "sql_preview": "SELECT * FROM entitlements WHERE consumer_id = ? AND feature = ? AND status = ? AND (valid_until IS NULL OR valid_until >= ?) ORDER BY created_at DESC LIMIT ?",
+      "statement_type": "SELECT"
+    },
+    {
+      "fingerprint": "sha256:71e384083422bc8e",
+      "plan": [
+        {
+          "detail": "SEARCH cb USING INDEX sqlite_autoindex_content_banks_1 (id=?)",
+          "id": 7,
+          "parent": 0
+        },
+        {
+          "detail": "SEARCH cbv USING INDEX uq_content_bank_versions_one_active (content_bank_id=?)",
+          "id": 18,
+          "parent": 0
+        }
+      ],
+      "sample_execute_ms": 22.078,
+      "sql_preview": "SELECT cb.language_code, cb.id AS content_bank_id, cbv.id AS bank_version_id FROM content_banks cb JOIN content_bank_versions cbv ON cbv.content_bank_id = cb.id WHERE cb.language_code = ? AND cb.status = ? AND cbv.status = ? AND cb.id = ? ORDER BY cb.create...",
+      "statement_type": "SELECT"
+    },
+    {
+      "fingerprint": "sha256:a9f26bf4216e4094",
+      "plan": [
+        {
+          "detail": "SEARCH ac USING INDEX sqlite_autoindex_api_credentials_2 (consumer_id=? AND key_prefix=?)",
+          "id": 5,
+          "parent": 0
+        },
+        {
+          "detail": "SEARCH c USING INDEX sqlite_autoindex_consumers_1 (consumer_id=?)",
+          "id": 14,
+          "parent": 0
+        }
+      ],
+      "sample_execute_ms": 19.001,
+      "sql_preview": "SELECT ac.credential_id, ac.consumer_id, ac.key_hash, ac.status AS credential_status, c.status AS consumer_status FROM api_credentials ac JOIN consumers c ON c.consumer_id = ac.consumer_id WHERE ac.consumer_id = ? AND ac.key_prefix = ?",
+      "statement_type": "SELECT"
+    },
+    {
+      "fingerprint": "sha256:397663beef23455c",
+      "plan": [
+        {
+          "detail": "SEARCH consumers USING INDEX sqlite_autoindex_consumers_1 (consumer_id=?)",
+          "id": 3,
+          "parent": 0
+        }
+      ],
+      "sample_execute_ms": 13.211,
+      "sql_preview": "SELECT * FROM consumers WHERE consumer_id = ? AND status = ?",
+      "statement_type": "SELECT"
+    },
+    {
+      "fingerprint": "sha256:c78edb6a7892d01d",
+      "plan": [
+        {
+          "detail": "SEARCH languages USING INDEX sqlite_autoindex_languages_1 (code=?)",
+          "id": 3,
+          "parent": 0
+        }
+      ],
+      "sample_execute_ms": 4.552,
+      "sql_preview": "SELECT code, is_active FROM languages WHERE code = ?",
+      "statement_type": "SELECT"
+    }
+  ],
   "explicit_non_claims": {
     "not_broad_scale_approval": true,
     "not_paid_pilot_readiness": true,
+    "not_postgresql_runtime_proof": true,
     "not_production_deploy": true,
     "not_production_smoke_or_load": true
   },
-  "generated_at": "2026-06-12T10:57:00Z",
+  "generated_at": "2026-06-14T18:06:52Z",
   "production_deploy_performed": false,
   "production_load_test_performed": false,
   "production_touched": false,
@@ -66,23 +202,104 @@
     "exception_count": 0,
     "five_xx_count": 0,
     "latency_ms": {
-      "max": 145.406,
-      "mean": 117.847,
-      "min": 98.518,
-      "p50": 116.425,
-      "p95": 134.965,
-      "p99": 145.406
+      "max": 253.269,
+      "mean": 141.197,
+      "min": 117.019,
+      "p50": 138.788,
+      "p95": 172.925,
+      "p99": 253.269
     },
     "query_count": {
-      "max": 8,
-      "mean": 8.0,
-      "min": 8
+      "max": 10,
+      "mean": 10.0,
+      "min": 10
     },
     "requests": 100,
     "status_counts": {
       "200": 100
     },
     "timeout_count": 0
+  },
+  "sql_profile": {
+    "measurement": "local_sqlite_connection_execute_elapsed_ms",
+    "parameters_serialized": false,
+    "slow_sql_fingerprints": [
+      {
+        "count": 124,
+        "fingerprint": "sha256:ac2879dcc37ef6b4",
+        "max_execute_ms": 1357.84,
+        "mean_execute_ms": 40.099,
+        "sql_preview": "INSERT INTO quota_usage ( quota_usage_id, consumer_id, feature, usage_date, language_code, content_bank_id, bank_version_id, used_count, quota_limit, updated_at ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT( consumer_id, feature, usage_date, language_...",
+        "statement_type": "INSERT",
+        "total_execute_ms": 4972.316
+      },
+      {
+        "count": 124,
+        "fingerprint": "sha256:4f7d883aceb76269",
+        "max_execute_ms": 110.099,
+        "mean_execute_ms": 7.997,
+        "sql_preview": "SELECT quiz_item_id, COUNT(*) AS delivery_count, COALESCE(CAST(MAX(selected_at) AS TEXT), ?) AS last_delivered_at FROM deliveries WHERE quiz_item_id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) AND language_code = ? AND bank_v...",
+        "statement_type": "SELECT",
+        "total_execute_ms": 991.598
+      },
+      {
+        "count": 124,
+        "fingerprint": "sha256:923097b20b057f64",
+        "max_execute_ms": 60.097,
+        "mean_execute_ms": 5.037,
+        "sql_preview": "SELECT qi.*, s.source_type AS resolved_source_type, s.provenance_note AS resolved_provenance_note, iq.theme_group, iq.image_quality_recommended, iq.image_quality_source, iq.image_quality_policy_share, iq.image_quality_override FROM quiz_items qi JOIN source...",
+        "statement_type": "SELECT",
+        "total_execute_ms": 624.585
+      },
+      {
+        "count": 124,
+        "fingerprint": "sha256:dccbe5d0b4ca4483",
+        "max_execute_ms": 29.128,
+        "mean_execute_ms": 10.716,
+        "sql_preview": "INSERT INTO deliveries ( delivery_id, consumer_id, quiz_item_id, item_status, delivery_status, language_code, content_bank_id, bank_version_id, source_id, source_type, provenance_note, selection_reason_summary, selected_at, entitlement_id, quota_usage_id ) ...",
+        "statement_type": "INSERT",
+        "total_execute_ms": 1328.78
+      },
+      {
+        "count": 124,
+        "fingerprint": "sha256:d7b4027730546545",
+        "max_execute_ms": 23.159,
+        "mean_execute_ms": 5.662,
+        "sql_preview": "INSERT INTO selection_decisions ( selection_request_id, delivery_id, consumer_id, delivery_mode, language_code, content_bank_id, bank_version_id, selection_strategy, filters_json, filters_applied_json, candidate_count, eligible_count, selected_item_id, sele...",
+        "statement_type": "INSERT",
+        "total_execute_ms": 702.148
+      },
+      {
+        "count": 124,
+        "fingerprint": "sha256:051659ee6ecef635",
+        "max_execute_ms": 22.148,
+        "mean_execute_ms": 2.179,
+        "sql_preview": "SELECT * FROM entitlements WHERE consumer_id = ? AND feature = ? AND status = ? AND (valid_until IS NULL OR valid_until >= ?) ORDER BY created_at DESC LIMIT ?",
+        "statement_type": "SELECT",
+        "total_execute_ms": 270.178
+      },
+      {
+        "count": 124,
+        "fingerprint": "sha256:71e384083422bc8e",
+        "max_execute_ms": 22.078,
+        "mean_execute_ms": 2.745,
+        "sql_preview": "SELECT cb.language_code, cb.id AS content_bank_id, cbv.id AS bank_version_id FROM content_banks cb JOIN content_bank_versions cbv ON cbv.content_bank_id = cb.id WHERE cb.language_code = ? AND cb.status = ? AND cbv.status = ? AND cb.id = ? ORDER BY cb.create...",
+        "statement_type": "SELECT",
+        "total_execute_ms": 340.394
+      },
+      {
+        "count": 124,
+        "fingerprint": "sha256:a9f26bf4216e4094",
+        "max_execute_ms": 19.001,
+        "mean_execute_ms": 6.686,
+        "sql_preview": "SELECT ac.credential_id, ac.consumer_id, ac.key_hash, ac.status AS credential_status, c.status AS consumer_status FROM api_credentials ac JOIN consumers c ON c.consumer_id = ac.consumer_id WHERE ac.consumer_id = ? AND ac.key_prefix = ?",
+        "statement_type": "SELECT",
+        "total_execute_ms": 829.04
+      }
+    ],
+    "sql_text_serialized": "sanitized_fingerprint_preview_only",
+    "statement_count": 1240,
+    "unique_fingerprint_count": 10
   },
   "thresholds": {
     "candidate_max_allowed": 150,

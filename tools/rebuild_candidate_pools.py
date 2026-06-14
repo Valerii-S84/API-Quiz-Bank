@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+"""Rebuild precomputed candidate pools for a content bank scope."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from quizbank_mvp.candidate_pool_builder import rebuild_candidate_pools  # noqa: E402
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--db-path", type=Path, default=None)
+    parser.add_argument("--language-code", default="de")
+    parser.add_argument("--content-bank-id", default=None)
+    parser.add_argument("--bank-version-id", default=None)
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    report = rebuild_candidate_pools(
+        args.db_path,
+        language_code=args.language_code,
+        content_bank_id=args.content_bank_id,
+        bank_version_id=args.bank_version_id,
+    )
+    print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

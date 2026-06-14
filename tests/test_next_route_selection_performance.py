@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -18,9 +19,11 @@ from quizbank_mvp.database import (  # noqa: E402
     seed_entitlement,
 )
 from quizbank_mvp.selection import SelectionFilters, SelectionRequest, select_next_item  # noqa: E402
+from tools.run_next_route_read_path_perf import primary_api_key  # noqa: E402
 
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
+READ_PATH_REPORT = ROOT / "reports" / "scale" / "read_path_perf_after_fix_2026-06-12.json"
 
 
 class NextRouteSelectionPerformanceTests(unittest.TestCase):
@@ -142,6 +145,39 @@ class NextRouteSelectionPerformanceTests(unittest.TestCase):
                 "idx_entitlements_consumer_feature_status",
             }.issubset(index_names)
         )
+
+    def test_read_path_report_records_baseline_gate_fields(self) -> None:
+        report = json.loads(READ_PATH_REPORT.read_text(encoding="utf-8"))
+
+        self.assertEqual(report["baseline_gate"]["request_path"], "/v1/quiz-items/next")
+        self.assertTrue(report["baseline_gate"]["local_only"])
+        self.assertFalse(report["baseline_gate"]["runtime_behavior_changed"])
+        self.assertFalse(report["baseline_gate"]["schema_or_migration_changed"])
+        self.assertIn("query_count", report["baseline_gate"]["measurements"])
+        self.assertIsNotNone(report["sequential"]["query_count"]["min"])
+        self.assertIn("p50", report["sequential"]["latency_ms"])
+        self.assertIn("p95", report["sequential"]["latency_ms"])
+        self.assert_baseline_sql_profile(report)
+        self.assert_baseline_report_is_sanitized(report)
+
+    def assert_baseline_sql_profile(self, report: dict[str, object]) -> None:
+        sql_profile = report["sql_profile"]
+        self.assertFalse(sql_profile["parameters_serialized"])
+        self.assertGreater(sql_profile["statement_count"], 0)
+        self.assertGreater(len(sql_profile["slow_sql_fingerprints"]), 0)
+        explain_plans = report["explain_query_plan"]
+        self.assertGreater(len(explain_plans), 0)
+        self.assertFalse(any("explain_error_type" in plan for plan in explain_plans))
+        self.assertTrue(all("plan" in plan for plan in explain_plans))
+
+    def assert_baseline_report_is_sanitized(self, report: dict[str, object]) -> None:
+        self.assertFalse(report["secret_or_quiz_content_printed"])
+        serialized = json.dumps(report).lower()
+        self.assertNotIn(primary_api_key().lower(), serialized)
+        self.assertNotIn("x-quizbank-api-key", serialized)
+        self.assertNotIn("stem_text", serialized)
+        self.assertNotIn("answer_key", serialized)
+        self.assertNotIn("options_json", serialized)
 
     def clone_many_items(self, count: int) -> None:
         if count <= 0:

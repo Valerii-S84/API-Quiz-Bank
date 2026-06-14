@@ -35,6 +35,9 @@ POSTGRESQL_MULTILINGUAL_BANK_SQL = (
 POSTGRESQL_CHANNEL_TARIFF_SCOPE_SQL = (
     ROOT / "database" / "postgresql" / "013_add_channel_tariff_scope.sql"
 ).read_text(encoding="utf-8")
+POSTGRESQL_PRECOMPUTED_SELECTION_SQL = (
+    ROOT / "database" / "postgresql" / "014_add_precomputed_selection_state.sql"
+).read_text(encoding="utf-8")
 
 
 class PostgreSQLContractTests(unittest.TestCase):
@@ -314,6 +317,59 @@ class PostgreSQLMultilingualBankContractTests(unittest.TestCase):
             "slot_id,\n        language_code,\n        content_bank_id,\n        bank_version_id,",
         ]:
             self.assertIn(required_fragment, POSTGRESQL_CHANNEL_TARIFF_SCOPE_SQL)
+
+
+class PostgreSQLPrecomputedSelectionContractTests(unittest.TestCase):
+    def test_precomputed_selection_migration_defines_runtime_tables(self) -> None:
+        for required_fragment in [
+            "CREATE TABLE IF NOT EXISTS candidate_pools",
+            "CREATE TABLE IF NOT EXISTS candidate_pool_items",
+            "CREATE TABLE IF NOT EXISTS consumer_delivery_state",
+            "CREATE TABLE IF NOT EXISTS selection_queues",
+            "CREATE TABLE IF NOT EXISTS selection_queue_items",
+            "CREATE TABLE IF NOT EXISTS selection_diagnostic_events",
+            "CREATE TABLE IF NOT EXISTS selection_diagnostic_outbox",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_PRECOMPUTED_SELECTION_SQL)
+
+    def test_precomputed_selection_tables_preserve_scope_keys(self) -> None:
+        for required_fragment in [
+            "language_code TEXT NOT NULL REFERENCES languages(code)",
+            "content_bank_id TEXT NOT NULL REFERENCES content_banks(id)",
+            "bank_version_id TEXT NOT NULL REFERENCES content_bank_versions(id)",
+            "PRIMARY KEY (\n        consumer_id,\n        channel_id,\n        language_code,",
+            "UNIQUE (\n        consumer_id,\n        channel_id,\n        language_code,",
+            "cefr_level TEXT NOT NULL DEFAULT ''",
+            "theme_id TEXT NOT NULL DEFAULT ''",
+            "objective_id TEXT NOT NULL DEFAULT ''",
+            "pattern_id TEXT NOT NULL DEFAULT ''",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_PRECOMPUTED_SELECTION_SQL)
+
+    def test_precomputed_selection_queue_claims_and_outbox_are_indexed(self) -> None:
+        for required_fragment in [
+            "idx_candidate_pools_scope_ready",
+            "idx_candidate_pool_items_pool_rank",
+            "idx_consumer_delivery_state_recent",
+            "idx_selection_queues_scope_status",
+            "idx_selection_queue_items_claim",
+            "ON selection_queue_items(queue_id, claim_status, position, queue_item_id)",
+            "idx_selection_diagnostic_events_consumer_created",
+            "idx_selection_diagnostic_outbox_pending",
+            "WHERE status IN ('pending', 'failed')",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_PRECOMPUTED_SELECTION_SQL)
+
+    def test_precomputed_selection_diagnostics_use_jsonb_outbox_payloads(self) -> None:
+        for required_fragment in [
+            "score_snapshot_json JSONB NOT NULL DEFAULT '{}'::jsonb",
+            "payload_json JSONB NOT NULL DEFAULT '{}'::jsonb",
+            "event_type IN (",
+            "'diagnostic_snapshot'",
+            "status IN ('pending', 'processing', 'published', 'failed', 'discarded')",
+            "attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0)",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_PRECOMPUTED_SELECTION_SQL)
 
 
 if __name__ == "__main__":
