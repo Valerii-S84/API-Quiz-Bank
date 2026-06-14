@@ -31,5 +31,5 @@ where = ["src"]
 source = ["src/quizbank_mvp"]
 
 [tool.coverage.report]
-fail_under = 93
+fail_under = 94
 show_missing = true
