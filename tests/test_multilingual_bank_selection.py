@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from quizbank_mvp.candidate_pool_builder import rebuild_candidate_pools  # noqa: E402
 from quizbank_mvp.app import create_app  # noqa: E402
 from quizbank_mvp.database import (  # noqa: E402
     connect,
@@ -21,6 +22,7 @@ from quizbank_mvp.database import (  # noqa: E402
     seed_entitlement,
 )
 from quizbank_mvp.selection import QuizBankProblem, SelectionFilters, SelectionRequest, select_next_item  # noqa: E402
+from quizbank_mvp.selection_queue_filler import refill_selection_queue_for_request  # noqa: E402
 
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
@@ -40,6 +42,8 @@ class MultilingualBankSelectionTests(unittest.TestCase):
     def test_next_item_defaults_to_german_scope_and_returns_it(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         self.seed_access(with_api_key=True)
+        rebuild_candidate_pools(self.db_path)
+        refill_selection_queue_for_request(self.db_path, self.selection_request())
 
         response = self.client.post(
             "/v1/quiz-items/next",

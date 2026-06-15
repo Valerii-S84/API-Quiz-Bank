@@ -28,7 +28,7 @@ class ScaleLoadGateTests(unittest.TestCase):
         self.assertEqual(report["status_counts"], {"200": 8})
         self.assertEqual(report["ready_status"], 200)
         self.assertEqual(report["auth_no_key_status"], 401)
-        self.assertEqual(report["repeat_selection_status"], 404)
+        self.assertEqual(report["repeat_selection_status"], 503)
         self.assertEqual(report["quota_denial_status"], 429)
         self.assertTrue(all(report["resource_limits"].values()))
         self.assertIn("external concurrent traffic test is not executed", report["scale_blockers"])

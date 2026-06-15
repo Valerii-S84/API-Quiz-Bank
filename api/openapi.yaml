@@ -177,6 +177,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          description: Selection queue is warming or selection mode is misconfigured.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
   /v1/quiz-items/{item_id}:
     get:
       operationId: getTrustedQuizItemById

@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from quizbank_mvp.candidate_pool_builder import rebuild_candidate_pools
 from quizbank_mvp.app import create_app
 from quizbank_mvp.database import (
     initialize_database,
@@ -19,6 +20,8 @@ from quizbank_mvp.database import (
     seed_control_fixture,
     seed_entitlement,
 )
+from quizbank_mvp.selection_models import SelectionFilters, SelectionRequest
+from quizbank_mvp.selection_queue_filler import refill_selection_queue_for_request
 
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
@@ -37,7 +40,8 @@ class MvpRateLimitTests(unittest.TestCase):
             limited = post_next_item(client)
 
         self.assertEqual(first.status_code, 200)
-        self.assertEqual(second.status_code, 404)
+        self.assertEqual(second.status_code, 503)
+        self.assertEqual(second.json()["reason_code"], "SELECTION_QUEUE_NOT_READY")
         self.assertEqual(limited.status_code, 429)
         self.assertEqual(limited.json()["reason_code"], "RATE_LIMIT_EXCEEDED")
 
@@ -48,6 +52,14 @@ def prepare_database(db_path: Path) -> None:
     seed_consumer(db_path, "consumer_allowed", 5, ["A2"], ["T10"])
     seed_api_credential(db_path, "consumer_allowed", "test_api_key")
     seed_entitlement(db_path, "consumer_allowed", ["A2"], ["T10"])
+    rebuild_candidate_pools(db_path)
+    refill_selection_queue_for_request(
+        db_path,
+        SelectionRequest(
+            consumer_id="consumer_allowed",
+            filters=SelectionFilters(cefr_level="A2", theme_ids=("T10",)),
+        ),
+    )
 
 
 def rate_limit_environment() -> dict[str, str]:

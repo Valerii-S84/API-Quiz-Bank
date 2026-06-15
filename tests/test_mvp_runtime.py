@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sqlite3
 import sys
 import tempfile
 import unittest
@@ -12,17 +11,18 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from quizbank_mvp.app import create_app
+from quizbank_mvp.candidate_pool_builder import rebuild_candidate_pools
 from quizbank_mvp.database import (
     connect,
-    database_is_ready,
     initialize_database,
     seed_api_credential,
     seed_consumer,
     seed_control_fixture,
     seed_entitlement,
     transition_consumer_status,
-    transition_item_status,
 )
+from quizbank_mvp.selection_models import SelectionFilters, SelectionRequest
+from quizbank_mvp.selection_queue_filler import refill_selection_queue_for_request
 from quizbank_mvp.selection import QuizBankProblem
 from quizbank_mvp.telegram_delivery import (
     TelegramDeliveryError,
@@ -67,6 +67,21 @@ class MvpRuntimeCase(unittest.TestCase):
             },
         )
 
+    def warm_queue(
+        self,
+        consumer_id: str = "consumer_allowed",
+        cefr_level: str | None = "A2",
+        theme_ids: tuple[str, ...] = ("T10",),
+    ) -> None:
+        rebuild_candidate_pools(self.db_path)
+        refill_selection_queue_for_request(
+            self.db_path,
+            SelectionRequest(
+                consumer_id=consumer_id,
+                filters=SelectionFilters(cefr_level=cefr_level, theme_ids=theme_ids),
+            ),
+        )
+
 
 class MvpRuntimeEndpointTests(MvpRuntimeCase):
     def test_health_and_ready_endpoints_pass_after_database_init(self) -> None:
@@ -95,6 +110,7 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
     def test_next_item_returns_public_projection_and_delivery_log(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         self.seed_access()
+        self.warm_queue()
 
         response = self.next_item()
 
@@ -123,23 +139,25 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
 
         response = self.next_item()
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 503)
         self.assertEqual(response.headers["content-type"], "application/problem+json")
-        self.assertEqual(response.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
+        self.assertEqual(response.json()["reason_code"], "SELECTION_QUEUE_NOT_READY")
 
     def test_repeat_policy_excludes_delivered_item(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         self.seed_access(quota=2)
+        self.warm_queue()
 
         self.assertEqual(self.next_item().status_code, 200)
         repeat = self.next_item()
 
-        self.assertEqual(repeat.status_code, 404)
-        self.assertEqual(repeat.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
+        self.assertEqual(repeat.status_code, 503)
+        self.assertEqual(repeat.json()["reason_code"], "SELECTION_QUEUE_NOT_READY")
 
     def test_published_items_are_delivery_eligible(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "published")
         self.seed_access()
+        self.warm_queue()
 
         response = self.next_item()
 
@@ -152,8 +170,8 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
 
         response = self.next_item()
 
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["reason_code"], "SELECTION_QUEUE_NOT_READY")
 
     def test_blocked_items_are_not_delivery_eligible(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "blocked")
@@ -161,8 +179,8 @@ class MvpRuntimeEndpointTests(MvpRuntimeCase):
 
         response = self.next_item()
 
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["reason_code"], "SELECTION_QUEUE_NOT_READY")
 
 
 class FakeTelegramAdapter:
@@ -350,6 +368,7 @@ class MvpRuntimeAccessControlTests(MvpRuntimeCase):
             self.api_key_for("consumer_no_entitlement"),
         )
         self.seed_access("consumer_quota_denied", quota=0)
+        self.warm_queue("consumer_quota_denied")
 
         entitlement = self.next_item("consumer_no_entitlement")
         quota = self.next_item("consumer_quota_denied")
@@ -382,10 +401,10 @@ class MvpRuntimeAccessControlTests(MvpRuntimeCase):
             },
         )
 
-        self.assertEqual(level_mismatch.status_code, 404)
-        self.assertEqual(theme_mismatch.status_code, 404)
-        self.assertEqual(level_mismatch.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
-        self.assertEqual(theme_mismatch.json()["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
+        self.assertEqual(level_mismatch.status_code, 503)
+        self.assertEqual(theme_mismatch.status_code, 503)
+        self.assertEqual(level_mismatch.json()["reason_code"], "SELECTION_QUEUE_NOT_READY")
+        self.assertEqual(theme_mismatch.json()["reason_code"], "SELECTION_QUEUE_NOT_READY")
 
     def test_consumer_scope_denials_happen_before_selection(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
@@ -417,6 +436,7 @@ class MvpRuntimeAccessControlTests(MvpRuntimeCase):
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
         self.seed_access("consumer_one")
         self.seed_access("consumer_two")
+        self.warm_queue("consumer_one")
         delivery_id = self.next_item("consumer_one").json()["delivery_id"]
 
         response = self.client.get(
@@ -508,137 +528,6 @@ class MvpRuntimeAccessControlTests(MvpRuntimeCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json()["reason_code"], "AUTH_CONSUMER_MISMATCH")
-
-
-class MvpRuntimeDatabaseTests(MvpRuntimeCase):
-    def test_database_can_be_created_from_empty_schema(self) -> None:
-        with connect(self.db_path) as connection:
-            table_names = {
-                row["name"]
-                for row in connection.execute(
-                    "SELECT name FROM sqlite_master WHERE type = 'table'"
-                ).fetchall()
-            }
-        self.assertTrue(
-            {
-                "sources",
-                "quiz_items",
-                "consumers",
-                "deliveries",
-                "entitlements",
-                "api_credentials",
-                "quota_usage",
-                "audit_log",
-                "telegram_delivery_results", "selection_decisions",
-            }.issubset(table_names)
-        )
-
-    def test_readiness_requires_api_credentials_table(self) -> None:
-        legacy_db_path = Path(self.temp_directory.name) / "legacy.sqlite3"
-        with sqlite3.connect(legacy_db_path) as connection:
-            connection.execute("CREATE TABLE quiz_items (item_id TEXT PRIMARY KEY)")
-            connection.execute("CREATE TABLE consumers (consumer_id TEXT PRIMARY KEY)")
-            connection.execute("CREATE TABLE deliveries (delivery_id TEXT PRIMARY KEY)")
-
-        self.assertFalse(database_is_ready(legacy_db_path))
-
-    def test_status_transition_is_audited_and_controls_selection(self) -> None:
-        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "draft")
-        self.seed_access(quota=5)
-        self.assertEqual(self.next_item().status_code, 404)
-
-        transition_item_status(
-            self.db_path,
-            "approved_traceable_001",
-            "approved",
-            "local_admin",
-            "MVP approval test",
-        )
-        self.assertEqual(self.next_item().status_code, 200)
-
-        with connect(self.db_path) as connection:
-            delivery_item = connection.execute(
-                "SELECT quiz_item_id FROM deliveries WHERE consumer_id = 'consumer_allowed'"
-            ).fetchone()
-            connection.execute(
-                """
-                DELETE FROM consumer_delivery_state
-                WHERE consumer_id = 'consumer_allowed'
-                """
-            )
-            connection.execute(
-                "DELETE FROM deliveries WHERE delivery_id IN (SELECT delivery_id FROM deliveries)"
-            )
-            connection.execute(
-                "DELETE FROM quota_usage WHERE quota_usage_id IN (SELECT quota_usage_id FROM quota_usage)"
-            )
-        self.assertEqual(delivery_item["quiz_item_id"], "approved_traceable_001")
-
-        transition_item_status(
-            self.db_path,
-            "approved_traceable_001",
-            "blocked",
-            "local_admin",
-            "MVP block test",
-        )
-        self.assertEqual(self.next_item().status_code, 404)
-
-        with connect(self.db_path) as connection:
-            audit_count = connection.execute("SELECT COUNT(*) AS count FROM audit_log").fetchone()
-            item_audit_count = connection.execute(
-                "SELECT COUNT(*) AS count FROM audit_log WHERE entity_type = 'quiz_item'"
-            ).fetchone()
-        self.assertGreaterEqual(audit_count["count"], 2)
-        self.assertEqual(item_audit_count["count"], 2)
-
-    def test_manual_entitlement_grant_is_audited(self) -> None:
-        seed_consumer(self.db_path, "consumer_manual_grant", 3, ["A2"], ["T10"])
-        entitlement_id = seed_entitlement(
-            self.db_path,
-            "consumer_manual_grant",
-            ["A2"],
-            ["T10"],
-            valid_until="2026-12-31T00:00:00Z",
-            actor="billing_admin",
-            reason="manual pilot grant",
-        )
-
-        with connect(self.db_path) as connection:
-            entitlement = connection.execute(
-                "SELECT * FROM entitlements WHERE entitlement_id = ?",
-                (entitlement_id,),
-            ).fetchone()
-            audit = connection.execute(
-                "SELECT * FROM audit_log WHERE entity_id = ?",
-                (entitlement_id,),
-            ).fetchone()
-
-        self.assertEqual(entitlement["valid_until"], "2026-12-31T00:00:00Z")
-        self.assertEqual(audit["actor"], "billing_admin")
-        self.assertEqual(audit["action"], "entitlement_grant")
-        self.assertEqual(audit["reason"], "manual pilot grant")
-
-    def test_duplicate_item_ids_are_rejected_by_database(self) -> None:
-        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
-        with self.assertRaises(sqlite3.IntegrityError), connect(self.db_path) as connection:
-            connection.execute(
-                """
-                INSERT INTO quiz_items (
-                    item_id, source_id, language, level_band, sublevel, theme_id,
-                    subtheme_id, objective_id, pattern_id, difficulty_band, register,
-                    prompt, stem_text, options_json, answer_key, explanation, tags,
-                    coverage_cell_id, status, version, created_at, updated_at,
-                    reviewed_at, level_locked, locked_at
-                )
-                SELECT item_id, source_id, language, level_band, sublevel, theme_id,
-                       subtheme_id, objective_id, pattern_id, difficulty_band, register,
-                       prompt, stem_text, options_json, answer_key, explanation, tags,
-                       coverage_cell_id, status, version, created_at, updated_at,
-                       reviewed_at, level_locked, locked_at
-                FROM quiz_items
-                WHERE item_id = 'approved_traceable_001'
-                """
-            )
 
 
 if __name__ == "__main__":

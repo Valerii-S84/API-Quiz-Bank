@@ -15,10 +15,10 @@ from .selection_delivery import answer_feedback, delivery_projection
 from .selection_models import ContentScope, SelectionRequest
 from .selection_queue_filler import queue_scopes_for_request
 from .selection_queue_models import selection_queue_id
-from .selection_quota import reserve_quota
+from .selection_quota import quota_exceeded_problem, quota_feature, reserve_quota
 from .selection_scope import effective_scope_replacement
 from .selection_scope_enforcement import enforce_consumer_scope, enforce_entitlement_scope
-from .time_ids import new_id, utc_now
+from .time_ids import new_id, today_usage_date, utc_now
 
 
 class PostgreSQLQueueFastPathMiss(RuntimeError):
@@ -30,6 +30,7 @@ class PostgreSQLQueueSelectionContext:
     consumer: dict[str, Any]
     entitlement: dict[str, Any]
     request: SelectionRequest
+    quota_used_count: int
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,7 @@ def select_next_item_from_postgresql_queue(
     selection_request_id: str,
 ) -> dict[str, Any]:
     context = prepare_postgresql_queue_selection_context(connection, request)
+    raise_if_context_quota_exhausted(context)
     claimed = claim_postgresql_queue_item(connection, context.request)
     quota_usage = reserve_quota(connection, context.consumer, context.request)
     delivery = new_delivery(context.request, claimed.item, context.entitlement, quota_usage)
@@ -100,67 +102,83 @@ def prepare_postgresql_queue_selection_context(
     )
     enforce_consumer_scope(consumer, prepared_request)
     enforce_entitlement_scope(entitlement, prepared_request)
-    return PostgreSQLQueueSelectionContext(consumer, entitlement, prepared_request)
+    return PostgreSQLQueueSelectionContext(
+        consumer,
+        entitlement,
+        prepared_request,
+        int(values["quota_used_count"]),
+    )
+
+
+POSTGRESQL_CONTEXT_SQL = """
+    WITH active_consumer AS (
+        SELECT *
+        FROM consumers
+        WHERE consumer_id = ? AND status = 'active'
+    ),
+    active_entitlement AS (
+        SELECT *
+        FROM entitlements
+        WHERE consumer_id = ?
+          AND feature = 'quiz_delivery'
+          AND status = 'active'
+          AND (valid_until IS NULL OR valid_until >= ?)
+        ORDER BY created_at DESC
+        LIMIT 1
+    ),
+    requested_scope AS (
+        SELECT CASE WHEN ? <> ? THEN ?
+                    ELSE COALESCE(NULLIF(c.default_language_code, ''), ?)
+               END AS language_code,
+               COALESCE(NULLIF(?, ''), NULLIF(c.default_content_bank_id, ''))
+                   AS content_bank_id,
+               COALESCE(NULLIF(?, ''), NULLIF(c.default_bank_version_id, ''))
+                   AS bank_version_id
+        FROM active_consumer c
+    ),
+    resolved_scope AS (
+        SELECT cb.language_code, cb.id AS content_bank_id, cbv.id AS bank_version_id
+        FROM requested_scope requested
+        JOIN languages lang ON lang.code = requested.language_code AND lang.is_active
+        JOIN content_banks cb ON cb.language_code = requested.language_code
+        JOIN content_bank_versions cbv ON cbv.content_bank_id = cb.id
+        WHERE cb.status = 'active'
+          AND cbv.status = 'active'
+          AND (requested.content_bank_id IS NULL OR cb.id = requested.content_bank_id)
+          AND (requested.bank_version_id IS NULL OR cbv.id = requested.bank_version_id)
+        ORDER BY cb.created_at DESC, cbv.activated_at DESC, cbv.created_at DESC
+        LIMIT 1
+    )
+    SELECT c.consumer_id, c.status AS consumer_status, c.daily_quota_limit,
+           c.allowed_cefr_levels_json AS consumer_allowed_cefr_levels_json,
+           c.allowed_theme_ids_json AS consumer_allowed_theme_ids_json,
+           c.allowed_language_codes_json AS consumer_allowed_language_codes_json,
+           c.allowed_content_bank_ids_json AS consumer_allowed_content_bank_ids_json,
+           c.allowed_bank_version_ids_json AS consumer_allowed_bank_version_ids_json,
+           c.default_language_code, c.default_content_bank_id, c.default_bank_version_id,
+           e.entitlement_id,
+           e.allowed_cefr_levels_json AS entitlement_allowed_cefr_levels_json,
+           e.allowed_theme_ids_json AS entitlement_allowed_theme_ids_json,
+           e.allowed_language_codes_json AS entitlement_allowed_language_codes_json,
+           e.allowed_content_bank_ids_json AS entitlement_allowed_content_bank_ids_json,
+           e.allowed_bank_version_ids_json AS entitlement_allowed_bank_version_ids_json,
+           scope.language_code, scope.content_bank_id, scope.bank_version_id,
+           COALESCE(quota.used_count, 0) AS quota_used_count
+    FROM active_consumer c
+    JOIN active_entitlement e ON TRUE
+    JOIN resolved_scope scope ON TRUE
+    LEFT JOIN quota_usage quota
+      ON quota.consumer_id = c.consumer_id
+     AND quota.feature = ?
+     AND quota.usage_date = ?
+     AND quota.language_code = scope.language_code
+     AND quota.content_bank_id = scope.content_bank_id
+     AND quota.bank_version_id = scope.bank_version_id
+"""
 
 
 def postgresql_context_sql() -> str:
-    return """
-        WITH active_consumer AS (
-            SELECT *
-            FROM consumers
-            WHERE consumer_id = ? AND status = 'active'
-        ),
-        active_entitlement AS (
-            SELECT *
-            FROM entitlements
-            WHERE consumer_id = ?
-              AND feature = 'quiz_delivery'
-              AND status = 'active'
-              AND (valid_until IS NULL OR valid_until >= ?)
-            ORDER BY created_at DESC
-            LIMIT 1
-        ),
-        requested_scope AS (
-            SELECT CASE WHEN ? <> ? THEN ?
-                        ELSE COALESCE(NULLIF(c.default_language_code, ''), ?)
-                   END AS language_code,
-                   COALESCE(NULLIF(?, ''), NULLIF(c.default_content_bank_id, ''))
-                       AS content_bank_id,
-                   COALESCE(NULLIF(?, ''), NULLIF(c.default_bank_version_id, ''))
-                       AS bank_version_id
-            FROM active_consumer c
-        ),
-        resolved_scope AS (
-            SELECT cb.language_code, cb.id AS content_bank_id, cbv.id AS bank_version_id
-            FROM requested_scope requested
-            JOIN languages lang ON lang.code = requested.language_code AND lang.is_active
-            JOIN content_banks cb ON cb.language_code = requested.language_code
-            JOIN content_bank_versions cbv ON cbv.content_bank_id = cb.id
-            WHERE cb.status = 'active'
-              AND cbv.status = 'active'
-              AND (requested.content_bank_id IS NULL OR cb.id = requested.content_bank_id)
-              AND (requested.bank_version_id IS NULL OR cbv.id = requested.bank_version_id)
-            ORDER BY cb.created_at DESC, cbv.activated_at DESC, cbv.created_at DESC
-            LIMIT 1
-        )
-        SELECT c.consumer_id, c.status AS consumer_status, c.daily_quota_limit,
-               c.allowed_cefr_levels_json AS consumer_allowed_cefr_levels_json,
-               c.allowed_theme_ids_json AS consumer_allowed_theme_ids_json,
-               c.allowed_language_codes_json AS consumer_allowed_language_codes_json,
-               c.allowed_content_bank_ids_json AS consumer_allowed_content_bank_ids_json,
-               c.allowed_bank_version_ids_json AS consumer_allowed_bank_version_ids_json,
-               c.default_language_code, c.default_content_bank_id, c.default_bank_version_id,
-               e.entitlement_id,
-               e.allowed_cefr_levels_json AS entitlement_allowed_cefr_levels_json,
-               e.allowed_theme_ids_json AS entitlement_allowed_theme_ids_json,
-               e.allowed_language_codes_json AS entitlement_allowed_language_codes_json,
-               e.allowed_content_bank_ids_json AS entitlement_allowed_content_bank_ids_json,
-               e.allowed_bank_version_ids_json AS entitlement_allowed_bank_version_ids_json,
-               scope.language_code, scope.content_bank_id, scope.bank_version_id
-        FROM active_consumer c
-        JOIN active_entitlement e ON TRUE
-        JOIN resolved_scope scope ON TRUE
-    """
+    return POSTGRESQL_CONTEXT_SQL
 
 
 def postgresql_context_parameters(request: SelectionRequest) -> tuple[Any, ...]:
@@ -175,7 +193,17 @@ def postgresql_context_parameters(request: SelectionRequest) -> tuple[Any, ...]:
         DEFAULT_LANGUAGE_CODE,
         scope.content_bank_id,
         scope.bank_version_id,
+        quota_feature(request),
+        today_usage_date(),
     )
+
+
+def raise_if_context_quota_exhausted(context: PostgreSQLQueueSelectionContext) -> None:
+    quota_limit = int(context.consumer["daily_quota_limit"])
+    if quota_limit <= 0:
+        raise quota_exceeded_problem(0, quota_limit)
+    if context.quota_used_count >= quota_limit:
+        raise quota_exceeded_problem(context.quota_used_count, quota_limit)
 
 
 def consumer_from_context_row(values: dict[str, Any]) -> dict[str, Any]:

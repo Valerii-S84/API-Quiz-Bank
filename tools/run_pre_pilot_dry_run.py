@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from fastapi.testclient import TestClient
 
 from quizbank_mvp.app import create_app
+from quizbank_mvp.candidate_pool_builder import rebuild_candidate_pools
 from quizbank_mvp.database import (
     connect,
     initialize_database,
@@ -24,6 +25,8 @@ from quizbank_mvp.database import (
     seed_entitlement,
     transition_consumer_status,
 )
+from quizbank_mvp.selection_models import SelectionFilters, SelectionRequest
+from quizbank_mvp.selection_queue_filler import refill_selection_queue_for_request
 
 
 REPORT_PATH = ROOT / "reports" / "pre_pilot" / "local_pre_pilot_dry_run_2026-05-08.md"
@@ -79,6 +82,18 @@ def prepare_database(db_path: Path) -> None:
     seed_consumer(db_path, "consumer_quota_blocked", 0, ["A2"], ["T10"])
     seed_api_credential(db_path, "consumer_quota_blocked", API_KEYS["consumer_quota_blocked"])
     seed_entitlement(db_path, "consumer_quota_blocked", ["A2"], ["T10"])
+    warm_queue(db_path, "consumer_lifecycle")
+
+
+def warm_queue(db_path: Path, consumer_id: str) -> None:
+    rebuild_candidate_pools(db_path)
+    refill_selection_queue_for_request(
+        db_path,
+        SelectionRequest(
+            consumer_id=consumer_id,
+            filters=SelectionFilters(cefr_level="A2", theme_ids=("T10",)),
+        ),
+    )
 
 
 def run_lifecycle(db_path: Path, client: TestClient) -> dict[str, Any]:

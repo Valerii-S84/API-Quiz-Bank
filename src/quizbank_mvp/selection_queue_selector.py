@@ -20,7 +20,7 @@ from .selection_queue_fast_path import (
 )
 from .selection_queue_filler import queue_scopes_for_request
 from .selection_queue_models import selection_queue_id
-from .selection_quota import reserve_quota
+from .selection_quota import raise_if_quota_exhausted, reserve_quota
 from .selection_scope import effective_scope_replacement, resolve_content_scope_request
 from .selection_scope_enforcement import (
     enforce_consumer_scope,
@@ -67,6 +67,7 @@ def select_next_item_from_queue_connection(
     selection_request_id: str,
 ) -> dict[str, Any]:
     context = prepare_queue_selection_context(connection, request)
+    raise_if_quota_exhausted(connection, context.consumer, context.request)
     claim = claim_next_queue_item(connection, context.request)
     quota_usage = reserve_quota(connection, context.consumer, context.request)
     item = load_claimed_item(connection, claim, context.request)

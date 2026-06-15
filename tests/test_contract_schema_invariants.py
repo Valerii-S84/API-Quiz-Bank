@@ -168,6 +168,12 @@ class ContractSchemaInvariantTests(unittest.TestCase):
         self.assertIn("theme_code:", openapi)
         self.assertIn("language_code:", openapi)
         self.assertIn("/v1/quiz-items/next:", openapi)
+        next_route_contract = openapi.split("  /v1/quiz-items/next:", 1)[1].split(
+            "  /v1/quiz-items/{item_id}:",
+            1,
+        )[0]
+        self.assertIn("        '503':", next_route_contract)
+        self.assertIn("Selection queue is warming", next_route_contract)
         self.assertIn("NextQuizRequest:", openapi)
         self.assertIn("QuizItemPublicProjection:", openapi)
         self.assertIn("ProblemDetails:", openapi)

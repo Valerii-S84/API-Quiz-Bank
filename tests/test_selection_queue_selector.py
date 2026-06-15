@@ -74,6 +74,17 @@ class SelectionQueueSelectorTests(unittest.TestCase):
         self.assertEqual(self.scalar_count("quota_usage"), 0)
         self.assertEqual(self.scalar_count("selection_decisions"), 0)
 
+    def test_queue_selector_denies_exhausted_quota_before_queue_claim(self) -> None:
+        self.seed_access(quota=0)
+
+        with self.assertRaises(QuizBankProblem) as error:
+            select_next_item_from_queue(self.db_path, self.request())
+
+        self.assertEqual(error.exception.status, 429)
+        self.assertEqual(error.exception.reason_code, "QUOTA_EXCEEDED")
+        self.assertEqual(self.scalar_count("selection_queue_items"), 0)
+        self.assertEqual(self.scalar_count("deliveries"), 0)
+
     def test_queue_claim_rolls_back_when_quota_is_denied(self) -> None:
         self.seed_access(quota=0)
         self.warm_queue()
@@ -194,11 +205,11 @@ class SelectionRouteRolloutTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp_directory.cleanup()
 
-    def test_route_uses_queue_selector_when_feature_flag_is_enabled(self) -> None:
+    def test_route_uses_queue_selector_by_default(self) -> None:
         self.seed_access(quota=5)
         self.warm_queue()
 
-        with mock.patch.dict(os.environ, {"QUIZBANK_NEXT_SELECTION_MODE": "queue_first"}):
+        with mock.patch.dict(os.environ, {}, clear=True):
             with mock.patch.object(
                 app_module,
                 "select_next_item",
@@ -213,7 +224,7 @@ class SelectionRouteRolloutTests(unittest.TestCase):
     def test_route_queue_first_returns_503_without_live_fallback(self) -> None:
         self.seed_access(quota=5)
 
-        with mock.patch.dict(os.environ, {"QUIZBANK_NEXT_SELECTION_MODE": "queue_first"}):
+        with mock.patch.dict(os.environ, {}, clear=True):
             with mock.patch.object(
                 app_module,
                 "select_next_item",
@@ -273,7 +284,17 @@ class SelectionRouteRolloutTests(unittest.TestCase):
         self.assertEqual(self.single_queue_item()["claim_status"], "available")
         self.assertEqual(self.scalar_count("deliveries"), 0)
 
-    def test_route_keeps_live_selector_as_default_path(self) -> None:
+    def test_route_denies_exhausted_quota_without_warmed_queue(self) -> None:
+        self.seed_access(quota=0)
+
+        with mock.patch.dict(os.environ, {}, clear=True):
+            response = self.next_item_response()
+
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.json()["reason_code"], "QUOTA_EXCEEDED")
+        self.assertEqual(self.scalar_count("selection_queue_items"), 0)
+
+    def test_route_ignores_removed_legacy_queue_flag_default(self) -> None:
         self.seed_access(quota=5)
 
         with mock.patch.dict(
@@ -282,13 +303,22 @@ class SelectionRouteRolloutTests(unittest.TestCase):
         ):
             with mock.patch.object(
                 app_module,
-                "select_next_item_from_queue",
-                side_effect=AssertionError("queue selector should not run"),
+                "select_next_item",
+                side_effect=AssertionError("live selector should not run"),
             ):
                 response = self.next_item_response()
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["quiz_item"]["id"], "approved_traceable_001")
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["reason_code"], "SELECTION_QUEUE_NOT_READY")
+
+    def test_route_rejects_explicit_live_selection_mode(self) -> None:
+        self.seed_access(quota=5)
+
+        with mock.patch.dict(os.environ, {"QUIZBANK_NEXT_SELECTION_MODE": "live"}):
+            response = self.next_item_response()
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["reason_code"], "SELECTION_MODE_INVALID")
 
     def test_route_rejects_invalid_explicit_selection_mode(self) -> None:
         self.seed_access(quota=5)

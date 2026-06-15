@@ -21,7 +21,7 @@ class PrePilotRuntimeInvariantTests(unittest.TestCase):
         self.assertEqual(lifecycle["reactivated_allowed"]["status_code"], 200)
         self.assertTrue(lifecycle["reactivated_allowed"]["delivery_created"])
         self.assertEqual(report["auth_behavior"]["reason_code"], "AUTH_INVALID_API_KEY")
-        self.assertEqual(report["repeat_behavior"]["reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
+        self.assertEqual(report["repeat_behavior"]["reason_code"], "SELECTION_QUEUE_NOT_READY")
         self.assertEqual(report["quota_behavior"]["reason_code"], "QUOTA_EXCEEDED")
         self.assertEqual(
             report["audit_summary"]["consumer_transitions"],

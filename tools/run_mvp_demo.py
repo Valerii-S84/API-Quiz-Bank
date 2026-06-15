@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from fastapi.testclient import TestClient
 
 from quizbank_mvp.app import create_app
+from quizbank_mvp.candidate_pool_builder import rebuild_candidate_pools
 from quizbank_mvp.database import (
     connect,
     initialize_database,
@@ -25,6 +26,7 @@ from quizbank_mvp.database import (
     seed_entitlement,
 )
 from quizbank_mvp.selection_analytics import selection_analytics_snapshot
+from quizbank_mvp.selection_queue_filler import refill_selection_queues
 from quizbank_mvp.telegram_delivery import (
     build_telegram_poll_payload,
     load_delivery_item,
@@ -115,6 +117,8 @@ def prepare_context(directory: str) -> tuple[TestClient, Path]:
     fixture = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
     initialize_database(db_path)
     seed_demo_state(db_path, fixture)
+    rebuild_candidate_pools(db_path)
+    refill_selection_queues(db_path, channel_ids=("api",))
     return TestClient(create_app(db_path)), db_path
 
 

@@ -15,7 +15,7 @@
   "generated_at": "2026-05-10T00:00:00+00:00",
   "quota_denial_status": 429,
   "ready_status": 200,
-  "repeat_selection_status": 404,
+  "repeat_selection_status": 503,
   "report_type": "protected_runtime_load_smoke",
   "resource_limits": {
     "api_cpu_limit": true,

@@ -51,18 +51,25 @@ class SelectionAsyncDiagnosticsTests(unittest.TestCase):
                 "blocked_reason_counts",
                 side_effect=AssertionError("blocked diagnostics must be async"),
             ):
-                response = TestClient(create_app(self.db_path)).post(
-                    "/v1/quiz-items/next",
-                    json={
-                        "consumer_id": "consumer_allowed",
-                        "cefr_level": "A2",
-                        "theme_ids": ["T10"],
+                with mock.patch.dict(
+                    "os.environ",
+                    {
+                        "QUIZBANK_NEXT_SELECTION_MODE": "controlled_pilot_fallback",
+                        "QUIZBANK_SELECTION_LIVE_FALLBACK_CONSUMERS": "consumer_allowed",
                     },
-                    headers={
-                        "X-Consumer-Id": "consumer_allowed",
-                        "X-QuizBank-API-Key": "async_diagnostic_test_key",
-                    },
-                )
+                ):
+                    response = TestClient(create_app(self.db_path)).post(
+                        "/v1/quiz-items/next",
+                        json={
+                            "consumer_id": "consumer_allowed",
+                            "cefr_level": "A2",
+                            "theme_ids": ["T10"],
+                        },
+                        headers={
+                            "X-Consumer-Id": "consumer_allowed",
+                            "X-QuizBank-API-Key": "async_diagnostic_test_key",
+                        },
+                    )
 
         decision = response.json()["selection_context"]["decision"]
         self.assertEqual(response.status_code, 404)

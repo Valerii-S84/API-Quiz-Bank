@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from quizbank_mvp.app import create_app  # noqa: E402
+from quizbank_mvp.candidate_pool_builder import rebuild_candidate_pools  # noqa: E402
 from quizbank_mvp.database import (  # noqa: E402
     initialize_database,
     seed_api_credential,
@@ -23,6 +24,8 @@ from quizbank_mvp.database import (  # noqa: E402
     seed_control_fixture,
     seed_entitlement,
 )
+from quizbank_mvp.selection_models import SelectionFilters, SelectionRequest  # noqa: E402
+from quizbank_mvp.selection_queue_filler import refill_selection_queue_for_request  # noqa: E402
 
 
 FIXTURE = ROOT / "tests/fixtures/selection/approved_traceable_items.jsonl"
@@ -42,6 +45,20 @@ def prepare_database(db_path: Path) -> None:
     seed_consumer(db_path, "consumer_quota_denied", 0, ["A2"], ["T10"])
     seed_api_credential(db_path, "consumer_quota_denied", "quota_denied_key")
     seed_entitlement(db_path, "consumer_quota_denied", ["A2"], ["T10"])
+    warm_load_queues(db_path)
+
+
+def warm_load_queues(db_path: Path) -> None:
+    rebuild_candidate_pools(db_path)
+    for index in range(CONCURRENT_CONSUMERS):
+        refill_selection_queue_for_request(db_path, load_selection_request(index))
+
+
+def load_selection_request(index: int) -> SelectionRequest:
+    return SelectionRequest(
+        consumer_id=f"consumer_load_{index:02d}",
+        filters=SelectionFilters(cefr_level="A2", theme_ids=("T10",)),
+    )
 
 
 def post_next_item(client: TestClient, consumer_id: str, api_key: str) -> int:

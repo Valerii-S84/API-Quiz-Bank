@@ -34,9 +34,8 @@ ThemeId = Literal[
 ]
 SCOPED_QUOTA_CONSUMERS = {"website_quiz_teaser"}
 MAX_QUOTA_SCOPE_KEY_LENGTH = 128
-SelectionRouteMode = Literal["live", "queue_first", "controlled_pilot_fallback"]
+SelectionRouteMode = Literal["queue_first", "controlled_pilot_fallback"]
 QUEUE_FIRST_ENABLED_VALUES = {"1", "true", "yes", "queue", "queue_first", "queue-first"}
-LIVE_SELECTION_MODE_VALUES = {"live", "legacy", "legacy_live", "legacy-live"}
 CONTROLLED_PILOT_FALLBACK_VALUES = {
     "controlled_pilot_fallback",
     "controlled-pilot-fallback",
@@ -274,8 +273,6 @@ def next_selection_request(
 
 def select_next_for_route(db_path: Path | None, request: SelectionRequest) -> dict[str, object]:
     mode = selection_route_mode()
-    if mode == "live":
-        return select_next_item(db_path, request)
     if mode == "queue_first":
         return select_next_item_from_queue(db_path, request)
     return select_next_with_controlled_pilot_fallback(db_path, request)
@@ -285,21 +282,12 @@ def selection_route_mode() -> SelectionRouteMode:
     raw_value = os.environ.get("QUIZBANK_NEXT_SELECTION_MODE", "")
     normalized = raw_value.strip().lower()
     if not normalized:
-        return legacy_selection_route_mode()
+        return "queue_first"
     if normalized in QUEUE_FIRST_ENABLED_VALUES:
         return "queue_first"
-    if normalized in LIVE_SELECTION_MODE_VALUES:
-        return "live"
     if normalized in CONTROLLED_PILOT_FALLBACK_VALUES:
         return "controlled_pilot_fallback"
     raise invalid_selection_mode_problem()
-
-
-def legacy_selection_route_mode() -> SelectionRouteMode:
-    raw_value = os.environ.get("QUIZBANK_SELECTION_QUEUE_FIRST", "")
-    if raw_value.strip().lower() in QUEUE_FIRST_ENABLED_VALUES:
-        return "queue_first"
-    return "live"
 
 
 def queue_first_selection_enabled() -> bool:
@@ -338,7 +326,7 @@ def invalid_selection_mode_problem() -> QuizBankProblem:
         503,
         "SELECTION_MODE_INVALID",
         "Selection mode is invalid",
-        "Configure QUIZBANK_NEXT_SELECTION_MODE to a supported selection rollout mode.",
+        "Configure QUIZBANK_NEXT_SELECTION_MODE to queue_first or controlled_pilot_fallback.",
         "https://api.quizbank.example/problems/selection-mode-invalid",
     )
 

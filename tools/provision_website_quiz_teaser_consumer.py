@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from fastapi.testclient import TestClient  # noqa: E402
 
 from quizbank_mvp.app import create_app  # noqa: E402
+from quizbank_mvp.candidate_pool_builder import rebuild_candidate_pools  # noqa: E402
 from quizbank_mvp.database import (  # noqa: E402
     connect,
     initialize_database,
@@ -30,6 +31,11 @@ from quizbank_mvp.database import (  # noqa: E402
     seed_entitlement,
     transition_consumer_status,
     utc_now,
+)
+from quizbank_mvp.selection_models import SelectionFilters, SelectionRequest  # noqa: E402
+from quizbank_mvp.selection_queue_filler import (  # noqa: E402
+    refill_selection_queue_for_request,
+    refill_selection_queues,
 )
 
 
@@ -113,6 +119,9 @@ def run_provisioning(args: argparse.Namespace) -> dict[str, Any]:
     seed_beta_items(args.db_path, selected_rows)
     provision_consumer(args.db_path, consumer_api_key)
     provision_no_entitlement_probe(args.db_path, no_entitlement_api_key)
+    rebuild_candidate_pools(args.db_path)
+    refill_selection_queues(args.db_path, channel_ids=("api",), target_size=50)
+    refill_selection_queue_for_request(args.db_path, website_selection_request(), target_size=50)
 
     client = TestClient(create_app(args.db_path))
     flow = run_five_question_flow(args.db_path, client, consumer_api_key)
@@ -149,6 +158,16 @@ def run_provisioning(args: argparse.Namespace) -> dict[str, Any]:
         ),
     )
     return evidence
+
+
+def website_selection_request() -> SelectionRequest:
+    return SelectionRequest(
+        consumer_id=CONSUMER_ID,
+        filters=SelectionFilters(
+            cefr_level="A2",
+            theme_ids=("T02",),
+        ),
+    )
 
 
 def credential_value(env_name: str, prefix: str) -> str:

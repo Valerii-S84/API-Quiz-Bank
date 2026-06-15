@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
 from quizbank_mvp.app import create_app  # noqa: E402
+from quizbank_mvp.candidate_pool_builder import rebuild_candidate_pools  # noqa: E402
 from quizbank_mvp.database import (  # noqa: E402
     initialize_database,
     seed_api_credential,
@@ -23,6 +24,8 @@ from quizbank_mvp.database import (  # noqa: E402
     seed_control_fixture,
     seed_entitlement,
 )
+from quizbank_mvp.selection_models import SelectionFilters, SelectionRequest  # noqa: E402
+from quizbank_mvp.selection_queue_filler import refill_selection_queue_for_request  # noqa: E402
 from quizbank_mvp.selection import QuizBankProblem  # noqa: E402
 from quizbank_mvp.trusted_delivery import ensure_delivery_outcome_status  # noqa: E402
 from tools.provision_website_quiz_teaser_consumer import (  # noqa: E402
@@ -55,6 +58,7 @@ class WebsiteQuizTeaserBetaTests(unittest.TestCase):
             seed_consumer(db_path, CONSUMER_ID, 5, ["A2"], ["T10"])
             seed_api_credential(db_path, CONSUMER_ID, "website_key")
             seed_entitlement(db_path, CONSUMER_ID, ["A2"], ["T10"])
+            warm_queue(db_path, CONSUMER_ID, "A2", ("T10",))
 
             response = TestClient(create_app(db_path)).post(
                 "/v1/quiz-items/next",
@@ -105,6 +109,7 @@ class WebsiteQuizTeaserBetaTests(unittest.TestCase):
             seed_consumer(db_path, CONSUMER_ID, 1, ["A2"], ["T10"])
             seed_api_credential(db_path, CONSUMER_ID, "website_key")
             seed_entitlement(db_path, CONSUMER_ID, ["A2"], ["T10"])
+            warm_queue(db_path, CONSUMER_ID, "A2", ("T10",))
             client = TestClient(create_app(db_path))
 
             first_scope = self.next_item_for_scope(client, "session-a")
@@ -275,6 +280,7 @@ class WebsiteTrustedDeliveryCoverageTests(unittest.TestCase):
             initialize_database(db_path)
             seed_control_fixture(db_path, APPROVED_FIXTURE, "approved")
             self.seed_website_access(db_path)
+            warm_queue(db_path, CONSUMER_ID, "A2", ("T10",))
             client = TestClient(create_app(db_path))
             delivery_id = self.next_item_for_scope(client, "trusted-outcome").json()["delivery_id"]
 
@@ -342,6 +348,22 @@ class WebsiteTrustedDeliveryCoverageTests(unittest.TestCase):
         seed_consumer(db_path, CONSUMER_ID, 5, resolved_levels, resolved_themes)
         seed_api_credential(db_path, CONSUMER_ID, "website_key")
         seed_entitlement(db_path, CONSUMER_ID, resolved_levels, resolved_themes)
+
+
+def warm_queue(
+    db_path: Path,
+    consumer_id: str,
+    cefr_level: str | None,
+    theme_ids: tuple[str, ...],
+) -> None:
+    rebuild_candidate_pools(db_path)
+    refill_selection_queue_for_request(
+        db_path,
+        SelectionRequest(
+            consumer_id=consumer_id,
+            filters=SelectionFilters(cefr_level=cefr_level, theme_ids=theme_ids),
+        ),
+    )
 
 
 if __name__ == "__main__":

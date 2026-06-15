@@ -510,6 +510,7 @@ def postgresql_queue_context_row() -> dict[str, object]:
         "language_code": "de",
         "content_bank_id": "german-core",
         "bank_version_id": "german-core:2026-06-12-baseline",
+        "quota_used_count": 0,
     }
 
 
