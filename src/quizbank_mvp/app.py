@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Annotated, Literal
@@ -47,6 +48,7 @@ CONTROLLED_PILOT_FALLBACK_VALUES = {
 LIVE_FALLBACK_CONSUMERS_ENV = "QUIZBANK_SELECTION_LIVE_FALLBACK_CONSUMERS"
 SELECTION_QUEUE_NOT_READY_CODE = "SELECTION_QUEUE_NOT_READY"
 DeliveryOutcomeStatus = Literal["sent", "failed", "cancelled"]
+logger = logging.getLogger(__name__)
 ObjectiveId = Literal[
     "O01", "O02", "O03", "O04", "O05", "O06", "O07", "O08",
     "O09", "O10", "O11", "O12", "O13", "O14", "O15", "O16",
@@ -302,6 +304,11 @@ def select_next_with_controlled_pilot_fallback(
         return select_next_item_from_queue(db_path, request)
     except QuizBankProblem as error:
         if live_fallback_is_allowed(request, error):
+            logger.warning(
+                "queue_first path=fallback consumer_id=%s reason=%s",
+                request.consumer_id,
+                error.reason_code,
+            )
             return select_next_item(db_path, request)
         raise
 

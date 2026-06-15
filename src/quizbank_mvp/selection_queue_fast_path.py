@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import logging
 from typing import Any
 
 from .database_connection import PostgreSQLConnection, decode_json_field, row_to_dict
@@ -19,6 +20,9 @@ from .selection_quota import quota_exceeded_problem, quota_feature, reserve_quot
 from .selection_scope import effective_scope_replacement
 from .selection_scope_enforcement import enforce_consumer_scope, enforce_entitlement_scope
 from .time_ids import new_id, today_usage_date, utc_now
+
+
+logger = logging.getLogger(__name__)
 
 
 class PostgreSQLQueueFastPathMiss(RuntimeError):
@@ -246,6 +250,12 @@ def claim_postgresql_queue_item(
         postgresql_claim_item_parameters(request, queue_ids),
     ).fetchone()
     if row is None:
+        logger.warning(
+            "queue_first path=503 consumer_id=%s queue_ids=%s reason=%s",
+            request.consumer_id,
+            ",".join(queue_ids),
+            "SELECTION_QUEUE_NOT_READY",
+        )
         raise queue_not_ready_problem(request, queue_ids)
     return claimed_item_from_row(row_to_dict(row))
 
@@ -277,6 +287,7 @@ def postgresql_claim_item_sql(
               {excluded_clause}
             ORDER BY sqi.position ASC, sqi.queue_item_id ASC
             LIMIT 1
+            FOR UPDATE OF sqi SKIP LOCKED
         ),
         updated AS (
             UPDATE selection_queue_items sqi
@@ -287,6 +298,7 @@ def postgresql_claim_item_sql(
                 updated_at = ?
             FROM candidate
             WHERE sqi.queue_item_id = candidate.queue_item_id
+              AND sqi.claim_status = 'available'
             RETURNING sqi.queue_item_id, sqi.queue_id, sqi.item_id, sqi.score_snapshot_json
         )
         SELECT updated.queue_item_id, updated.queue_id, updated.score_snapshot_json,
@@ -385,9 +397,27 @@ def finalize_postgresql_queue_delivery(
     claimed: PostgreSQLQueueClaimedItem,
     delivery: dict[str, Any],
 ) -> None:
-    connection.execute(
+    row = connection.execute(
         postgresql_finalize_delivery_sql(),
         postgresql_finalize_delivery_parameters(request, claimed.claim, delivery),
+    ).fetchone()
+    if row is None:
+        logger.error(
+            "queue_first path=503 consumer_id=%s queue_id=%s queue_item_id=%s "
+            "delivery_id=%s reason=%s",
+            request.consumer_id,
+            claimed.claim.queue_id,
+            claimed.claim.queue_item_id,
+            delivery["delivery_id"],
+            "SELECTION_QUEUE_DELIVERY_LINK_FAILED",
+        )
+        raise queue_delivery_link_failed_problem(request, claimed.claim, delivery)
+    logger.info(
+        "queue_first path=queue consumer_id=%s queue_id=%s queue_item_id=%s delivery_id=%s",
+        request.consumer_id,
+        claimed.claim.queue_id,
+        claimed.claim.queue_item_id,
+        delivery["delivery_id"],
     )
 
 
@@ -448,6 +478,7 @@ def postgresql_finalize_delivery_sql() -> str:
         WHERE queue_id = (SELECT queue_id FROM delivered_queue_item)
           AND EXISTS (SELECT 1 FROM inserted_delivery)
           AND EXISTS (SELECT 1 FROM upsert_state)
+        RETURNING queue_id
     """
 
 
@@ -500,6 +531,32 @@ def queue_not_ready_problem(
                 "filters": request.filter_context(),
                 "content_scope": request.content_scope.to_context(),
                 "queue_ids": list(queue_ids),
+            }
+        },
+    )
+
+
+def queue_delivery_link_failed_problem(
+    request: SelectionRequest,
+    claim: PostgreSQLQueueClaim,
+    delivery: dict[str, Any],
+) -> QuizBankProblem:
+    return QuizBankProblem(
+        503,
+        "SELECTION_QUEUE_NOT_READY",
+        "Selection queue is not ready",
+        "A precomputed queue item could not be finalized for this request scope.",
+        "https://api.quizbank.example/problems/selection-queue-not-ready",
+        {
+            "selection_context": {
+                "consumer_id": request.consumer_id,
+                "delivery_mode": request.delivery_mode,
+                "consumer_profile": request.consumer_profile.to_context(),
+                "filters": request.filter_context(),
+                "content_scope": request.content_scope.to_context(),
+                "queue_id": claim.queue_id,
+                "queue_item_id": claim.queue_item_id,
+                "delivery_id": delivery["delivery_id"],
             }
         },
     )

@@ -410,10 +410,11 @@ class FakeMigrationConnection:
 
 
 class FakePostgreSQLRuntimeConnection:
-    def __init__(self) -> None:
+    def __init__(self, finalize_delivery_link: bool = True) -> None:
         self.executed: list[tuple[str, object]] = []
         self.closed = False
         self.inserted_queue_items = 0
+        self.finalize_delivery_link = finalize_delivery_link
 
     def __enter__(self) -> "FakePostgreSQLRuntimeConnection":
         return self
@@ -430,8 +431,6 @@ class FakePostgreSQLRuntimeConnection:
             return FakeResult(row=postgresql_queue_context_row())
         if "WITH candidate AS" in sql and "FROM selection_queue_items sqi" in sql:
             return FakeResult(row=postgresql_claimed_item_row())
-        if "WITH inserted_delivery AS" in sql:
-            return FakeResult()
         if "UPDATE selection_queue_items" in sql and "RETURNING queue_item_id" in sql:
             return FakeResult(row=postgresql_queue_claim_row())
         if "SELECT * FROM selection_queues WHERE queue_id = %s" in sql:
@@ -455,6 +454,10 @@ class FakePostgreSQLRuntimeConnection:
             return FakeResult(row=postgresql_content_scope_row())
         if "INSERT INTO quota_usage" in sql:
             return FakeResult(row={"quota_usage_id": "quota_pg", "used_count": 1, "quota_limit": 10})
+        if "WITH inserted_delivery AS" in sql:
+            if self.finalize_delivery_link:
+                return FakeResult(row={"queue_id": "queue_pg"})
+            return FakeResult()
         if "SELECT COUNT(*) AS count" in sql:
             return FakeResult(row={"count": 1})
         if "SELECT qi.*" in sql:
@@ -465,6 +468,12 @@ class FakePostgreSQLRuntimeConnection:
 
     def executed_sql(self) -> str:
         return "\n".join(sql for sql, _parameters in self.executed)
+
+    def sql_matching(self, fragment: str) -> str:
+        for sql, _parameters in self.executed:
+            if fragment in sql:
+                return sql
+        raise AssertionError(f"SQL fragment not executed: {fragment}")
 
 
 def postgresql_consumer_row() -> dict[str, object]:
