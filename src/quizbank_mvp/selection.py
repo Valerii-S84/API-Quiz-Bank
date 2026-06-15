@@ -20,11 +20,11 @@ from .selection_delivery import (
     delivery_projection,
     get_delivery,
 )
-from .selection_diagnostics import (
-    blocked_reason_counts,
-    candidate_count,
-    success_blocked_reason_counts,
+from .selection_async_diagnostics import (
+    enqueue_no_candidate_diagnostics,
+    minimal_no_candidate_blocked_counts,
 )
+from .selection_diagnostics import success_blocked_reason_counts
 from .selection_eligibility import (
     append_filter,
     append_in_filter,
@@ -97,13 +97,11 @@ def prepare_selection_write_plan(
         item, eligible_count = find_eligible_item(connection, request)
         if item is None:
             raise_if_quota_exhausted(connection, consumer, request)
-            candidate_total = candidate_count(connection, request)
-            blocked_counts = blocked_reason_counts(connection, request)
             decision = no_candidate_decision(
                 selection_request_id,
                 request,
-                candidate_total,
-                blocked_counts,
+                eligible_count,
+                minimal_no_candidate_blocked_counts(request),
             )
         else:
             blocked_counts = success_blocked_reason_counts(request)
@@ -115,7 +113,7 @@ def prepare_selection_write_plan(
                 eligible_count,
                 blocked_counts,
             )
-    persist_no_candidate_decision(db_path, decision)
+    persist_no_candidate_decision(db_path, request, decision)
     raise no_eligible_problem(request, decision.to_context())
 
 
@@ -146,9 +144,15 @@ def commit_selection_write(
     return delivery, decision
 
 
-def persist_no_candidate_decision(db_path: Path | None, decision) -> None:
+def persist_no_candidate_decision(db_path: Path | None, request: SelectionRequest, decision) -> None:
     with connect(db_path) as connection:
         insert_selection_decision(connection, decision)
+        enqueue_no_candidate_diagnostics(
+            connection,
+            decision.selection_request_id,
+            request,
+            decision,
+        )
 
 
 __all__ = [

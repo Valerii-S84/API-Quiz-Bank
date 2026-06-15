@@ -23,6 +23,9 @@ from quizbank_mvp.selection import (  # noqa: E402
     select_next_item,
 )
 from quizbank_mvp.selection_analytics import selection_analytics_snapshot  # noqa: E402
+from quizbank_mvp.selection_async_diagnostics import (  # noqa: E402
+    process_pending_selection_diagnostics,
+)
 
 
 APPROVED_FIXTURE = ROOT / "tests" / "fixtures" / "selection" / "approved_traceable_items.jsonl"
@@ -68,10 +71,32 @@ class MvpSelectionDecisionTests(unittest.TestCase):
         self.assertIsNone(decision["delivery_id"])
         self.assertEqual(decision["eligible_count"], 0)
         self.assertEqual(decision["fallback_reason_code"], "SELECTION_NO_ELIGIBLE_ITEM")
-        self.assertEqual(json.loads(decision["blocked_reason_counts_json"])["non_deliverable_status"], 2)
+        self.assertEqual(json.loads(decision["blocked_reason_counts_json"]), {})
+        self.assertEqual(self.single_outbox()["status"], "pending")
+        event = self.single_diagnostic_event()
+        payload = json.loads(event["payload_json"])
+        self.assertEqual(event["event_type"], "no_candidate")
+        self.assertEqual(payload["diagnostic_status"], "pending")
+        self.assertEqual(payload["request"]["filters"]["cefr_level"], "A2")
         with connect(self.db_path) as connection:
             quota_count = connection.execute("SELECT COUNT(*) AS count FROM quota_usage").fetchone()
         self.assertEqual(quota_count["count"], 0)
+
+    def test_async_diagnostic_worker_updates_no_candidate_decision_details(self) -> None:
+        seed_control_fixture(self.db_path, CONTROL_FIXTURE, "draft")
+        self.seed_access()
+
+        with self.assertRaises(QuizBankProblem):
+            select_next_item(self.db_path, self.request())
+        summary = process_pending_selection_diagnostics(self.db_path)
+
+        decision = self.single_decision()
+        payload = json.loads(self.single_diagnostic_event()["payload_json"])
+        self.assertEqual(summary, {"processed": 1, "published": 1, "failed": 0})
+        self.assertEqual(self.single_outbox()["status"], "published")
+        self.assertEqual(json.loads(decision["blocked_reason_counts_json"])["non_deliverable_status"], 2)
+        self.assertEqual(payload["diagnostic_status"], "published")
+        self.assertEqual(payload["diagnostics"]["blocked_reason_counts"]["non_deliverable_status"], 2)
 
     def test_selection_analytics_snapshot_reports_inventory_delivery_and_failures(self) -> None:
         seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
@@ -79,6 +104,7 @@ class MvpSelectionDecisionTests(unittest.TestCase):
         select_next_item(self.db_path, self.request())
         with self.assertRaises(QuizBankProblem):
             select_next_item(self.db_path, self.request())
+        process_pending_selection_diagnostics(self.db_path)
 
         snapshot = selection_analytics_snapshot(self.db_path)
 
@@ -104,6 +130,14 @@ class MvpSelectionDecisionTests(unittest.TestCase):
     def single_decision(self):
         with connect(self.db_path) as connection:
             return connection.execute("SELECT * FROM selection_decisions").fetchone()
+
+    def single_diagnostic_event(self):
+        with connect(self.db_path) as connection:
+            return connection.execute("SELECT * FROM selection_diagnostic_events").fetchone()
+
+    def single_outbox(self):
+        with connect(self.db_path) as connection:
+            return connection.execute("SELECT * FROM selection_diagnostic_outbox").fetchone()
 
 
 if __name__ == "__main__":
