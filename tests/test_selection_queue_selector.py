@@ -126,39 +126,6 @@ class SelectionQueueSelectorTests(unittest.TestCase):
         self.assertEqual(self.scalar_count("deliveries"), 1)
         self.assertEqual(self.single_queue_item()["claim_status"], "delivered")
 
-    def test_route_uses_queue_selector_when_feature_flag_is_enabled(self) -> None:
-        self.seed_access(quota=5)
-        self.warm_queue()
-
-        with mock.patch.dict(os.environ, {"QUIZBANK_NEXT_SELECTION_MODE": "queue_first"}):
-            with mock.patch.object(
-                app_module,
-                "select_next_item",
-                side_effect=AssertionError("live selector should not run"),
-            ):
-                response = self.next_item_response()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["quiz_item"]["id"], "approved_traceable_001")
-        self.assertEqual(self.single_queue_item()["claim_status"], "delivered")
-
-    def test_route_keeps_live_selector_as_default_path(self) -> None:
-        self.seed_access(quota=5)
-
-        with mock.patch.dict(
-            os.environ,
-            {"QUIZBANK_NEXT_SELECTION_MODE": "", "QUIZBANK_SELECTION_QUEUE_FIRST": ""},
-        ):
-            with mock.patch.object(
-                app_module,
-                "select_next_item_from_queue",
-                side_effect=AssertionError("queue selector should not run"),
-            ):
-                response = self.next_item_response()
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["quiz_item"]["id"], "approved_traceable_001")
-
     def seed_access(self, quota: int) -> None:
         seed_consumer(self.db_path, "consumer_allowed", quota, ["A2"], ["T10"])
         seed_api_credential(self.db_path, "consumer_allowed", self.api_key())
@@ -181,20 +148,6 @@ class SelectionQueueSelectorTests(unittest.TestCase):
         except QuizBankProblem as error:
             return error.reason_code
         return "ok"
-
-    def next_item_response(self):
-        return TestClient(create_app(self.db_path)).post(
-            "/v1/quiz-items/next",
-            json={
-                "consumer_id": "consumer_allowed",
-                "cefr_level": "A2",
-                "theme_ids": ["T10"],
-            },
-            headers={
-                "X-Consumer-Id": "consumer_allowed",
-                "X-QuizBank-API-Key": self.api_key(),
-            },
-        )
 
     def api_key(self) -> str:
         return "test_queue_first_api_key"
@@ -229,6 +182,170 @@ class SelectionQueueSelectorTests(unittest.TestCase):
                 "UPDATE quiz_items SET status = 'blocked' WHERE item_id = ?",
                 (item_id,),
             )
+
+
+class SelectionRouteRolloutTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_directory = tempfile.TemporaryDirectory()
+        self.db_path = Path(self.temp_directory.name) / "quizbank.sqlite3"
+        initialize_database(self.db_path)
+        seed_control_fixture(self.db_path, APPROVED_FIXTURE, "approved")
+
+    def tearDown(self) -> None:
+        self.temp_directory.cleanup()
+
+    def test_route_uses_queue_selector_when_feature_flag_is_enabled(self) -> None:
+        self.seed_access(quota=5)
+        self.warm_queue()
+
+        with mock.patch.dict(os.environ, {"QUIZBANK_NEXT_SELECTION_MODE": "queue_first"}):
+            with mock.patch.object(
+                app_module,
+                "select_next_item",
+                side_effect=AssertionError("live selector should not run"),
+            ):
+                response = self.next_item_response()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["quiz_item"]["id"], "approved_traceable_001")
+        self.assertEqual(self.single_queue_item()["claim_status"], "delivered")
+
+    def test_route_queue_first_returns_503_without_live_fallback(self) -> None:
+        self.seed_access(quota=5)
+
+        with mock.patch.dict(os.environ, {"QUIZBANK_NEXT_SELECTION_MODE": "queue_first"}):
+            with mock.patch.object(
+                app_module,
+                "select_next_item",
+                side_effect=AssertionError("live selector should not run"),
+            ):
+                response = self.next_item_response()
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["reason_code"], "SELECTION_QUEUE_NOT_READY")
+        self.assertEqual(self.scalar_count("deliveries"), 0)
+
+    def test_route_live_fallback_requires_controlled_pilot_allowlist(self) -> None:
+        self.seed_access(quota=5)
+
+        with mock.patch.dict(os.environ, self.controlled_fallback_env("other_consumer")):
+            with mock.patch.object(
+                app_module,
+                "select_next_item",
+                side_effect=AssertionError("live selector should not run"),
+            ):
+                response = self.next_item_response()
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["reason_code"], "SELECTION_QUEUE_NOT_READY")
+        self.assertEqual(self.scalar_count("deliveries"), 0)
+
+    def test_route_live_fallback_runs_for_allowlisted_pilot_consumer(self) -> None:
+        self.seed_access(quota=5)
+
+        with mock.patch.dict(os.environ, self.controlled_fallback_env("consumer_allowed")):
+            with mock.patch.object(
+                app_module,
+                "select_next_item",
+                wraps=app_module.select_next_item,
+            ) as live_selector:
+                response = self.next_item_response()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["quiz_item"]["id"], "approved_traceable_001")
+        self.assertEqual(live_selector.call_count, 1)
+        self.assertEqual(self.scalar_count("deliveries"), 1)
+
+    def test_route_live_fallback_does_not_bypass_quota_denial(self) -> None:
+        self.seed_access(quota=0)
+        self.warm_queue()
+
+        with mock.patch.dict(os.environ, self.controlled_fallback_env("consumer_allowed")):
+            with mock.patch.object(
+                app_module,
+                "select_next_item",
+                side_effect=AssertionError("live selector should not run"),
+            ):
+                response = self.next_item_response()
+
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.json()["reason_code"], "QUOTA_EXCEEDED")
+        self.assertEqual(self.single_queue_item()["claim_status"], "available")
+        self.assertEqual(self.scalar_count("deliveries"), 0)
+
+    def test_route_keeps_live_selector_as_default_path(self) -> None:
+        self.seed_access(quota=5)
+
+        with mock.patch.dict(
+            os.environ,
+            {"QUIZBANK_NEXT_SELECTION_MODE": "", "QUIZBANK_SELECTION_QUEUE_FIRST": ""},
+        ):
+            with mock.patch.object(
+                app_module,
+                "select_next_item_from_queue",
+                side_effect=AssertionError("queue selector should not run"),
+            ):
+                response = self.next_item_response()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["quiz_item"]["id"], "approved_traceable_001")
+
+    def test_route_rejects_invalid_explicit_selection_mode(self) -> None:
+        self.seed_access(quota=5)
+
+        with mock.patch.dict(os.environ, {"QUIZBANK_NEXT_SELECTION_MODE": "queue_fist"}):
+            response = self.next_item_response()
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["reason_code"], "SELECTION_MODE_INVALID")
+
+    def seed_access(self, quota: int) -> None:
+        seed_consumer(self.db_path, "consumer_allowed", quota, ["A2"], ["T10"])
+        seed_api_credential(self.db_path, "consumer_allowed", self.api_key())
+        seed_entitlement(self.db_path, "consumer_allowed", ["A2"], ["T10"])
+
+    def warm_queue(self) -> None:
+        rebuild_candidate_pools(self.db_path)
+        refill_selection_queue_for_request(self.db_path, self.request())
+
+    def request(self) -> SelectionRequest:
+        return SelectionRequest(
+            consumer_id="consumer_allowed",
+            filters=SelectionFilters(cefr_level="A2", theme_ids=("T10",)),
+            deterministic=True,
+        )
+
+    def next_item_response(self):
+        return TestClient(create_app(self.db_path)).post(
+            "/v1/quiz-items/next",
+            json={
+                "consumer_id": "consumer_allowed",
+                "cefr_level": "A2",
+                "theme_ids": ["T10"],
+            },
+            headers={
+                "X-Consumer-Id": "consumer_allowed",
+                "X-QuizBank-API-Key": self.api_key(),
+            },
+        )
+
+    def controlled_fallback_env(self, consumers: str) -> dict[str, str]:
+        return {
+            "QUIZBANK_NEXT_SELECTION_MODE": "controlled_pilot_fallback",
+            "QUIZBANK_SELECTION_LIVE_FALLBACK_CONSUMERS": consumers,
+        }
+
+    def api_key(self) -> str:
+        return "test_queue_first_api_key"
+
+    def single_queue_item(self):
+        with connect(self.db_path) as connection:
+            return connection.execute("SELECT * FROM selection_queue_items").fetchone()
+
+    def scalar_count(self, table_name: str) -> int:
+        with connect(self.db_path) as connection:
+            row = connection.execute(f"SELECT COUNT(*) AS count FROM {table_name}").fetchone()
+        return int(row["count"])
 
 
 if __name__ == "__main__":
