@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+from time import perf_counter
 from typing import Annotated, Literal
 
 from fastapi import FastAPI, Header, Query, Request
@@ -153,6 +154,8 @@ def register_delivery_routes(
         x_quizbank_api_key: Annotated[str | None, Header(alias="X-QuizBank-API-Key")] = None,
         x_quizbank_quota_key: Annotated[str | None, Header(alias="X-QuizBank-Quota-Key")] = None,
     ) -> dict[str, object]:
+        started_at = perf_counter()
+        timings: dict[str, float] = {}
         rate_limiter.check_delivery(
             delivery_rate_limit_key(
                 request.client.host if request.client else None,
@@ -160,15 +163,29 @@ def register_delivery_routes(
                 x_quizbank_api_key,
             )
         )
+        timings["rate_limit_ms"] = elapsed_ms(started_at)
+        auth_started_at = perf_counter()
         authenticated = authenticate_consumer(
             database_path,
             x_consumer_id,
             x_quizbank_api_key,
         )
+        timings["auth_ms"] = elapsed_ms(auth_started_at)
+        authorize_started_at = perf_counter()
         authorize_consumer(authenticated.consumer_id, payload.consumer_id)
+        timings["authorize_ms"] = elapsed_ms(authorize_started_at)
+        request_started_at = perf_counter()
         selection_request = next_selection_request(payload, x_quizbank_quota_key)
+        timings["request_build_ms"] = elapsed_ms(request_started_at)
+        selection_started_at = perf_counter()
         result = select_next_for_route(database_path, selection_request)
-        return next_quiz_response(payload.consumer_id, result)
+        timings["selection_ms"] = elapsed_ms(selection_started_at)
+        response_started_at = perf_counter()
+        response = next_quiz_response(payload.consumer_id, result)
+        timings["response_ms"] = elapsed_ms(response_started_at)
+        timings["total_ms"] = elapsed_ms(started_at)
+        log_next_route_timing(payload.consumer_id, timings)
+        return response
 
     @app.get("/v1/deliveries/{delivery_id}", tags=["quiz-delivery"])
     def delivery(
@@ -422,6 +439,26 @@ def quota_scope_key_for_consumer(consumer_id: str, raw_quota_key: str | None) ->
 
 def has_control_character(value: str) -> bool:
     return any(ord(character) < 32 or ord(character) == 127 for character in value)
+
+
+def elapsed_ms(started_at: float) -> float:
+    return (perf_counter() - started_at) * 1000.0
+
+
+def log_next_route_timing(consumer_id: str, timings: dict[str, float]) -> None:
+    logging.getLogger("uvicorn.error").info(
+        "next_route_timing consumer_id=%s rate_limit_ms=%.3f auth_ms=%.3f "
+        "authorize_ms=%.3f request_build_ms=%.3f selection_ms=%.3f "
+        "response_ms=%.3f total_ms=%.3f",
+        consumer_id,
+        timings["rate_limit_ms"],
+        timings["auth_ms"],
+        timings["authorize_ms"],
+        timings["request_build_ms"],
+        timings["selection_ms"],
+        timings["response_ms"],
+        timings["total_ms"],
+    )
 
 
 def problem_response(error: QuizBankProblem) -> JSONResponse:

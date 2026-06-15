@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 import logging
+from time import perf_counter
 from typing import Any
 
 from .database_connection import PostgreSQLConnection, decode_json_field, row_to_dict
@@ -60,12 +61,22 @@ def select_next_item_from_postgresql_queue(
     request: SelectionRequest,
     selection_request_id: str,
 ) -> dict[str, Any]:
+    started_at = perf_counter()
+    timings: dict[str, float] = {}
+    context_started_at = perf_counter()
     context = prepare_postgresql_queue_selection_context(connection, request)
+    timings["context_ms"] = elapsed_ms(context_started_at)
     raise_if_context_quota_exhausted(context)
+    claim_started_at = perf_counter()
     claimed = claim_postgresql_queue_item(connection, context.request)
+    timings["queue_claim_ms"] = elapsed_ms(claim_started_at)
+    quota_started_at = perf_counter()
     quota_usage = reserve_quota(connection, context.consumer, context.request)
+    timings["quota_reserve_ms"] = elapsed_ms(quota_started_at)
     delivery = new_delivery(context.request, claimed.item, context.entitlement, quota_usage)
+    finalize_started_at = perf_counter()
     finalize_postgresql_queue_delivery(connection, context.request, claimed, delivery)
+    timings["delivery_finalize_link_ms"] = elapsed_ms(finalize_started_at)
     decision = success_decision(
         selection_request_id,
         context.request,
@@ -75,7 +86,12 @@ def select_next_item_from_postgresql_queue(
         1,
         {},
     )
+    decision_started_at = perf_counter()
     insert_selection_decision(connection, decision)
+    timings["decision_insert_ms"] = elapsed_ms(decision_started_at)
+    timings["diagnostics_outbox_ms"] = 0.0
+    timings["total_ms"] = elapsed_ms(started_at)
+    log_postgresql_queue_timing(context.request, selection_request_id, delivery, timings)
     return {
         "delivery": delivery_projection(delivery),
         "quiz_item": build_learner_quiz_projection(claimed.item),
@@ -461,24 +477,10 @@ def postgresql_finalize_delivery_sql() -> str:
             WHERE queue_item_id = ? AND claim_status = 'claimed'
             RETURNING queue_id
         )
-        UPDATE selection_queues
-        SET available_count = CASE
-                WHEN available_count > 0 THEN available_count - 1
-                ELSE 0
-            END,
-            queue_status = CASE
-                WHEN available_count > 1 THEN queue_status
-                ELSE 'warming'
-            END,
-            refill_after_at = CASE
-                WHEN available_count > 1 THEN refill_after_at
-                ELSE ?
-            END,
-            updated_at = ?
-        WHERE queue_id = (SELECT queue_id FROM delivered_queue_item)
-          AND EXISTS (SELECT 1 FROM inserted_delivery)
+        SELECT queue_id
+        FROM delivered_queue_item
+        WHERE EXISTS (SELECT 1 FROM inserted_delivery)
           AND EXISTS (SELECT 1 FROM upsert_state)
-        RETURNING queue_id
     """
 
 
@@ -508,8 +510,34 @@ def postgresql_finalize_delivery_parameters(
         delivery["delivery_id"],
         now,
         claim.queue_item_id,
-        now,
-        now,
+    )
+
+
+def elapsed_ms(started_at: float) -> float:
+    return (perf_counter() - started_at) * 1000.0
+
+
+def log_postgresql_queue_timing(
+    request: SelectionRequest,
+    selection_request_id: str,
+    delivery: dict[str, Any],
+    timings: dict[str, float],
+) -> None:
+    logging.getLogger("uvicorn.error").info(
+        "queue_first_timing consumer_id=%s selection_request_id=%s delivery_id=%s "
+        "context_ms=%.3f queue_claim_ms=%.3f quota_reserve_ms=%.3f "
+        "delivery_finalize_link_ms=%.3f decision_insert_ms=%.3f "
+        "diagnostics_outbox_ms=%.3f total_ms=%.3f",
+        request.consumer_id,
+        selection_request_id,
+        delivery["delivery_id"],
+        timings["context_ms"],
+        timings["queue_claim_ms"],
+        timings["quota_reserve_ms"],
+        timings["delivery_finalize_link_ms"],
+        timings["decision_insert_ms"],
+        timings["diagnostics_outbox_ms"],
+        timings["total_ms"],
     )
 
 

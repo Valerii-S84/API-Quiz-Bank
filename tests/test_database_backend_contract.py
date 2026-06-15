@@ -339,6 +339,7 @@ class QueueSelectorDatabaseBackendContractTests(unittest.TestCase):
         self.assertIn("INSERT INTO quota_usage", executed_sql)
         self.assertIn("WITH inserted_delivery AS", executed_sql)
         self.assertIn("INSERT INTO selection_decisions", executed_sql)
+        self.assertNotIn("UPDATE selection_queues", executed_sql)
 
     def assertPostgreSQLBoundary(self, executed_sql: str) -> None:
         self.assertNotIn("sqlite_master", executed_sql)
