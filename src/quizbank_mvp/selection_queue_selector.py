@@ -13,6 +13,11 @@ from .projections import build_learner_quiz_projection
 from .selection_decision_log import insert_selection_decision, success_decision
 from .selection_delivery import answer_feedback, create_delivery
 from .selection_models import SelectionRequest
+from .selection_queue_fast_path import (
+    PostgreSQLQueueFastPathMiss,
+    can_use_postgresql_queue_fast_path,
+    select_next_item_from_postgresql_queue,
+)
 from .selection_queue_filler import queue_scopes_for_request
 from .selection_queue_models import selection_queue_id
 from .selection_quota import reserve_quota
@@ -44,28 +49,45 @@ class QueueClaim:
 def select_next_item_from_queue(db_path: Path | None, request: SelectionRequest) -> dict[str, Any]:
     selection_request_id = new_id("selreq")
     with connect(db_path) as connection:
-        context = prepare_queue_selection_context(connection, request)
-        claim = claim_next_queue_item(connection, context.request)
-        quota_usage = reserve_quota(connection, context.consumer, context.request)
-        item = load_claimed_item(connection, claim, context.request)
-        delivery = create_delivery(
-            connection,
-            context.request,
-            item,
-            context.entitlement,
-            quota_usage,
-        )
-        mark_queue_item_delivered(connection, claim, str(delivery["delivery_id"]))
-        decision = success_decision(
-            selection_request_id,
-            context.request,
-            delivery,
-            item,
-            1,
-            1,
-            {},
-        )
-        insert_selection_decision(connection, decision)
+        if can_use_postgresql_queue_fast_path(connection):
+            try:
+                return select_next_item_from_postgresql_queue(
+                    connection,
+                    request,
+                    selection_request_id,
+                )
+            except PostgreSQLQueueFastPathMiss:
+                pass
+        return select_next_item_from_queue_connection(connection, request, selection_request_id)
+
+
+def select_next_item_from_queue_connection(
+    connection: Any,
+    request: SelectionRequest,
+    selection_request_id: str,
+) -> dict[str, Any]:
+    context = prepare_queue_selection_context(connection, request)
+    claim = claim_next_queue_item(connection, context.request)
+    quota_usage = reserve_quota(connection, context.consumer, context.request)
+    item = load_claimed_item(connection, claim, context.request)
+    delivery = create_delivery(
+        connection,
+        context.request,
+        item,
+        context.entitlement,
+        quota_usage,
+    )
+    mark_queue_item_delivered(connection, claim, str(delivery["delivery_id"]))
+    decision = success_decision(
+        selection_request_id,
+        context.request,
+        delivery,
+        item,
+        1,
+        1,
+        {},
+    )
+    insert_selection_decision(connection, decision)
     return {
         "delivery": delivery,
         "quiz_item": build_learner_quiz_projection(item),

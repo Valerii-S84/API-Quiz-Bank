@@ -27,6 +27,15 @@ from quizbank_mvp.selection_delivery import create_delivery  # noqa: E402
 from quizbank_mvp.selection_diagnostics import candidate_count  # noqa: E402
 from quizbank_mvp.selection_eligibility import find_eligible_item  # noqa: E402
 from quizbank_mvp.selection_models import ContentScope, SelectionFilters, SelectionRequest  # noqa: E402
+from quizbank_mvp.selection_performance_gate import (  # noqa: E402
+    POSTGRESQL_DB_CPU_TARGET_MAX_PERCENT,
+    POSTGRESQL_DB_CPU_TARGET_MIN_PERCENT,
+    POSTGRESQL_HOT_PATH_FORBIDDEN_SQL_FRAGMENTS,
+    POSTGRESQL_HOT_PATH_MAX_DB_STATEMENTS,
+    POSTGRESQL_HOT_PATH_MIN_DB_STATEMENTS,
+    POSTGRESQL_LOAD_P95_MAX_MS,
+    POSTGRESQL_LOAD_TARGET_RPS,
+)
 from quizbank_mvp.selection_quota import reserve_quota  # noqa: E402
 from quizbank_mvp.selection_queue_filler import refill_prepared_selection_queues  # noqa: E402
 from quizbank_mvp.selection_queue_selector import select_next_item_from_queue  # noqa: E402
@@ -305,12 +314,31 @@ class QueueSelectorDatabaseBackendContractTests(unittest.TestCase):
             result = select_next_item_from_queue(None, request)
 
         executed_sql = raw_connection.executed_sql()
+        statement_count = len(raw_connection.executed)
         self.assertEqual(result["quiz_item"]["id"], "item_pg")
         self.assertNotIn("?", executed_sql)
         self.assertIn("UPDATE selection_queue_items", executed_sql)
-        self.assertIn("RETURNING queue_item_id", executed_sql)
-        self.assertNotIn("GROUP BY", executed_sql)
+        self.assertGreaterEqual(statement_count, POSTGRESQL_HOT_PATH_MIN_DB_STATEMENTS)
+        self.assertLessEqual(statement_count, POSTGRESQL_HOT_PATH_MAX_DB_STATEMENTS)
+        self.assertHotPathSqlShape(executed_sql)
         self.assertPostgreSQLBoundary(executed_sql)
+
+    def test_postgresql_hot_path_performance_gate_targets_are_explicit(self) -> None:
+        self.assertEqual(POSTGRESQL_HOT_PATH_MIN_DB_STATEMENTS, 2)
+        self.assertEqual(POSTGRESQL_HOT_PATH_MAX_DB_STATEMENTS, 5)
+        self.assertEqual(POSTGRESQL_LOAD_TARGET_RPS, 20)
+        self.assertLessEqual(POSTGRESQL_LOAD_P95_MAX_MS, 800.0)
+        self.assertEqual(POSTGRESQL_DB_CPU_TARGET_MIN_PERCENT, 60.0)
+        self.assertEqual(POSTGRESQL_DB_CPU_TARGET_MAX_PERCENT, 70.0)
+
+    def assertHotPathSqlShape(self, executed_sql: str) -> None:
+        for fragment in POSTGRESQL_HOT_PATH_FORBIDDEN_SQL_FRAGMENTS:
+            self.assertNotIn(fragment, executed_sql)
+        self.assertIn("WITH active_consumer AS", executed_sql)
+        self.assertIn("WITH candidate AS", executed_sql)
+        self.assertIn("INSERT INTO quota_usage", executed_sql)
+        self.assertIn("WITH inserted_delivery AS", executed_sql)
+        self.assertIn("INSERT INTO selection_decisions", executed_sql)
 
     def assertPostgreSQLBoundary(self, executed_sql: str) -> None:
         self.assertNotIn("sqlite_master", executed_sql)
@@ -398,6 +426,12 @@ class FakePostgreSQLRuntimeConnection:
 
     def execute(self, sql: str, parameters: object = None) -> FakeResult:
         self.executed.append((sql, parameters))
+        if "WITH active_consumer AS" in sql:
+            return FakeResult(row=postgresql_queue_context_row())
+        if "WITH candidate AS" in sql and "FROM selection_queue_items sqi" in sql:
+            return FakeResult(row=postgresql_claimed_item_row())
+        if "WITH inserted_delivery AS" in sql:
+            return FakeResult()
         if "UPDATE selection_queue_items" in sql and "RETURNING queue_item_id" in sql:
             return FakeResult(row=postgresql_queue_claim_row())
         if "SELECT * FROM selection_queues WHERE queue_id = %s" in sql:
@@ -454,6 +488,31 @@ def postgresql_entitlement_row() -> dict[str, object]:
     }
 
 
+def postgresql_queue_context_row() -> dict[str, object]:
+    return {
+        "consumer_id": "consumer_pg",
+        "consumer_status": "active",
+        "daily_quota_limit": 10,
+        "consumer_allowed_cefr_levels_json": '["A2"]',
+        "consumer_allowed_theme_ids_json": '["T10"]',
+        "consumer_allowed_language_codes_json": '["de"]',
+        "consumer_allowed_content_bank_ids_json": '["german-core"]',
+        "consumer_allowed_bank_version_ids_json": "[]",
+        "default_language_code": "de",
+        "default_content_bank_id": "german-core",
+        "default_bank_version_id": "german-core:2026-06-12-baseline",
+        "entitlement_id": "entitlement_pg",
+        "entitlement_allowed_cefr_levels_json": '["A2"]',
+        "entitlement_allowed_theme_ids_json": '["T10"]',
+        "entitlement_allowed_language_codes_json": '["de"]',
+        "entitlement_allowed_content_bank_ids_json": '["german-core"]',
+        "entitlement_allowed_bank_version_ids_json": "[]",
+        "language_code": "de",
+        "content_bank_id": "german-core",
+        "bank_version_id": "german-core:2026-06-12-baseline",
+    }
+
+
 def postgresql_quiz_item_row() -> dict[str, object]:
     return {
         "item_id": "item_pg",
@@ -478,6 +537,15 @@ def postgresql_quiz_item_row() -> dict[str, object]:
         "last_delivered_at": "",
         "cell_delivery_count": 0,
         "quality_score": 1.0,
+    }
+
+
+def postgresql_claimed_item_row() -> dict[str, object]:
+    return {
+        **postgresql_quiz_item_row(),
+        "queue_item_id": "queue_item_pg",
+        "queue_id": "queue_pg",
+        "score_snapshot_json": {"selection_score": {"total": 1.0}},
     }
 
 

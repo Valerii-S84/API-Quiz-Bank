@@ -1,0 +1,16 @@
+"""Performance gate targets for the queue-first selection hot path."""
+
+from __future__ import annotations
+
+
+POSTGRESQL_HOT_PATH_MIN_DB_STATEMENTS = 2
+POSTGRESQL_HOT_PATH_MAX_DB_STATEMENTS = 5
+POSTGRESQL_LOAD_TARGET_RPS = 20
+POSTGRESQL_LOAD_P95_MAX_MS = 800.0
+POSTGRESQL_DB_CPU_TARGET_MIN_PERCENT = 60.0
+POSTGRESQL_DB_CPU_TARGET_MAX_PERCENT = 70.0
+POSTGRESQL_HOT_PATH_FORBIDDEN_SQL_FRAGMENTS = (
+    "GROUP BY",
+    "LEFT JOIN deliveries",
+    "FROM deliveries d_",
+)
