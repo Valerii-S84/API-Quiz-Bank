@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -17,6 +18,7 @@ from .database_runtime import database_is_ready, visual_database_is_ready
 from .problems import QuizBankProblem
 from .rate_limit import FixedWindowRateLimiter, delivery_rate_limit_key
 from .selection import SelectionFilters, SelectionRequest, get_delivery, select_next_item
+from .selection_queue_selector import select_next_item_from_queue
 from .taxonomy import level_catalog, topic_catalog
 from .trusted_delivery import (
     is_answer_enabled_consumer,
@@ -32,6 +34,7 @@ ThemeId = Literal[
 ]
 SCOPED_QUOTA_CONSUMERS = {"website_quiz_teaser"}
 MAX_QUOTA_SCOPE_KEY_LENGTH = 128
+QUEUE_FIRST_ENABLED_VALUES = {"1", "true", "yes", "queue", "queue_first", "queue-first"}
 DeliveryOutcomeStatus = Literal["sent", "failed", "cancelled"]
 ObjectiveId = Literal[
     "O01", "O02", "O03", "O04", "O05", "O06", "O07", "O08",
@@ -150,26 +153,8 @@ def register_delivery_routes(
             x_quizbank_api_key,
         )
         authorize_consumer(authenticated.consumer_id, payload.consumer_id)
-        result = select_next_item(
-            database_path,
-            SelectionRequest(
-                consumer_id=payload.consumer_id,
-                quota_scope_key=quota_scope_key_for_consumer(
-                    payload.consumer_id,
-                    x_quizbank_quota_key,
-                ),
-                filters=SelectionFilters(
-                    cefr_level=payload.cefr_level,
-                    theme_ids=tuple(payload.theme_ids),
-                    objective_ids=tuple(payload.objective_ids),
-                    pattern_ids=tuple(payload.pattern_ids),
-                ),
-                language_code=payload.language_code,
-                content_bank_id=payload.content_bank_id,
-                bank_version_id=payload.bank_version_id,
-                delivery_mode="api",
-            ),
-        )
+        selection_request = next_selection_request(payload, x_quizbank_quota_key)
+        result = select_next_for_route(database_path, selection_request)
         return next_quiz_response(payload.consumer_id, result)
 
     @app.get("/v1/deliveries/{delivery_id}", tags=["quiz-delivery"])
@@ -253,6 +238,39 @@ def next_quiz_response(consumer_id: str, result: dict[str, object]) -> dict[str,
             "decision": public_selection_decision(selection_decision),
         },
     }
+
+
+def next_selection_request(
+    payload: NextQuizRequest,
+    raw_quota_key: str | None,
+) -> SelectionRequest:
+    return SelectionRequest(
+        consumer_id=payload.consumer_id,
+        quota_scope_key=quota_scope_key_for_consumer(payload.consumer_id, raw_quota_key),
+        filters=SelectionFilters(
+            cefr_level=payload.cefr_level,
+            theme_ids=tuple(payload.theme_ids),
+            objective_ids=tuple(payload.objective_ids),
+            pattern_ids=tuple(payload.pattern_ids),
+        ),
+        language_code=payload.language_code,
+        content_bank_id=payload.content_bank_id,
+        bank_version_id=payload.bank_version_id,
+        delivery_mode="api",
+    )
+
+
+def select_next_for_route(db_path: Path | None, request: SelectionRequest) -> dict[str, object]:
+    if queue_first_selection_enabled():
+        return select_next_item_from_queue(db_path, request)
+    return select_next_item(db_path, request)
+
+
+def queue_first_selection_enabled() -> bool:
+    raw_value = os.environ.get("QUIZBANK_NEXT_SELECTION_MODE", "")
+    if not raw_value:
+        raw_value = os.environ.get("QUIZBANK_SELECTION_QUEUE_FIRST", "")
+    return raw_value.strip().lower() in QUEUE_FIRST_ENABLED_VALUES
 
 
 def trusted_quiz_item_response(consumer_id: str, result: dict[str, object]) -> dict[str, object]:

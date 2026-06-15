@@ -29,6 +29,7 @@ from quizbank_mvp.selection_eligibility import find_eligible_item  # noqa: E402
 from quizbank_mvp.selection_models import ContentScope, SelectionFilters, SelectionRequest  # noqa: E402
 from quizbank_mvp.selection_quota import reserve_quota  # noqa: E402
 from quizbank_mvp.selection_queue_filler import refill_prepared_selection_queues  # noqa: E402
+from quizbank_mvp.selection_queue_selector import select_next_item_from_queue  # noqa: E402
 from quizbank_mvp.selection_scope_enforcement import (  # noqa: E402
     load_active_consumer,
     load_active_entitlement,
@@ -284,6 +285,40 @@ class QueueFillerDatabaseBackendContractTests(unittest.TestCase):
         self.assertNotIn("last_insert_rowid", executed_sql)
 
 
+class QueueSelectorDatabaseBackendContractTests(unittest.TestCase):
+    def test_postgresql_queue_selector_runtime_path_uses_supported_sql(self) -> None:
+        raw_connection = FakePostgreSQLRuntimeConnection()
+        request = SelectionRequest(
+            "consumer_pg",
+            filters=SelectionFilters(cefr_level="A2", theme_ids=("T10",)),
+            content_scope=ContentScope(
+                language_code="de",
+                content_bank_id="german-core",
+                bank_version_id="german-core:2026-06-12-baseline",
+            ),
+        )
+
+        with mock.patch(
+            "quizbank_mvp.selection_queue_selector.connect",
+            return_value=PostgreSQLConnection(raw_connection),
+        ):
+            result = select_next_item_from_queue(None, request)
+
+        executed_sql = raw_connection.executed_sql()
+        self.assertEqual(result["quiz_item"]["id"], "item_pg")
+        self.assertNotIn("?", executed_sql)
+        self.assertIn("UPDATE selection_queue_items", executed_sql)
+        self.assertIn("RETURNING queue_item_id", executed_sql)
+        self.assertNotIn("GROUP BY", executed_sql)
+        self.assertPostgreSQLBoundary(executed_sql)
+
+    def assertPostgreSQLBoundary(self, executed_sql: str) -> None:
+        self.assertNotIn("sqlite_master", executed_sql)
+        self.assertNotIn("PRAGMA", executed_sql)
+        self.assertNotIn("INSERT OR REPLACE", executed_sql)
+        self.assertNotIn("last_insert_rowid", executed_sql)
+
+
 class FakeRawConnection:
     def __init__(self) -> None:
         self.connect_args: tuple[object, ...] = ()
@@ -363,6 +398,8 @@ class FakePostgreSQLRuntimeConnection:
 
     def execute(self, sql: str, parameters: object = None) -> FakeResult:
         self.executed.append((sql, parameters))
+        if "UPDATE selection_queue_items" in sql and "RETURNING queue_item_id" in sql:
+            return FakeResult(row=postgresql_queue_claim_row())
         if "SELECT * FROM selection_queues WHERE queue_id = %s" in sql:
             return FakeResult()
         if "SELECT COUNT(*) AS count" in sql and "FROM selection_queue_items" in sql:
@@ -387,7 +424,7 @@ class FakePostgreSQLRuntimeConnection:
         if "SELECT COUNT(*) AS count" in sql:
             return FakeResult(row={"count": 1})
         if "SELECT qi.*" in sql:
-            return FakeResult(rows=[postgresql_quiz_item_row()])
+            return FakeResult(row=postgresql_quiz_item_row(), rows=[postgresql_quiz_item_row()])
         if "SELECT * FROM deliveries WHERE delivery_id = %s" in sql:
             return FakeResult(row=postgresql_delivery_row())
         return FakeResult()
@@ -478,6 +515,15 @@ def postgresql_queue_candidate_row() -> dict[str, object]:
         "pattern_id": "P01",
         "delivery_count": 0,
         "last_delivered_at": "",
+    }
+
+
+def postgresql_queue_claim_row() -> dict[str, object]:
+    return {
+        "queue_item_id": "queue_item_pg",
+        "queue_id": "queue_pg",
+        "item_id": "item_pg",
+        "score_snapshot_json": {"selection_score": {"total": 1.0}},
     }
 
 
