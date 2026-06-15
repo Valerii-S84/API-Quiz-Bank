@@ -20,6 +20,15 @@ DEFAULT_LOAD_PLAN_PATH = Path("reports/imports/control_sample_postgresql_load_pl
 DEFAULT_CANONICAL_INPUT_PATH = Path("data/imports/control_sample_items.jsonl")
 DEFAULT_REPORT_PATH = Path("reports/imports/control_sample_postgresql_smoke.json")
 DEFAULT_EXECUTED_AT = "2026-05-08T00:00:00+00:00"
+PRECOMPUTED_SELECTION_TABLES = [
+    "candidate_pools",
+    "candidate_pool_items",
+    "consumer_delivery_state",
+    "selection_queues",
+    "selection_queue_items",
+    "selection_diagnostic_events",
+    "selection_diagnostic_outbox",
+]
 QUIZ_ITEM_COLUMNS = [
     "item_id",
     "source_id",
@@ -108,7 +117,7 @@ def quiz_item_insert_sql(source_id: str, item: dict[str, str]) -> str:
         item["register"],
         item["prompt"],
         item["stem_text"],
-        f"{sql_literal(item['options'])}::jsonb",
+        item["options"],
         item["answer_key"],
         item["explanation"],
         item["tags"],
@@ -333,6 +342,13 @@ def smoke_counts(container_name: str) -> dict[str, int]:
     return {table: int(query_scalar(container_name, f"SELECT COUNT(*) FROM {table};")) for table in tables}
 
 
+def precomputed_selection_counts(container_name: str) -> dict[str, int]:
+    return {
+        table: int(query_scalar(container_name, f"SELECT COUNT(*) FROM {table};"))
+        for table in PRECOMPUTED_SELECTION_TABLES
+    }
+
+
 def build_report(
     container_name: str,
     load_plan_path: Path,
@@ -340,6 +356,7 @@ def build_report(
     executed_at: str,
 ) -> dict[str, Any]:
     counts = smoke_counts(container_name)
+    queue_counts = precomputed_selection_counts(container_name)
     lineage_join_count = int(
         query_scalar(
             container_name,
@@ -379,6 +396,7 @@ def build_report(
             "schema_applied": True,
             "load_plan_applied": True,
             "counts": counts,
+            "precomputed_selection_counts": queue_counts,
             "lineage_join_count": lineage_join_count,
             "source_checksum_match": checksum_match == "t",
         },

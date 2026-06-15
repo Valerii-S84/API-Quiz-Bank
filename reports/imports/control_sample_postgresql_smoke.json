@@ -9,17 +9,37 @@
     },
     "lineage_join_count": 2,
     "load_plan_applied": true,
+    "precomputed_selection_counts": {
+      "candidate_pool_items": 0,
+      "candidate_pools": 0,
+      "consumer_delivery_state": 0,
+      "selection_diagnostic_events": 0,
+      "selection_diagnostic_outbox": 0,
+      "selection_queue_items": 0,
+      "selection_queues": 0
+    },
     "schema_applied": true,
     "source_checksum_match": true
   },
   "database": "postgres",
   "docker_image": "postgres:16-alpine",
-  "executed_at": "2026-05-08T00:00:00+00:00",
+  "executed_at": "2026-06-15T00:00:00+00:00",
   "report_type": "postgresql_contract_smoke",
   "schema_files": [
     "database/postgresql/001_create_runtime.sql",
     "database/postgresql/002_add_import_contract.sql",
-    "database/postgresql/003_add_runtime_delivery_evidence.sql"
+    "database/postgresql/003_add_runtime_delivery_evidence.sql",
+    "database/postgresql/004_add_admin_credentials.sql",
+    "database/postgresql/005_add_consumer_admin_profiles.sql",
+    "database/postgresql/006_add_scheduled_delivery_slots.sql",
+    "database/postgresql/007_add_visual_delivery.sql",
+    "database/postgresql/008_use_text_quota_usage_period_key.sql",
+    "database/postgresql/009_add_image_quality_policy.sql",
+    "database/postgresql/010_add_visual_mode_policy_metadata.sql",
+    "database/postgresql/011_add_next_route_selection_indexes.sql",
+    "database/postgresql/012_add_multilingual_bank_foundation.sql",
+    "database/postgresql/013_add_channel_tariff_scope.sql",
+    "database/postgresql/014_add_precomputed_selection_state.sql"
   ],
   "source_artifacts": {
     "canonical_input_path": "data/imports/control_sample_items.jsonl",

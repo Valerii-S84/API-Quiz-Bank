@@ -7,7 +7,7 @@ This directory holds the production-oriented PostgreSQL schema contract for API 
 - `database/migrations/` remains the local SQLite MVP runtime path used by the committed FastAPI demo and tests.
 - `database/postgresql/001_create_runtime.sql` defines the production runtime seed tables aligned with the MVP delivery domain.
 - `database/postgresql/002_add_import_contract.sql` adds the governed import path required before PostgreSQL can be treated as the operational source of truth.
-- `database/postgresql/003_add_runtime_delivery_evidence.sql` through `010_add_visual_mode_policy_metadata.sql` mirror runtime evidence, admin, schedule, visual delivery and image-quality policy contracts.
+- `database/postgresql/003_add_runtime_delivery_evidence.sql` through `014_add_precomputed_selection_state.sql` mirror runtime evidence, admin, schedule, visual delivery, image-quality policy, next-route indexes, content scope and queue-first precomputed selection contracts.
 - `src/quizbank_mvp/database_connection.py` contains the PostgreSQL adapter boundary; `QUIZBANK_DATABASE_URL=postgresql://...` selects the PostgreSQL runtime path.
 
 ## Production Import Path
@@ -32,7 +32,7 @@ Run the local execution proof with:
 python3 tools/run_postgresql_contract_smoke.py
 ```
 
-The smoke uses an ephemeral `postgres:16-alpine` Docker container, applies `001_create_runtime.sql` and `002_add_import_contract.sql`, loads `reports/imports/control_sample_postgresql_load_plan.json`, then writes `reports/imports/control_sample_postgresql_smoke.json`.
+The smoke uses an ephemeral `postgres:16-alpine` Docker container, applies all committed `database/postgresql/*.sql` migrations, loads `reports/imports/control_sample_postgresql_load_plan.json`, then writes `reports/imports/control_sample_postgresql_smoke.json`.
 
 ## Unit Contract Gates
 

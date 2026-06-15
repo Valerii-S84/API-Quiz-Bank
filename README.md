@@ -63,7 +63,9 @@ Create and seed the local SQLite MVP database:
 ```bash
 PYTHONPATH=src python3 -m quizbank_mvp.cli --db-path var/quizbank_mvp.sqlite3 init-db
 PYTHONPATH=src python3 -m quizbank_mvp.cli --db-path var/quizbank_mvp.sqlite3 seed-demo
-PYTHONPATH=src python3 tools/refill_selection_queues.py --db-path var/quizbank_mvp.sqlite3
+PYTHONPATH=src python3 -m quizbank_mvp.cli --db-path var/quizbank_mvp.sqlite3 rebuild-candidate-pools
+PYTHONPATH=src python3 -m quizbank_mvp.cli --db-path var/quizbank_mvp.sqlite3 refill-selection-queues
+PYTHONPATH=src python3 -m quizbank_mvp.cli --db-path var/quizbank_mvp.sqlite3 process-selection-diagnostics
 ```
 
 Run the API locally:

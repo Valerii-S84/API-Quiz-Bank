@@ -140,6 +140,39 @@ class MvpCoverageBranchTests(unittest.TestCase):
         self.assertEqual(summary["pool_count"], 1)
         self.assertEqual(summary["unchanged_pool_count"], 1)
 
+    def test_cli_queue_jobs_refill_and_process_empty_diagnostics(self) -> None:
+        self.run_cli("init-db")
+        self.run_cli("seed-items", "--fixture", str(APPROVED_FIXTURE), "--status", "approved")
+        self.run_cli(
+            "seed-consumer",
+            "--consumer-id",
+            "cli_queue_consumer",
+            "--daily-quota-limit",
+            "100",
+            "--cefr-level",
+            "A2",
+            "--theme-id",
+            "T10",
+            "--with-entitlement",
+        )
+
+        refill = json.loads(self.run_cli("refill-selection-queues", "--target-size", "50"))
+        diagnostics = json.loads(
+            self.run_cli(
+                "process-selection-diagnostics",
+                "--limit",
+                "5",
+                "--worker-id",
+                "cli_queue_test",
+            )
+        )
+
+        self.assertEqual(refill["consumer_count"], 1)
+        self.assertEqual(refill["queue_count"], 1)
+        self.assertEqual(refill["ready_queue_count"], 1)
+        self.assertEqual(refill["added_item_count"], 1)
+        self.assertEqual(diagnostics, {"failed": 0, "processed": 0, "published": 0})
+
     def test_cli_seed_demo_covers_demo_reset_path(self) -> None:
         initialize_database(self.db_path)
 

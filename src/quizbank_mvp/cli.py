@@ -27,6 +27,12 @@ from .database_status import (
     transition_item_status,
 )
 from .protected_beta import seed_protected_beta_channels
+from .selection_async_diagnostics import (
+    DEFAULT_WORKER_ID,
+    process_pending_selection_diagnostics,
+)
+from .selection_queue_filler import refill_selection_queues
+from .selection_queue_models import DEFAULT_QUEUE_TARGET_SIZE
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -48,7 +54,24 @@ def parse_args() -> argparse.Namespace:
     seed_items.add_argument("--status", default="approved")
 
     add_rebuild_candidate_pools_parser(subparsers)
+    add_refill_selection_queues_parser(subparsers)
+    add_process_selection_diagnostics_parser(subparsers)
+    add_seed_consumer_parser(subparsers)
+    add_seed_admin_parser(subparsers)
+    add_status_transition_parsers(subparsers)
 
+    demo = subparsers.add_parser("seed-demo", help="Seed demo item, consumers and entitlement.")
+    demo.add_argument("--fixture", type=Path, default=DEFAULT_FIXTURE)
+    seed_beta = subparsers.add_parser(
+        "seed-protected-beta",
+        help="Create configured protected beta Telegram consumers.",
+    )
+    seed_beta.add_argument("--actor", default="protected_beta_seed")
+    subparsers.add_parser("show-audit-log", help="Print audit log as JSON.")
+    return parser.parse_args()
+
+
+def add_seed_consumer_parser(subparsers) -> None:
     seed_consumer_parser = subparsers.add_parser("seed-consumer", help="Create consumer access.")
     seed_consumer_parser.add_argument("--consumer-id", required=True)
     seed_consumer_parser.add_argument("--daily-quota-limit", type=int, default=10)
@@ -60,21 +83,16 @@ def parse_args() -> argparse.Namespace:
     seed_consumer_parser.add_argument("--grant-reason", default="manual MVP entitlement grant")
     seed_consumer_parser.add_argument("--api-key", default=None)
 
-    demo = subparsers.add_parser("seed-demo", help="Seed demo item, consumers and entitlement.")
-    demo.add_argument("--fixture", type=Path, default=DEFAULT_FIXTURE)
 
+def add_seed_admin_parser(subparsers) -> None:
     seed_admin = subparsers.add_parser(
         "seed-admin",
         help="Create the single owner admin password.",
     )
     seed_admin.add_argument("--reset", action="store_true")
 
-    seed_beta = subparsers.add_parser(
-        "seed-protected-beta",
-        help="Create configured protected beta Telegram consumers.",
-    )
-    seed_beta.add_argument("--actor", default="protected_beta_seed")
 
+def add_status_transition_parsers(subparsers) -> None:
     transition = subparsers.add_parser("transition-status", help="Transition item status.")
     transition.add_argument("--item-id", required=True)
     transition.add_argument("--to-status", required=True)
@@ -94,9 +112,6 @@ def parse_args() -> argparse.Namespace:
     consumer_transition.add_argument("--actor", default="local_admin")
     consumer_transition.add_argument("--reason", required=True)
 
-    subparsers.add_parser("show-audit-log", help="Print audit log as JSON.")
-    return parser.parse_args()
-
 
 def add_rebuild_candidate_pools_parser(subparsers) -> None:
     rebuild_pools = subparsers.add_parser(
@@ -106,6 +121,27 @@ def add_rebuild_candidate_pools_parser(subparsers) -> None:
     rebuild_pools.add_argument("--language-code", default=None)
     rebuild_pools.add_argument("--content-bank-id", default=None)
     rebuild_pools.add_argument("--bank-version-id", default=None)
+
+
+def add_refill_selection_queues_parser(subparsers) -> None:
+    refill_queues = subparsers.add_parser(
+        "refill-selection-queues",
+        help="Refill precomputed selection queues for entitled consumers.",
+    )
+    refill_queues.add_argument("--channel-id", action="append", default=[])
+    refill_queues.add_argument("--target-size", type=int, default=DEFAULT_QUEUE_TARGET_SIZE)
+    refill_queues.add_argument("--language-code", default="de")
+    refill_queues.add_argument("--content-bank-id", default=None)
+    refill_queues.add_argument("--bank-version-id", default=None)
+
+
+def add_process_selection_diagnostics_parser(subparsers) -> None:
+    diagnostics = subparsers.add_parser(
+        "process-selection-diagnostics",
+        help="Process pending async selection diagnostics outbox events.",
+    )
+    diagnostics.add_argument("--limit", type=int, default=50)
+    diagnostics.add_argument("--worker-id", default=DEFAULT_WORKER_ID)
 
 
 def main() -> int:
@@ -121,6 +157,14 @@ def main() -> int:
         return 0
     if args.command == "rebuild-candidate-pools":
         summary = rebuild_candidate_pools_command(args)
+        print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.command == "refill-selection-queues":
+        summary = refill_selection_queues_command(args)
+        print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.command == "process-selection-diagnostics":
+        summary = process_selection_diagnostics_command(args)
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         return 0
     if args.command == "seed-consumer":
@@ -167,6 +211,25 @@ def rebuild_candidate_pools_command(args: argparse.Namespace) -> dict[str, objec
         args.language_code or "de",
         args.content_bank_id,
         args.bank_version_id,
+    )
+
+
+def refill_selection_queues_command(args: argparse.Namespace) -> dict[str, object]:
+    return refill_selection_queues(
+        args.db_path,
+        channel_ids=tuple(args.channel_id) or ("api",),
+        target_size=args.target_size,
+        language_code=args.language_code,
+        content_bank_id=args.content_bank_id,
+        bank_version_id=args.bank_version_id,
+    )
+
+
+def process_selection_diagnostics_command(args: argparse.Namespace) -> dict[str, int]:
+    return process_pending_selection_diagnostics(
+        args.db_path,
+        limit=args.limit,
+        worker_id=args.worker_id,
     )
 
 
