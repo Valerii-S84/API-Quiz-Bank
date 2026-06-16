@@ -14,13 +14,16 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import __version__
 from .admin_api import register_admin_routes
-from .auth import authenticate_consumer
-from .database_connection import configured_database_url, configured_db_path
+from .auth import authenticate_consumer, authenticate_consumer_connection
+from .database_connection import connect, configured_database_url, configured_db_path
 from .database_runtime import database_is_ready, visual_database_is_ready
 from .problems import QuizBankProblem
 from .rate_limit import FixedWindowRateLimiter, delivery_rate_limit_key
 from .selection import SelectionFilters, SelectionRequest, get_delivery, select_next_item
-from .selection_queue_selector import select_next_item_from_queue
+from .selection_queue_selector import (
+    select_next_item_from_queue,
+    select_next_item_from_queue_existing_connection,
+)
 from .taxonomy import level_catalog, topic_catalog
 from .trusted_delivery import (
     is_answer_enabled_consumer,
@@ -164,25 +167,14 @@ def register_delivery_routes(
             )
         )
         timings["rate_limit_ms"] = elapsed_ms(started_at)
-        auth_started_at = perf_counter()
-        authenticated = authenticate_consumer(
+        response = select_next_route_result(
             database_path,
+            payload,
             x_consumer_id,
             x_quizbank_api_key,
+            x_quizbank_quota_key,
+            timings,
         )
-        timings["auth_ms"] = elapsed_ms(auth_started_at)
-        authorize_started_at = perf_counter()
-        authorize_consumer(authenticated.consumer_id, payload.consumer_id)
-        timings["authorize_ms"] = elapsed_ms(authorize_started_at)
-        request_started_at = perf_counter()
-        selection_request = next_selection_request(payload, x_quizbank_quota_key)
-        timings["request_build_ms"] = elapsed_ms(request_started_at)
-        selection_started_at = perf_counter()
-        result = select_next_for_route(database_path, selection_request)
-        timings["selection_ms"] = elapsed_ms(selection_started_at)
-        response_started_at = perf_counter()
-        response = next_quiz_response(payload.consumer_id, result)
-        timings["response_ms"] = elapsed_ms(response_started_at)
         timings["total_ms"] = elapsed_ms(started_at)
         log_next_route_timing(payload.consumer_id, timings)
         return response
@@ -199,6 +191,37 @@ def register_delivery_routes(
             x_quizbank_api_key,
         )
         return get_delivery(database_path, delivery_id, authenticated.consumer_id)
+
+
+def select_next_route_result(
+    database_path: Path | None,
+    payload: NextQuizRequest,
+    x_consumer_id: str | None,
+    x_quizbank_api_key: str | None,
+    x_quizbank_quota_key: str | None,
+    timings: dict[str, float],
+) -> dict[str, object]:
+    with connect(database_path) as connection:
+        auth_started_at = perf_counter()
+        authenticated = authenticate_consumer_connection(
+            connection,
+            x_consumer_id,
+            x_quizbank_api_key,
+        )
+        timings["auth_ms"] = elapsed_ms(auth_started_at)
+        authorize_started_at = perf_counter()
+        authorize_consumer(authenticated.consumer_id, payload.consumer_id)
+        timings["authorize_ms"] = elapsed_ms(authorize_started_at)
+        request_started_at = perf_counter()
+        selection_request = next_selection_request(payload, x_quizbank_quota_key)
+        timings["request_build_ms"] = elapsed_ms(request_started_at)
+        selection_started_at = perf_counter()
+        result = select_next_for_route_connection(connection, database_path, selection_request)
+        timings["selection_ms"] = elapsed_ms(selection_started_at)
+        response_started_at = perf_counter()
+        response = next_quiz_response(payload.consumer_id, result)
+        timings["response_ms"] = elapsed_ms(response_started_at)
+        return response
 
 
 def register_trusted_delivery_routes(app: FastAPI, database_path: Path) -> None:
@@ -297,6 +320,17 @@ def select_next_for_route(db_path: Path | None, request: SelectionRequest) -> di
     return select_next_with_controlled_pilot_fallback(db_path, request)
 
 
+def select_next_for_route_connection(
+    connection,
+    db_path: Path | None,
+    request: SelectionRequest,
+) -> dict[str, object]:
+    mode = selection_route_mode()
+    if mode == "queue_first":
+        return select_next_item_from_queue_existing_connection(connection, request)
+    return select_next_with_controlled_pilot_fallback_connection(connection, db_path, request)
+
+
 def selection_route_mode() -> SelectionRouteMode:
     raw_value = os.environ.get("QUIZBANK_NEXT_SELECTION_MODE", "")
     normalized = raw_value.strip().lower()
@@ -321,6 +355,25 @@ def select_next_with_controlled_pilot_fallback(
         return select_next_item_from_queue(db_path, request)
     except QuizBankProblem as error:
         if live_fallback_is_allowed(request, error):
+            logger.warning(
+                "queue_first path=fallback consumer_id=%s reason=%s",
+                request.consumer_id,
+                error.reason_code,
+            )
+            return select_next_item(db_path, request)
+        raise
+
+
+def select_next_with_controlled_pilot_fallback_connection(
+    connection,
+    db_path: Path | None,
+    request: SelectionRequest,
+) -> dict[str, object]:
+    try:
+        return select_next_item_from_queue_existing_connection(connection, request)
+    except QuizBankProblem as error:
+        if live_fallback_is_allowed(request, error):
+            connection.rollback()
             logger.warning(
                 "queue_first path=fallback consumer_id=%s reason=%s",
                 request.consumer_id,

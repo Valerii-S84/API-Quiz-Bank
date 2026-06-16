@@ -23,7 +23,7 @@
   },
   "database": "postgres",
   "docker_image": "postgres:16-alpine",
-  "executed_at": "2026-06-15T00:00:00+00:00",
+  "executed_at": "2026-06-16T00:00:00+00:00",
   "report_type": "postgresql_contract_smoke",
   "schema_files": [
     "database/postgresql/001_create_runtime.sql",
@@ -39,7 +39,8 @@
     "database/postgresql/011_add_next_route_selection_indexes.sql",
     "database/postgresql/012_add_multilingual_bank_foundation.sql",
     "database/postgresql/013_add_channel_tariff_scope.sql",
-    "database/postgresql/014_add_precomputed_selection_state.sql"
+    "database/postgresql/014_add_precomputed_selection_state.sql",
+    "database/postgresql/015_optimize_selection_queue_claim_available_index.sql"
   ],
   "source_artifacts": {
     "canonical_input_path": "data/imports/control_sample_items.jsonl",

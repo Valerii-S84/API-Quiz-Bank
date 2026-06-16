@@ -47,18 +47,25 @@ class QueueClaim:
 
 
 def select_next_item_from_queue(db_path: Path | None, request: SelectionRequest) -> dict[str, Any]:
-    selection_request_id = new_id("selreq")
     with connect(db_path) as connection:
-        if can_use_postgresql_queue_fast_path(connection):
-            try:
-                return select_next_item_from_postgresql_queue(
-                    connection,
-                    request,
-                    selection_request_id,
-                )
-            except PostgreSQLQueueFastPathMiss:
-                pass
-        return select_next_item_from_queue_connection(connection, request, selection_request_id)
+        return select_next_item_from_queue_existing_connection(connection, request)
+
+
+def select_next_item_from_queue_existing_connection(
+    connection: Any,
+    request: SelectionRequest,
+) -> dict[str, Any]:
+    selection_request_id = new_id("selreq")
+    if can_use_postgresql_queue_fast_path(connection):
+        try:
+            return select_next_item_from_postgresql_queue(
+                connection,
+                request,
+                selection_request_id,
+            )
+        except PostgreSQLQueueFastPathMiss:
+            pass
+    return select_next_item_from_queue_connection(connection, request, selection_request_id)
 
 
 def select_next_item_from_queue_connection(

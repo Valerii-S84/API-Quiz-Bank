@@ -97,8 +97,9 @@ class DatabaseBackendContractTests(unittest.TestCase):
             return raw_connection
 
         fake_psycopg.connect = connect
-        with mock.patch.dict(sys.modules, {"psycopg": fake_psycopg, "psycopg.rows": fake_rows}):
-            wrapped = connect_postgresql("postgresql://quizbank")
+        with mock.patch.dict(os.environ, {"QUIZBANK_POSTGRES_POOL_ENABLED": "0"}):
+            with mock.patch.dict(sys.modules, {"psycopg": fake_psycopg, "psycopg.rows": fake_rows}):
+                wrapped = connect_postgresql("postgresql://quizbank")
 
         self.assertIsInstance(wrapped, PostgreSQLConnection)
         self.assertEqual(raw_connection.connect_args[0], "postgresql://quizbank")
@@ -335,7 +336,8 @@ class QueueSelectorDatabaseBackendContractTests(unittest.TestCase):
         for fragment in POSTGRESQL_HOT_PATH_FORBIDDEN_SQL_FRAGMENTS:
             self.assertNotIn(fragment, executed_sql)
         self.assertIn("WITH active_consumer AS", executed_sql)
-        self.assertIn("WITH candidate AS", executed_sql)
+        self.assertIn("queue_candidates AS MATERIALIZED", executed_sql)
+        self.assertIn("FOR UPDATE OF sqi SKIP LOCKED", executed_sql)
         self.assertIn("INSERT INTO quota_usage", executed_sql)
         self.assertIn("WITH inserted_delivery AS", executed_sql)
         self.assertIn("INSERT INTO selection_decisions", executed_sql)
@@ -416,6 +418,7 @@ class FakePostgreSQLRuntimeConnection:
         self.closed = False
         self.inserted_queue_items = 0
         self.finalize_delivery_link = finalize_delivery_link
+        self.rolled_back = False
 
     def __enter__(self) -> "FakePostgreSQLRuntimeConnection":
         return self
@@ -426,11 +429,14 @@ class FakePostgreSQLRuntimeConnection:
     def close(self) -> None:
         self.closed = True
 
+    def rollback(self) -> None:
+        self.rolled_back = True
+
     def execute(self, sql: str, parameters: object = None) -> FakeResult:
         self.executed.append((sql, parameters))
         if "WITH active_consumer AS" in sql:
             return FakeResult(row=postgresql_queue_context_row())
-        if "WITH candidate AS" in sql and "FROM selection_queue_items sqi" in sql:
+        if "queue_candidates AS MATERIALIZED" in sql:
             return FakeResult(row=postgresql_claimed_item_row())
         if "UPDATE selection_queue_items" in sql and "RETURNING queue_item_id" in sql:
             return FakeResult(row=postgresql_queue_claim_row())

@@ -23,7 +23,17 @@ def authenticate_consumer(
     x_api_key: str | None,
 ) -> AuthenticatedConsumer:
     require_headers(x_consumer_id, x_api_key)
-    row = load_credential(db_path, x_consumer_id or "", x_api_key or "")
+    with connect(db_path) as connection:
+        return authenticate_consumer_connection(connection, x_consumer_id, x_api_key)
+
+
+def authenticate_consumer_connection(
+    connection,
+    x_consumer_id: str | None,
+    x_api_key: str | None,
+) -> AuthenticatedConsumer:
+    require_headers(x_consumer_id, x_api_key)
+    row = load_credential_connection(connection, x_consumer_id or "", x_api_key or "")
     if row is None:
         raise auth_problem("AUTH_INVALID_API_KEY", "API key is invalid")
     if row["credential_status"] != "active":
@@ -42,19 +52,23 @@ def require_headers(x_consumer_id: str | None, x_api_key: str | None) -> None:
 
 
 def load_credential(db_path: Path | None, consumer_id: str, raw_key: str):
+    with connect(db_path) as connection:
+        return load_credential_connection(connection, consumer_id, raw_key)
+
+
+def load_credential_connection(connection, consumer_id: str, raw_key: str):
     prefix = api_key_prefix(raw_key)
     key_hash = hash_api_key(raw_key)
-    with connect(db_path) as connection:
-        rows = connection.execute(
-            """
-            SELECT ac.credential_id, ac.consumer_id, ac.key_hash,
-                   ac.status AS credential_status, c.status AS consumer_status
-            FROM api_credentials ac
-            JOIN consumers c ON c.consumer_id = ac.consumer_id
-            WHERE ac.consumer_id = ? AND ac.key_prefix = ?
-            """,
-            (consumer_id, prefix),
-        ).fetchall()
+    rows = connection.execute(
+        """
+        SELECT ac.credential_id, ac.consumer_id, ac.key_hash,
+               ac.status AS credential_status, c.status AS consumer_status
+        FROM api_credentials ac
+        JOIN consumers c ON c.consumer_id = ac.consumer_id
+        WHERE ac.consumer_id = ? AND ac.key_prefix = ?
+        """,
+        (consumer_id, prefix),
+    ).fetchall()
     for row in rows:
         if hmac.compare_digest(str(row["key_hash"]), key_hash):
             return row

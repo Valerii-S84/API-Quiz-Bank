@@ -38,6 +38,9 @@ POSTGRESQL_CHANNEL_TARIFF_SCOPE_SQL = (
 POSTGRESQL_PRECOMPUTED_SELECTION_SQL = (
     ROOT / "database" / "postgresql" / "014_add_precomputed_selection_state.sql"
 ).read_text(encoding="utf-8")
+POSTGRESQL_QUEUE_CLAIM_INDEX_SQL = (
+    ROOT / "database" / "postgresql" / "015_optimize_selection_queue_claim_available_index.sql"
+).read_text(encoding="utf-8")
 
 
 class PostgreSQLContractTests(unittest.TestCase):
@@ -359,6 +362,14 @@ class PostgreSQLPrecomputedSelectionContractTests(unittest.TestCase):
             "WHERE status IN ('pending', 'failed')",
         ]:
             self.assertIn(required_fragment, POSTGRESQL_PRECOMPUTED_SELECTION_SQL)
+
+        for required_fragment in [
+            "idx_selection_queue_items_available_claim",
+            "ON selection_queue_items(queue_id, position, queue_item_id)",
+            "INCLUDE (item_id)",
+            "WHERE claim_status = 'available'",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_QUEUE_CLAIM_INDEX_SQL)
 
     def test_precomputed_selection_diagnostics_use_jsonb_outbox_payloads(self) -> None:
         for required_fragment in [
