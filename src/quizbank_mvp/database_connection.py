@@ -7,6 +7,7 @@ import os
 import re
 import sqlite3
 import threading
+import atexit
 from pathlib import Path
 from typing import Any
 
@@ -83,6 +84,14 @@ def postgresql_connection_pool(database_url: str, row_factory: Any):
             )
             _POSTGRESQL_POOLS[database_url] = pool
         return pool
+
+
+def close_postgresql_pools() -> None:
+    with _POSTGRESQL_POOL_LOCK:
+        pools = list(_POSTGRESQL_POOLS.values())
+        _POSTGRESQL_POOLS.clear()
+    for pool in pools:
+        pool.close()
 
 
 def postgresql_pool_enabled() -> bool:
@@ -185,3 +194,6 @@ def decode_json_field(value: Any) -> Any:
     if isinstance(value, (dict, list)):
         return value
     return json.loads(str(value))
+
+
+atexit.register(close_postgresql_pools)

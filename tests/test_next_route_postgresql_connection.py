@@ -69,7 +69,7 @@ class NextRoutePostgreSQLConnectionTests(unittest.TestCase):
 
 class PostgreSQLPoolConnectionTests(unittest.TestCase):
     def tearDown(self) -> None:
-        database_connection._POSTGRESQL_POOLS.clear()
+        database_connection.close_postgresql_pools()
 
     def test_connect_postgresql_uses_pool_context_when_available(self) -> None:
         fake_psycopg = types.ModuleType("psycopg")
@@ -90,6 +90,8 @@ class PostgreSQLPoolConnectionTests(unittest.TestCase):
         self.assertFalse(raw_connection.closed)
         self.assertEqual(raw_connection.pool_enter_count, 1)
         self.assertEqual(raw_connection.pool_exit_count, 1)
+        database_connection.close_postgresql_pools()
+        self.assertEqual(raw_connection.pool_close_count, 1)
 
 
 class RoutePostgreSQLRuntimeConnection(FakePostgreSQLRuntimeConnection):
@@ -118,6 +120,9 @@ def fake_connection_pool(raw_connection):
 
         def connection(self):
             return FakePoolContext(raw_connection)
+
+        def close(self) -> None:
+            raw_connection.pool_close_count = getattr(raw_connection, "pool_close_count", 0) + 1
 
     return FakeConnectionPool
 
