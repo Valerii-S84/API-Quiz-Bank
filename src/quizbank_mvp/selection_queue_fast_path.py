@@ -17,7 +17,7 @@ from .selection_delivery import answer_feedback, delivery_projection
 from .selection_models import ContentScope, SelectionRequest
 from .selection_queue_filler import queue_scopes_for_request
 from .selection_queue_fast_path_sql import POSTGRESQL_CLAIM_ITEM_SQL_TEMPLATE
-from .selection_queue_models import MAX_QUEUE_TARGET_SIZE, selection_queue_id
+from .selection_queue_models import selection_queue_id
 from .selection_quota import quota_exceeded_problem, quota_feature, reserve_quota
 from .selection_scope import effective_scope_replacement
 from .selection_scope_enforcement import enforce_consumer_scope, enforce_entitlement_scope
@@ -303,11 +303,10 @@ def postgresql_claim_item_parameters(
     return (
         *queue_ids,
         *request.excluded_item_ids,
-        max(1, len(queue_ids) * MAX_QUEUE_TARGET_SIZE),
-        *DELIVERABLE_STATUSES,
         new_id("selclaim"),
         now,
         now,
+        *DELIVERABLE_STATUSES,
     )
 
 

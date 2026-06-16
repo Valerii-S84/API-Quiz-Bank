@@ -64,7 +64,7 @@ class NextRoutePostgreSQLConnectionTests(unittest.TestCase):
             executed_sql.index("FROM api_credentials ac"),
             executed_sql.index("WITH active_consumer AS"),
         )
-        self.assertIn("queue_candidates AS MATERIALIZED", executed_sql)
+        self.assertIn("FOR UPDATE OF sqi SKIP LOCKED", executed_sql)
 
 
 class PostgreSQLPoolConnectionTests(unittest.TestCase):

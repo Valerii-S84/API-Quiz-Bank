@@ -336,8 +336,9 @@ class QueueSelectorDatabaseBackendContractTests(unittest.TestCase):
         for fragment in POSTGRESQL_HOT_PATH_FORBIDDEN_SQL_FRAGMENTS:
             self.assertNotIn(fragment, executed_sql)
         self.assertIn("WITH active_consumer AS", executed_sql)
-        self.assertIn("queue_candidates AS MATERIALIZED", executed_sql)
+        self.assertIn("WITH candidate AS", executed_sql)
         self.assertIn("FOR UPDATE OF sqi SKIP LOCKED", executed_sql)
+        self.assertIn("JOIN quiz_items qi ON qi.item_id = updated.item_id", executed_sql)
         self.assertIn("INSERT INTO quota_usage", executed_sql)
         self.assertIn("WITH inserted_delivery AS", executed_sql)
         self.assertIn("INSERT INTO selection_decisions", executed_sql)
@@ -436,7 +437,7 @@ class FakePostgreSQLRuntimeConnection:
         self.executed.append((sql, parameters))
         if "WITH active_consumer AS" in sql:
             return FakeResult(row=postgresql_queue_context_row())
-        if "queue_candidates AS MATERIALIZED" in sql:
+        if "WITH candidate AS" in sql and "FOR UPDATE OF sqi SKIP LOCKED" in sql:
             return FakeResult(row=postgresql_claimed_item_row())
         if "UPDATE selection_queue_items" in sql and "RETURNING queue_item_id" in sql:
             return FakeResult(row=postgresql_queue_claim_row())

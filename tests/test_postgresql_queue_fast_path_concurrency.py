@@ -25,11 +25,11 @@ class PostgreSQLQueueFastPathConcurrencyTests(unittest.TestCase):
         ):
             select_next_item_from_queue(None, request())
 
-        claim_sql = raw_connection.sql_matching("queue_candidates AS MATERIALIZED")
-        self.assertIn("queue_candidates AS MATERIALIZED", claim_sql)
+        claim_sql = raw_connection.sql_matching("WITH candidate AS")
         self.assertIn("FOR UPDATE OF sqi SKIP LOCKED", claim_sql)
         self.assertIn("AND sqi.claim_status = 'available'", claim_sql)
-        self.assertIn("LIMIT %s", claim_sql)
+        self.assertIn("LIMIT 1", claim_sql)
+        self.assertIn("JOIN quiz_items qi ON qi.item_id = updated.item_id", claim_sql)
 
     def test_delivery_finalize_does_not_update_parent_queue_hot_row(self) -> None:
         raw_connection = FakePostgreSQLRuntimeConnection()
