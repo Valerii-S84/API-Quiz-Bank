@@ -48,6 +48,8 @@ class NextRouteQuotaLockTests(unittest.TestCase):
         self.assertEqual(second, "QUOTA_EXCEEDED")
         self.assertEqual(self.delivery_count(), 1)
         self.assertEqual(self.quota_used_count(), 1)
+        self.assertEqual(self.quota_reservation_count(), 1)
+        self.assertEqual(self.delivery_quota_reservation_count(), 1)
 
     def test_delivery_is_not_written_if_quota_is_denied(self) -> None:
         self.seed_access(quota=0)
@@ -57,6 +59,7 @@ class NextRouteQuotaLockTests(unittest.TestCase):
         self.assertEqual(result, "QUOTA_EXCEEDED")
         self.assertEqual(self.delivery_count(), 0)
         self.assertEqual(self.quota_row_count(), 0)
+        self.assertEqual(self.quota_reservation_count(), 0)
 
     def test_exhausted_quota_precedes_no_candidate_without_increment(self) -> None:
         self.seed_access(quota=1)
@@ -82,6 +85,7 @@ class NextRouteQuotaLockTests(unittest.TestCase):
 
         self.assertEqual(self.delivery_count(), 0)
         self.assertEqual(self.quota_row_count(), 0)
+        self.assertEqual(self.quota_reservation_count(), 0)
         self.assertEqual(self.selection_decision_count(), 0)
 
         self.assertEqual(self.call_next(), "ok")
@@ -98,6 +102,7 @@ class NextRouteQuotaLockTests(unittest.TestCase):
         self.assertEqual(counts["QUOTA_EXCEEDED"], 3)
         self.assertEqual(self.delivery_count(), 3)
         self.assertEqual(self.quota_used_count(), 3)
+        self.assertEqual(self.quota_reservation_count(), 3)
 
     def test_delivery_state_read_completes_before_quota_reserve(self) -> None:
         self.seed_access(quota=1)
@@ -207,6 +212,20 @@ class NextRouteQuotaLockTests(unittest.TestCase):
 
     def quota_row_count(self) -> int:
         return self.scalar_count("quota_usage")
+
+    def quota_reservation_count(self) -> int:
+        return self.scalar_count("quota_reservations")
+
+    def delivery_quota_reservation_count(self) -> int:
+        with connect(self.db_path) as connection:
+            row = connection.execute(
+                """
+                SELECT COUNT(*) AS count
+                FROM deliveries
+                WHERE quota_reservation_id IS NOT NULL
+                """
+            ).fetchone()
+        return int(row["count"])
 
     def selection_decision_count(self) -> int:
         return self.scalar_count("selection_decisions")

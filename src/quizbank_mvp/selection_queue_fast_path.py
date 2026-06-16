@@ -18,7 +18,8 @@ from .selection_models import ContentScope, SelectionRequest
 from .selection_queue_filler import queue_scopes_for_request
 from .selection_queue_fast_path_sql import POSTGRESQL_CLAIM_ITEM_SQL_TEMPLATE
 from .selection_queue_models import selection_queue_id
-from .selection_quota import quota_exceeded_problem, quota_feature, reserve_quota
+from .selection_quota import quota_exceeded_problem, quota_feature
+from .selection_quota_reservations import claim_postgresql_quota_reservation
 from .selection_scope import effective_scope_replacement
 from .selection_scope_enforcement import enforce_consumer_scope, enforce_entitlement_scope
 from .time_ids import new_id, today_usage_date, utc_now
@@ -72,12 +73,13 @@ def select_next_item_from_postgresql_queue(
     claimed = claim_postgresql_queue_item(connection, context.request)
     timings["queue_claim_ms"] = elapsed_ms(claim_started_at)
     quota_started_at = perf_counter()
-    quota_usage = reserve_quota(connection, context.consumer, context.request)
-    timings["quota_reserve_ms"] = elapsed_ms(quota_started_at)
+    quota_usage = claim_postgresql_quota_reservation(connection, context.consumer, context.request)
+    timings["quota_claim_ms"] = elapsed_ms(quota_started_at)
     delivery = new_delivery(context.request, claimed.item, context.entitlement, quota_usage)
     finalize_started_at = perf_counter()
     finalize_postgresql_queue_delivery(connection, context.request, claimed, delivery)
-    timings["delivery_finalize_link_ms"] = elapsed_ms(finalize_started_at)
+    timings["quota_finalize_ms"] = elapsed_ms(finalize_started_at)
+    timings["delivery_finalize_link_ms"] = timings["quota_finalize_ms"]
     decision = success_decision(
         selection_request_id,
         context.request,
@@ -184,7 +186,10 @@ POSTGRESQL_CONTEXT_SQL = """
            e.allowed_content_bank_ids_json AS entitlement_allowed_content_bank_ids_json,
            e.allowed_bank_version_ids_json AS entitlement_allowed_bank_version_ids_json,
            scope.language_code, scope.content_bank_id, scope.bank_version_id,
-           COALESCE(quota.used_count, 0) AS quota_used_count
+           GREATEST(
+               COALESCE(quota.used_count, 0),
+               COALESCE(quota_reservations.used_count, 0)
+           ) AS quota_used_count
     FROM active_consumer c
     JOIN active_entitlement e ON TRUE
     JOIN resolved_scope scope ON TRUE
@@ -195,6 +200,17 @@ POSTGRESQL_CONTEXT_SQL = """
      AND quota.language_code = scope.language_code
      AND quota.content_bank_id = scope.content_bank_id
      AND quota.bank_version_id = scope.bank_version_id
+    LEFT JOIN LATERAL (
+        SELECT COUNT(*) AS used_count
+        FROM quota_reservations qr
+        WHERE qr.consumer_id = c.consumer_id
+          AND qr.feature = ?
+          AND qr.usage_date = ?
+          AND qr.language_code = scope.language_code
+          AND qr.content_bank_id = scope.content_bank_id
+          AND qr.bank_version_id = scope.bank_version_id
+          AND qr.reservation_status IN ('claimed', 'finalized')
+    ) quota_reservations ON TRUE
 """
 
 
@@ -214,6 +230,8 @@ def postgresql_context_parameters(request: SelectionRequest) -> tuple[Any, ...]:
         DEFAULT_LANGUAGE_CODE,
         scope.content_bank_id,
         scope.bank_version_id,
+        quota_feature(request),
+        today_usage_date(),
         quota_feature(request),
         today_usage_date(),
     )
@@ -359,6 +377,7 @@ def new_delivery(
         "selected_at": utc_now(),
         "entitlement_id": entitlement["entitlement_id"],
         "quota_usage_id": quota_usage["quota_usage_id"],
+        "quota_reservation_id": quota_usage["quota_reservation_id"],
     }
 
 
@@ -399,10 +418,19 @@ def postgresql_finalize_delivery_sql() -> str:
                 delivery_id, consumer_id, quiz_item_id, item_status, delivery_status,
                 language_code, content_bank_id, bank_version_id, source_id, source_type,
                 provenance_note, selection_reason_summary, selected_at, entitlement_id,
-                quota_usage_id
-            ) VALUES (?, ?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                quota_usage_id, quota_reservation_id
+            ) VALUES (?, ?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING delivery_id, consumer_id, quiz_item_id, delivery_status,
                       language_code, content_bank_id, bank_version_id, selected_at
+        ),
+        finalized_quota_reservation AS (
+            UPDATE quota_reservations
+            SET reservation_status = 'finalized',
+                finalized_at = ?,
+                updated_at = ?
+            WHERE quota_reservation_id = ?
+              AND reservation_status = 'claimed'
+            RETURNING quota_reservation_id
         ),
         upsert_state AS (
             INSERT INTO consumer_delivery_state (
@@ -435,6 +463,7 @@ def postgresql_finalize_delivery_sql() -> str:
         SELECT queue_id
         FROM delivered_queue_item
         WHERE EXISTS (SELECT 1 FROM inserted_delivery)
+          AND EXISTS (SELECT 1 FROM finalized_quota_reservation)
           AND EXISTS (SELECT 1 FROM upsert_state)
     """
 
@@ -460,6 +489,10 @@ def postgresql_finalize_delivery_parameters(
         delivery["selected_at"],
         delivery["entitlement_id"],
         delivery["quota_usage_id"],
+        delivery["quota_reservation_id"],
+        now,
+        now,
+        delivery["quota_reservation_id"],
         request.consumer_profile.delivery_channel,
         now,
         delivery["delivery_id"],
@@ -480,15 +513,16 @@ def log_postgresql_queue_timing(
 ) -> None:
     logging.getLogger("uvicorn.error").info(
         "queue_first_timing consumer_id=%s selection_request_id=%s delivery_id=%s "
-        "context_ms=%.3f queue_claim_ms=%.3f quota_reserve_ms=%.3f "
-        "delivery_finalize_link_ms=%.3f decision_insert_ms=%.3f "
+        "context_ms=%.3f queue_claim_ms=%.3f quota_claim_ms=%.3f "
+        "quota_finalize_ms=%.3f delivery_finalize_link_ms=%.3f decision_insert_ms=%.3f "
         "diagnostics_outbox_ms=%.3f total_ms=%.3f",
         request.consumer_id,
         selection_request_id,
         delivery["delivery_id"],
         timings["context_ms"],
         timings["queue_claim_ms"],
-        timings["quota_reserve_ms"],
+        timings["quota_claim_ms"],
+        timings["quota_finalize_ms"],
         timings["delivery_finalize_link_ms"],
         timings["decision_insert_ms"],
         timings["diagnostics_outbox_ms"],

@@ -46,6 +46,22 @@ class PostgreSQLQueueFastPathConcurrencyTests(unittest.TestCase):
         self.assertIn("SELECT queue_id", finalize_sql)
         self.assertNotIn("UPDATE selection_queues", finalize_sql)
 
+    def test_quota_claim_uses_reservation_tokens_with_skip_locked(self) -> None:
+        raw_connection = FakePostgreSQLRuntimeConnection()
+
+        with mock.patch(
+            "quizbank_mvp.selection_queue_selector.connect",
+            return_value=PostgreSQLConnection(raw_connection),
+        ):
+            select_next_item_from_queue(None, request())
+
+        quota_sql = raw_connection.sql_matching("reservation_status = 'available'")
+        finalize_sql = raw_connection.sql_matching("finalized_quota_reservation")
+        self.assertIn("reservation_status = 'available'", quota_sql)
+        self.assertIn("FOR UPDATE SKIP LOCKED", quota_sql)
+        self.assertIn("reservation_status = 'finalized'", finalize_sql)
+        self.assertIn("quota_reservation_id", finalize_sql)
+
     def test_queue_selector_returns_503_if_delivery_is_not_queue_linked(self) -> None:
         raw_connection = FakePostgreSQLRuntimeConnection(finalize_delivery_link=False)
 

@@ -128,6 +128,7 @@ def list_audit_log(db_path: Path | None, limit: int) -> dict[str, object]:
 
 
 def list_admin_consumers(db_path: Path | None, limit: int) -> dict[str, object]:
+    usage_date = utc_now()[:10]
     with connect(db_path) as connection:
         rows = connection.execute(
             """
@@ -138,9 +139,9 @@ def list_admin_consumers(db_path: Path | None, limit: int) -> dict[str, object]:
                    c.allowed_content_bank_ids_json, c.allowed_bank_version_ids_json,
                    COALESCE(cap.display_name, '') AS display_name,
                    COALESCE(cap.consumer_kind, 'api_client') AS consumer_kind,
-                   COUNT(d.delivery_id) AS delivery_count,
+                   COUNT(DISTINCT d.delivery_id) AS delivery_count,
                    MAX(d.selected_at) AS last_delivery_at,
-                   COALESCE(MAX(qu.used_count), 0) AS today_quota_used
+                   CASE WHEN COUNT(DISTINCT qr.quota_reservation_id) > COALESCE(MAX(qu.used_count), 0) THEN COUNT(DISTINCT qr.quota_reservation_id) ELSE COALESCE(MAX(qu.used_count), 0) END AS today_quota_used
             FROM consumers c
             LEFT JOIN consumer_admin_profiles cap ON cap.consumer_id = c.consumer_id
             LEFT JOIN deliveries d ON d.consumer_id = c.consumer_id
@@ -148,6 +149,11 @@ def list_admin_consumers(db_path: Path | None, limit: int) -> dict[str, object]:
               ON qu.consumer_id = c.consumer_id
              AND qu.feature = 'quiz_delivery'
              AND qu.usage_date = ?
+            LEFT JOIN quota_reservations qr
+              ON qr.consumer_id = c.consumer_id
+             AND qr.feature = 'quiz_delivery'
+             AND qr.usage_date = ?
+             AND qr.reservation_status IN ('claimed', 'finalized')
             GROUP BY c.consumer_id, c.status, c.daily_quota_limit,
                      c.allowed_cefr_levels_json, c.allowed_theme_ids_json,
                      c.default_language_code, c.default_content_bank_id,
@@ -157,7 +163,7 @@ def list_admin_consumers(db_path: Path | None, limit: int) -> dict[str, object]:
             ORDER BY c.created_at DESC
             LIMIT ?
             """,
-            (utc_now()[:10], limit),
+            (usage_date, usage_date, limit),
         ).fetchall()
     return {"data": [consumer_projection(row_to_dict(row)) for row in rows]}
 
@@ -232,6 +238,7 @@ def update_admin_visual_settings(
 
 
 def get_admin_consumer(db_path: Path | None, consumer_id: str) -> dict[str, object]:
+    usage_date = utc_now()[:10]
     with connect(db_path) as connection:
         row = connection.execute(
             """
@@ -242,9 +249,9 @@ def get_admin_consumer(db_path: Path | None, consumer_id: str) -> dict[str, obje
                    c.allowed_content_bank_ids_json, c.allowed_bank_version_ids_json,
                    COALESCE(cap.display_name, '') AS display_name,
                    COALESCE(cap.consumer_kind, 'api_client') AS consumer_kind,
-                   COUNT(d.delivery_id) AS delivery_count,
+                   COUNT(DISTINCT d.delivery_id) AS delivery_count,
                    MAX(d.selected_at) AS last_delivery_at,
-                   COALESCE(MAX(qu.used_count), 0) AS today_quota_used
+                   CASE WHEN COUNT(DISTINCT qr.quota_reservation_id) > COALESCE(MAX(qu.used_count), 0) THEN COUNT(DISTINCT qr.quota_reservation_id) ELSE COALESCE(MAX(qu.used_count), 0) END AS today_quota_used
             FROM consumers c
             LEFT JOIN consumer_admin_profiles cap ON cap.consumer_id = c.consumer_id
             LEFT JOIN deliveries d ON d.consumer_id = c.consumer_id
@@ -252,6 +259,11 @@ def get_admin_consumer(db_path: Path | None, consumer_id: str) -> dict[str, obje
               ON qu.consumer_id = c.consumer_id
              AND qu.feature = 'quiz_delivery'
              AND qu.usage_date = ?
+            LEFT JOIN quota_reservations qr
+              ON qr.consumer_id = c.consumer_id
+             AND qr.feature = 'quiz_delivery'
+             AND qr.usage_date = ?
+             AND qr.reservation_status IN ('claimed', 'finalized')
             WHERE c.consumer_id = ?
             GROUP BY c.consumer_id, c.status, c.daily_quota_limit,
                      c.allowed_cefr_levels_json, c.allowed_theme_ids_json,
@@ -260,7 +272,7 @@ def get_admin_consumer(db_path: Path | None, consumer_id: str) -> dict[str, obje
                      c.allowed_content_bank_ids_json, c.allowed_bank_version_ids_json,
                      cap.display_name, cap.consumer_kind
             """,
-            (utc_now()[:10], consumer_id),
+            (usage_date, usage_date, consumer_id),
         ).fetchone()
     if row is None:
         raise admin_problem(404, "ADMIN_CONSUMER_NOT_FOUND", "Consumer not found")

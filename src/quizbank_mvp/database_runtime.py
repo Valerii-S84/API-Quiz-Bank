@@ -9,13 +9,8 @@ from .content_scope_defaults import DEFAULT_BANK_VERSION, DEFAULT_BANK_VERSION_I
 from .content_scope_defaults import DEFAULT_CONTENT_BANK_ID, DEFAULT_LANGUAGE_CODE
 from .database_channel_tariff_scope import ensure_sqlite_channel_tariff_scope
 from .database_channel_tariff_scope import sqlite_channel_tariff_scope_is_ready
-from .database_connection import (
-    ROOT,
-    configured_database_url,
-    configured_db_path,
-    connect,
-    utc_now,
-)
+from .database_connection import ROOT, configured_database_url, configured_db_path, connect, utc_now
+from .database_quota_reservations import ensure_sqlite_quota_reservation_link
 from .visual_database_metadata import (
     ensure_visual_metadata_columns,
     postgresql_visual_metadata_is_ready,
@@ -36,6 +31,7 @@ RUNTIME_TABLES = {
     "admin_credentials",
     "consumer_admin_profiles",
     "deliveries",
+    "quota_reservations",
     "selection_decisions",
     "quiz_item_image_quality_policy",
 }
@@ -121,6 +117,7 @@ def sqlite_content_bank_foundation_is_ready(path: Path) -> bool:
             sqlite_table_has_columns(connection, "quiz_items", CONTENT_SCOPE_COLUMNS)
             and sqlite_table_has_columns(connection, "sources", CONTENT_SCOPE_COLUMNS)
             and sqlite_table_has_columns(connection, "deliveries", CONTENT_SCOPE_COLUMNS)
+            and sqlite_table_has_columns(connection, "deliveries", {"quota_reservation_id"})
             and sqlite_channel_tariff_scope_is_ready(connection)
             and sqlite_quiz_items_has_bank_version_fk(connection)
             and sqlite_active_german_bank_version_exists(connection)
@@ -134,6 +131,7 @@ def ensure_sqlite_content_bank_foundation(connection: sqlite3.Connection) -> Non
     ensure_sqlite_scheduled_slot_scope(connection)
     ensure_sqlite_quiz_item_scope(connection)
     ensure_sqlite_channel_tariff_scope(connection)
+    ensure_sqlite_quota_reservation_link(connection)
     ensure_sqlite_scope_indexes(connection)
 
 

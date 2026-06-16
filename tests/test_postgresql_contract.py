@@ -41,6 +41,9 @@ POSTGRESQL_PRECOMPUTED_SELECTION_SQL = (
 POSTGRESQL_QUEUE_CLAIM_INDEX_SQL = (
     ROOT / "database" / "postgresql" / "015_optimize_selection_queue_claim_available_index.sql"
 ).read_text(encoding="utf-8")
+POSTGRESQL_QUOTA_RESERVATIONS_SQL = (
+    ROOT / "database" / "postgresql" / "016_add_quota_reservations.sql"
+).read_text(encoding="utf-8")
 
 
 class PostgreSQLContractTests(unittest.TestCase):
@@ -381,6 +384,21 @@ class PostgreSQLPrecomputedSelectionContractTests(unittest.TestCase):
             "attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0)",
         ]:
             self.assertIn(required_fragment, POSTGRESQL_PRECOMPUTED_SELECTION_SQL)
+
+    def test_quota_reservation_migration_adds_token_ledger_and_delivery_link(self) -> None:
+        for required_fragment in [
+            "CREATE TABLE IF NOT EXISTS quota_reservations",
+            "quota_usage_id TEXT NOT NULL REFERENCES quota_usage(quota_usage_id) ON DELETE CASCADE",
+            "reservation_status IN ('available', 'claimed', 'finalized', 'expired')",
+            "ADD COLUMN IF NOT EXISTS quota_reservation_id TEXT",
+            "REFERENCES quota_reservations(quota_reservation_id)",
+            "idx_quota_reservations_available_claim",
+            "WHERE reservation_status = 'available'",
+            "idx_quota_reservations_finalized_scope",
+            "WHERE reservation_status IN ('claimed', 'finalized')",
+            "uq_deliveries_quota_reservation",
+        ]:
+            self.assertIn(required_fragment, POSTGRESQL_QUOTA_RESERVATIONS_SQL)
 
 
 if __name__ == "__main__":

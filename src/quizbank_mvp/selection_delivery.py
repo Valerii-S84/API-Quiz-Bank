@@ -49,8 +49,8 @@ def create_delivery(
             delivery_id, consumer_id, quiz_item_id, item_status, delivery_status,
             language_code, content_bank_id, bank_version_id,
             source_id, source_type, provenance_note, selection_reason_summary,
-            selected_at, entitlement_id, quota_usage_id
-        ) VALUES (?, ?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            selected_at, entitlement_id, quota_usage_id, quota_reservation_id
+        ) VALUES (?, ?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             delivery_id,
@@ -67,6 +67,7 @@ def create_delivery(
             selected_at,
             entitlement["entitlement_id"],
             quota_usage["quota_usage_id"],
+            quota_usage.get("quota_reservation_id") or None,
         ),
     )
     delivery = {
@@ -80,6 +81,7 @@ def create_delivery(
         "bank_version_id": request.bank_version_id,
         "selected_at": selected_at,
         "selection_reason_summary": selection_reason,
+        "quota_reservation_id": quota_usage.get("quota_reservation_id") or "",
     }
     upsert_consumer_delivery_state(connection, request, delivery)
     return delivery_projection(delivery)

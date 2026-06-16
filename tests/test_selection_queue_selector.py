@@ -59,6 +59,8 @@ class SelectionQueueSelectorTests(unittest.TestCase):
         self.assertEqual(queue["queue_status"], "warming")
         self.assertEqual(self.scalar_count("deliveries"), 1)
         self.assertEqual(self.quota_used_count(), 1)
+        self.assertEqual(self.quota_reservation_count(), 1)
+        self.assertTrue(self.single_delivery()["quota_reservation_id"])
         self.assertEqual(self.scalar_count("consumer_delivery_state"), 1)
         self.assertEqual(self.single_decision()["selected_item_id"], "approved_traceable_001")
 
@@ -72,6 +74,7 @@ class SelectionQueueSelectorTests(unittest.TestCase):
         self.assertEqual(error.exception.reason_code, "SELECTION_QUEUE_NOT_READY")
         self.assertEqual(self.scalar_count("deliveries"), 0)
         self.assertEqual(self.scalar_count("quota_usage"), 0)
+        self.assertEqual(self.quota_reservation_count(), 0)
         self.assertEqual(self.scalar_count("selection_decisions"), 0)
 
     def test_queue_selector_denies_exhausted_quota_before_queue_claim(self) -> None:
@@ -95,6 +98,7 @@ class SelectionQueueSelectorTests(unittest.TestCase):
         self.assertEqual(self.single_queue_item()["claim_status"], "available")
         self.assertEqual(self.scalar_count("deliveries"), 0)
         self.assertEqual(self.scalar_count("quota_usage"), 0)
+        self.assertEqual(self.quota_reservation_count(), 0)
 
     def test_queue_claim_rolls_back_when_delivery_insert_fails(self) -> None:
         self.seed_access(quota=5)
@@ -110,6 +114,7 @@ class SelectionQueueSelectorTests(unittest.TestCase):
         self.assertEqual(self.single_queue_item()["claim_status"], "available")
         self.assertEqual(self.scalar_count("deliveries"), 0)
         self.assertEqual(self.scalar_count("quota_usage"), 0)
+        self.assertEqual(self.quota_reservation_count(), 0)
         self.assertEqual(self.scalar_count("selection_decisions"), 0)
 
     def test_stale_blocked_queue_item_is_not_delivered(self) -> None:
@@ -123,6 +128,7 @@ class SelectionQueueSelectorTests(unittest.TestCase):
         self.assertEqual(self.single_queue_item()["claim_status"], "available")
         self.assertEqual(self.scalar_count("deliveries"), 0)
         self.assertEqual(self.scalar_count("quota_usage"), 0)
+        self.assertEqual(self.quota_reservation_count(), 0)
 
     def test_concurrent_queue_claims_do_not_duplicate_single_item(self) -> None:
         self.seed_access(quota=5)
@@ -171,6 +177,10 @@ class SelectionQueueSelectorTests(unittest.TestCase):
         with connect(self.db_path) as connection:
             return connection.execute("SELECT * FROM selection_queue_items").fetchone()
 
+    def single_delivery(self):
+        with connect(self.db_path) as connection:
+            return connection.execute("SELECT * FROM deliveries").fetchone()
+
     def single_decision(self):
         with connect(self.db_path) as connection:
             return connection.execute("SELECT * FROM selection_decisions").fetchone()
@@ -186,6 +196,9 @@ class SelectionQueueSelectorTests(unittest.TestCase):
                 "SELECT COALESCE(SUM(used_count), 0) AS count FROM quota_usage"
             ).fetchone()
         return int(row["count"])
+
+    def quota_reservation_count(self) -> int:
+        return self.scalar_count("quota_reservations")
 
     def block_item(self, item_id: str) -> None:
         with connect(self.db_path) as connection:

@@ -36,7 +36,55 @@ def reserve_quota(
         row = load_quota_usage(connection, consumer["consumer_id"], usage_date, feature, request)
         used_count = 0 if row is None else int(row["used_count"])
         raise quota_exceeded_problem(used_count, quota_limit)
-    return {"quota_usage_id": reservation["quota_usage_id"]}
+    quota_reservation = create_finalized_quota_reservation(
+        connection,
+        consumer,
+        request,
+        reservation,
+    )
+    return {
+        "quota_usage_id": reservation["quota_usage_id"],
+        "quota_reservation_id": quota_reservation.get("quota_reservation_id", ""),
+    }
+
+
+def create_finalized_quota_reservation(
+    connection,
+    consumer: dict[str, Any],
+    request: "SelectionRequest",
+    quota_usage: dict[str, Any],
+) -> dict[str, Any]:
+    usage_date = today_usage_date()
+    feature = quota_feature(request)
+    language_code, content_bank_id, bank_version_id = quota_scope_values(consumer, request)
+    reservation_index = max(1, int(quota_usage.get("used_count", 1)))
+    now = utc_now()
+    row = connection.execute(
+        """
+        INSERT INTO quota_reservations (
+            quota_reservation_id, quota_usage_id, consumer_id, feature,
+            usage_date, language_code, content_bank_id, bank_version_id,
+            reservation_index, reservation_status, claim_token, claimed_at,
+            finalized_at, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'finalized', ?, ?, ?, ?, ?)
+        ON CONFLICT(
+            consumer_id, feature, usage_date, language_code,
+            content_bank_id, bank_version_id, reservation_index
+        ) DO UPDATE SET
+            reservation_status = 'finalized',
+            finalized_at = excluded.finalized_at,
+            updated_at = excluded.updated_at
+        RETURNING quota_reservation_id
+        """,
+        (
+            new_id("qres"), quota_usage["quota_usage_id"], consumer["consumer_id"],
+            feature, usage_date, language_code, content_bank_id, bank_version_id,
+            reservation_index, new_id("qclaim"), now, now, now, now,
+        ),
+    ).fetchone()
+    if row is None:
+        raise RuntimeError("quota reservation ledger insert did not return a row")
+    return row_to_dict(row)
 
 
 def raise_if_quota_exhausted(

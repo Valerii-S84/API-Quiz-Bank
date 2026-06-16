@@ -159,6 +159,7 @@ class DatabaseBackendContractTests(unittest.TestCase):
                 {"name": "admin_credentials"},
                 {"name": "consumer_admin_profiles"},
                 {"name": "deliveries"},
+                {"name": "quota_reservations"},
                 {"name": "selection_decisions"},
                 {"name": "quiz_item_image_quality_policy"},
             ]
@@ -339,8 +340,11 @@ class QueueSelectorDatabaseBackendContractTests(unittest.TestCase):
         self.assertIn("WITH candidate AS", executed_sql)
         self.assertIn("FOR UPDATE OF sqi SKIP LOCKED", executed_sql)
         self.assertIn("JOIN quiz_items qi ON qi.item_id = updated.item_id", executed_sql)
-        self.assertIn("INSERT INTO quota_usage", executed_sql)
+        self.assertIn("FROM quota_reservations", executed_sql)
+        self.assertIn("FOR UPDATE SKIP LOCKED", executed_sql)
+        self.assertNotIn("DO UPDATE SET\n            used_count = quota_usage.used_count + 1", executed_sql)
         self.assertIn("WITH inserted_delivery AS", executed_sql)
+        self.assertIn("finalized_quota_reservation", executed_sql)
         self.assertIn("INSERT INTO selection_decisions", executed_sql)
         self.assertNotIn("UPDATE selection_queues", executed_sql)
 
@@ -437,6 +441,8 @@ class FakePostgreSQLRuntimeConnection:
         self.executed.append((sql, parameters))
         if "WITH active_consumer AS" in sql:
             return FakeResult(row=postgresql_queue_context_row())
+        if "FROM quota_reservations" in sql and "reservation_status = 'available'" in sql:
+            return FakeResult(row={"quota_reservation_id": "qres_pg", "quota_usage_id": "quota_pg"})
         if "WITH candidate AS" in sql and "FOR UPDATE OF sqi SKIP LOCKED" in sql:
             return FakeResult(row=postgresql_claimed_item_row())
         if "UPDATE selection_queue_items" in sql and "RETURNING queue_item_id" in sql:
@@ -462,6 +468,8 @@ class FakePostgreSQLRuntimeConnection:
             return FakeResult(row=postgresql_content_scope_row())
         if "INSERT INTO quota_usage" in sql:
             return FakeResult(row={"quota_usage_id": "quota_pg", "used_count": 1, "quota_limit": 10})
+        if "INSERT INTO quota_reservations" in sql:
+            return FakeResult(row={"quota_reservation_id": "qres_pg"})
         if "WITH inserted_delivery AS" in sql:
             if self.finalize_delivery_link:
                 return FakeResult(row={"queue_id": "queue_pg"})

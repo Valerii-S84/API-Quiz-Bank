@@ -40,7 +40,8 @@
     "database/postgresql/012_add_multilingual_bank_foundation.sql",
     "database/postgresql/013_add_channel_tariff_scope.sql",
     "database/postgresql/014_add_precomputed_selection_state.sql",
-    "database/postgresql/015_optimize_selection_queue_claim_available_index.sql"
+    "database/postgresql/015_optimize_selection_queue_claim_available_index.sql",
+    "database/postgresql/016_add_quota_reservations.sql"
   ],
   "source_artifacts": {
     "canonical_input_path": "data/imports/control_sample_items.jsonl",
