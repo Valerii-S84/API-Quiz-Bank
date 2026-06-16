@@ -71,6 +71,10 @@ class PostgreSQLPoolConnectionTests(unittest.TestCase):
     def tearDown(self) -> None:
         database_connection.close_postgresql_pools()
 
+    def test_pool_default_max_size_matches_twenty_request_gate(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(database_connection.postgresql_pool_max_size(), 20)
+
     def test_connect_postgresql_uses_pool_context_when_available(self) -> None:
         fake_psycopg = types.ModuleType("psycopg")
         fake_rows = types.ModuleType("psycopg.rows")
@@ -88,6 +92,7 @@ class PostgreSQLPoolConnectionTests(unittest.TestCase):
                     connection.execute("SELECT 1")
 
         self.assertFalse(raw_connection.closed)
+        self.assertEqual(raw_connection.pool_kwargs["max_size"], 20)
         self.assertEqual(raw_connection.pool_enter_count, 1)
         self.assertEqual(raw_connection.pool_exit_count, 1)
         database_connection.close_postgresql_pools()
@@ -117,6 +122,7 @@ def fake_connection_pool(raw_connection):
     class FakeConnectionPool:
         def __init__(self, **kwargs) -> None:
             self.kwargs = kwargs
+            raw_connection.pool_kwargs = kwargs
 
         def connection(self):
             return FakePoolContext(raw_connection)
