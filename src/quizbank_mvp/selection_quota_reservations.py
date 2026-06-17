@@ -34,8 +34,14 @@ INSERT_MISSING_QUOTA_TOKENS_SQL = """
             ELSE 'available'
         END,
         NULL,
-        CASE WHEN token_numbers.reservation_index <= ? THEN ? ELSE NULL END,
-        CASE WHEN token_numbers.reservation_index <= ? THEN ? ELSE NULL END,
+        CASE
+            WHEN token_numbers.reservation_index <= ? THEN CAST(? AS TIMESTAMPTZ)
+            ELSE CAST(NULL AS TIMESTAMPTZ)
+        END,
+        CASE
+            WHEN token_numbers.reservation_index <= ? THEN CAST(? AS TIMESTAMPTZ)
+            ELSE CAST(NULL AS TIMESTAMPTZ)
+        END,
         ?,
         ?
     FROM token_numbers
