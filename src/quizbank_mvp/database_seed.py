@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
 from .credential_hashing import admin_key_prefix, api_key_prefix, hash_api_key
-from .database_connection import connect
+from .database_connection import configured_database_url, connect
 from .database_runtime import (
     DEFAULT_BANK_VERSION_ID,
     DEFAULT_CONTENT_BANK_ID,
@@ -31,6 +32,8 @@ DEFAULT_VISUAL_SETTINGS = {
     "monthly_generation_limit": 0,
     "is_active": 1,
 }
+REAL_CORPUS_PUBLISHED_ITEM_LIMIT = 1000
+PRODUCTION_ENV_VALUES = {"prod", "production"}
 
 
 def read_jsonl(path: Path) -> list[dict[str, str]]:
@@ -404,12 +407,24 @@ def seed_demo_state(db_path: Path | None, fixture_path: Path) -> None:
 
 
 def reset_demo_delivery_state(db_path: Path | None) -> None:
+    ensure_demo_reset_allowed(db_path)
     demo_consumers = (
         "consumer_demo",
         "consumer_quota_blocked",
         "consumer_no_entitlement",
     )
     with connect(db_path) as connection:
+        connection.execute(
+            """
+            DELETE FROM selection_queue_items
+            WHERE delivery_id IN (
+                SELECT delivery_id
+                FROM deliveries
+                WHERE consumer_id IN (?, ?, ?)
+            )
+            """,
+            demo_consumers,
+        )
         connection.execute(
             "DELETE FROM consumer_delivery_state WHERE consumer_id IN (?, ?, ?)",
             demo_consumers,
@@ -422,3 +437,42 @@ def reset_demo_delivery_state(db_path: Path | None) -> None:
             "DELETE FROM quota_usage WHERE consumer_id IN (?, ?, ?)",
             demo_consumers,
         )
+        connection.execute(
+            "DELETE FROM quota_reservations WHERE consumer_id IN (?, ?, ?)",
+            demo_consumers,
+        )
+
+
+def ensure_demo_reset_allowed(db_path: Path | None) -> None:
+    environment_name = production_environment_name()
+    if environment_name is not None:
+        raise RuntimeError(f"Refusing demo reset when {environment_name} is production.")
+    if db_path is None and configured_database_url():
+        raise RuntimeError("Refusing demo reset against a PostgreSQL runtime database.")
+    if published_item_count(db_path) > REAL_CORPUS_PUBLISHED_ITEM_LIMIT:
+        raise RuntimeError("Refusing demo reset against a real published corpus.")
+
+
+def production_environment_name() -> str | None:
+    for name in ("APP_ENV", "QUIZBANK_ENV", "ENVIRONMENT"):
+        if os.environ.get(name, "").strip().lower() in PRODUCTION_ENV_VALUES:
+            return name
+    return None
+
+
+def published_item_count(db_path: Path | None) -> int:
+    with connect(db_path) as connection:
+        if not sqlite_table_exists(connection, "quiz_items"):
+            return 0
+        row = connection.execute(
+            "SELECT COUNT(*) AS count FROM quiz_items WHERE status = 'published'"
+        ).fetchone()
+    return int(row["count"])
+
+
+def sqlite_table_exists(connection: sqlite3.Connection, table_name: str) -> bool:
+    row = connection.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (table_name,),
+    ).fetchone()
+    return row is not None

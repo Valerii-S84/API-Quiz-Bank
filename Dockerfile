@@ -32,4 +32,4 @@ USER nonroot
 EXPOSE 8000
 
 ENTRYPOINT []
-CMD ["sh", "-c", "python -m quizbank_mvp.cli init-db && python -m quizbank_mvp.cli seed-demo && uvicorn quizbank_mvp.app:app --host \"${QUIZBANK_HOST:-0.0.0.0}\" --port \"${QUIZBANK_PORT:-8000}\""]
+CMD ["sh", "-c", "python -m quizbank_mvp.cli init-db && uvicorn quizbank_mvp.app:app --host \"${QUIZBANK_HOST:-0.0.0.0}\" --port \"${QUIZBANK_PORT:-8000}\""]
